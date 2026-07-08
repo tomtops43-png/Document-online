@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>พิมพ์ฟอร์ม</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* UI นอกแผ่นกระดาษ (ซ่อนตอนพิมพ์) */
+  body { margin: 0; background: #888; font-family: 'Sarabun', sans-serif; }
+  .print-toolbar {
+    position: sticky; top: 0; z-index: 10;
+    background: #2c3e50; color: #fff; padding: 10px 16px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .print-toolbar button, .print-toolbar a {
+    font-family: inherit; font-size: 16px; padding: 10px 22px;
+    border: none; border-radius: 6px; cursor: pointer; text-decoration: none;
+  }
+  .btn-print { background: #27ae60; color: #fff; font-weight: 600; }
+  .btn-close { background: #7f8c8d; color: #fff; }
+  #print-root { display: flex; flex-direction: column; align-items: center; padding: 16px 0; }
+  #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none;
+    align-items: center; justify-content: center; z-index: 100; }
+  .loading-box { background: #fff; padding: 24px 32px; border-radius: 8px; text-align: center; }
+  .spinner { width: 36px; height: 36px; margin: 0 auto 10px; border: 4px solid #ddd;
+    border-top-color: #3498db; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #333; color: #fff; padding: 12px 20px; border-radius: 6px; opacity: 0;
+    transition: opacity .3s; z-index: 101; }
+  .toast.show { opacity: 1; }
+  .toast-error { background: #c0392b; }
+
+  @media print {
+    .print-toolbar { display: none !important; }
+    body { background: #fff; }
+    #print-root { padding: 0; display: block; }
+  }
+</style>
+</head>
+<body>
+
+<div class="print-toolbar">
+  <button type="button" class="btn-print" onclick="window.print()">🖨 พิมพ์ (A4)</button>
+  <a href="records.html" class="btn-close">ปิด</a>
+  <span style="font-size:14px">แนะนำ: Chrome → Print → A4 → Margins: None → Background graphics ✓</span>
+</div>
+
+<div id="print-root"></div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/print-render.js"></script>
+<script>
+  PrintRender.init();
+</script>
+</body>
+</html>

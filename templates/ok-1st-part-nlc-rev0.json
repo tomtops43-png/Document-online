@@ -1,0 +1,135 @@
+{
+  "form_id": "ok-1st-part-nlc",
+  "template_rev": "rev0",
+  "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+  "title_th": "Ok 1st Part Workstation Check list",
+  "mode": "log-sheet",
+  "lines": ["NLC"],
+  "print_css": "css/print-ok1st.css",
+  "stations": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, "20-21"],
+  "header_fields": [
+    {"key": "product_model", "label": "Product reference", "type": "text", "required": true},
+    {"key": "date", "label": "วันที่ / Date", "type": "date", "required": true},
+    {"key": "time", "label": "เวลา / Time", "type": "time", "required": true},
+    {"key": "shift", "label": "Shift/กะ", "type": "select", "options": ["A", "B"], "required": true}
+  ],
+  "sections": [
+    {
+      "section_id": "checks",
+      "title": "รายการตรวจสอบ",
+      "items": [
+        {
+          "item_id": "chk1",
+          "no": "1",
+          "frequency_th": "เริ่มกะการทำงาน",
+          "text_th": "ความปลอดภัยส่วนบุคคล",
+          "sub_th": ["1) มี PPE ตามที่ระบุไว้ใน OWS?", "2) PPE ชำรุด เสียหาย?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chk2",
+          "no": "2",
+          "frequency_th": "เริ่มกะการทำงาน",
+          "text_th": "ความปลอดภัยของเครื่องจักร",
+          "sub_th": ["1) ทำ AM checklist ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chk3",
+          "no": "3",
+          "frequency_th": "เริ่มกะการทำงาน",
+          "text_th": "5S at station",
+          "sub_th": ["1) ตรวจสอบ 5ส"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": false
+        },
+        {
+          "item_id": "chk4",
+          "no": "4",
+          "frequency_th": "เริ่มกะการทำงาน",
+          "text_th": "กล่องเหลือง / แดง",
+          "sub_th": ["1) มีกล่องเหลือง/แดง ตามที่กำหนดไว้ ?", "2) กล่องต้องไม่มีชิ้นงาน ก่อนเริ่มงาน"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": false
+        },
+        {
+          "item_id": "chk5",
+          "no": "5",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "OWS",
+          "sub_th": ["1) มี OWS อยู่ ณ จุดที่ทำงาน?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chk6",
+          "no": "6",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "วัตถุดิบ/ชิ้นส่วน",
+          "sub_th": ["1) ชิ้นส่วนถูกต้อง ครบถ้วน ?", "2) มีการชี้บ่งหมายเลขชิ้นส่วนอย่างชัดเจน ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": false
+        },
+        {
+          "item_id": "chk7",
+          "no": "7",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "เครื่องมือวัด",
+          "sub_th": ["1) เครื่องมือวัด/ทดสอบ มี sticker สอบเทียบ ?", "2) ดู sticker สอบเทียบว่าหมดอายุ ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chk8",
+          "no": "8",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "ตัวอย่างงานเสีย",
+          "sub_th": ["1) ตัวอย่างงานเสียมีการชี้บ่งชัดเจน ?", "2) ดูตัวอย่างหมดอายุหรือไม่ ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chk9",
+          "no": "9",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "PY-JD",
+          "sub_th": ["1) มีการทดสอบ PY-JD ?", "2) PY-JD สามารถใช้งานได้ ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chk10",
+          "no": "10",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "ผลการตรวจชิ้นงานตัวแรก",
+          "sub_th": ["1) ชิ้นงานตัวแรกถูกต้อง ตรงตาม CTQ ที่กำหนดไว้ ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        },
+        {
+          "item_id": "chkLP",
+          "no": "LP",
+          "frequency_th": "ทุกครั้งที่เริ่ม / เปลี่ยนรุ่น",
+          "text_th": "ผลการตรวจสอบชิ้นงานตัวสุดท้าย",
+          "sub_th": ["1) ชิ้นงานตัวสุดท้ายถูกต้องตรงตาม CTQ ที่กำหนดไว้ ?"],
+          "answer_type": "ok_nok_na",
+          "photo": false, "critical": true
+        }
+      ]
+    }
+  ],
+  "summary_fields": [
+    {"key": "summary_result", "label": "สรุปผลการตรวจสอบ (OK/NOK)", "type": "select", "options": ["OK", "NOK"], "required": true}
+  ],
+  "footer_notes": [
+    "1) ให้พนักงานทำการลงบันทึกก่อนเริ่มงาน และทุกครั้งที่เปลี่ยนรุ่นการผลิต : โดยบันทึก P หรือ O",
+    "2) ถ้ารายการตรวจสอบที่มีเครื่องหมายดอกจัน (*) พบความผิดปรกติ, ให้ดำเนินการแก้ไขเบื้องต้นและแจ้ง Leader หรือ Supervisor หยุดไลน์ และเปลี่ยน Card สีแดง",
+    "3) เมื่อผลการตรวจสอบเป็น OK, ก่อนจะเริ่มงานให้เปลี่ยนเป็น Card สีเขียว"
+  ],
+  "signatures": [
+    {"key": "operator", "label": "ลงชื่อผู้ตรวจสอบ", "role": "Operator"},
+    {"key": "leader", "label": "หัวหน้างานยืนยัน", "role": "Leader"}
+  ]
+}

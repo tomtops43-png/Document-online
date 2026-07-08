@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First Piece / OK 1st Part — ระบบบันทึกคุณภาพ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-title">ระบบบันทึกคุณภาพ First Piece / OK 1st Part</div>
+  <div class="app-user" id="app-user" style="display:none">
+    <span id="user-name"></span>
+    <button type="button" class="btn-small" onclick="Auth.logoutAndRedirect()">ออกจากระบบ</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ===== ขั้น 1: Login ===== -->
+  <section id="step-login" class="card" style="display:none">
+    <h2>เข้าสู่ระบบ</h2>
+    <label class="field">
+      <span>รหัสพนักงาน</span>
+      <input type="text" id="login-employee-id" inputmode="numeric" autocomplete="username">
+    </label>
+    <label class="field">
+      <span>PIN</span>
+      <input type="password" id="login-pin" inputmode="numeric" autocomplete="current-password">
+    </label>
+    <button type="button" class="btn-primary btn-block" id="btn-login">เข้าสู่ระบบ</button>
+  </section>
+
+  <!-- ===== ขั้น 2: เลือกฟอร์ม ===== -->
+  <section id="step-form" class="card" style="display:none">
+    <h2>เลือกฟอร์ม</h2>
+    <div id="form-list" class="big-choice-list"></div>
+    <div class="nav-links">
+      <a href="records.html" class="btn-secondary btn-block">📋 ค้นหาบันทึก / คิวรออนุมัติ</a>
+    </div>
+  </section>
+
+  <!-- ===== ขั้น 3: เลือกสถานี (log-sheet) หรือกรอก header (single-record) ===== -->
+  <section id="step-detail" class="card" style="display:none">
+    <h2 id="detail-title"></h2>
+    <div id="station-list" class="big-choice-list" style="display:none"></div>
+    <div id="header-form" style="display:none"></div>
+    <button type="button" class="btn-primary btn-block" id="btn-start" style="display:none">เริ่มกรอกฟอร์ม ▶</button>
+    <button type="button" class="btn-secondary btn-block" id="btn-back">◀ ย้อนกลับ</button>
+  </section>
+
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+// ---------------- flow หน้าแรก ----------------
+let selectedForm = null;
+let selectedTemplate = null;
+
+function show(stepId) {
+  ['step-login', 'step-form', 'step-detail'].forEach(function (id) {
+    document.getElementById(id).style.display = id === stepId ? 'block' : 'none';
+  });
+}
+
+function refreshUserBar() {
+  const user = Auth.currentUser();
+  const bar = document.getElementById('app-user');
+  if (user) {
+    document.getElementById('user-name').textContent = user.name + ' (' + user.role + ')';
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// ----- login -----
+document.getElementById('btn-login').addEventListener('click', async function () {
+  const empId = document.getElementById('login-employee-id').value.trim();
+  const pin = document.getElementById('login-pin').value.trim();
+  if (!empId || !pin) { showToast('กรุณากรอกรหัสพนักงานและ PIN', 'error'); return; }
+  Loading.show('กำลังเข้าสู่ระบบ...');
+  try {
+    await Auth.login(empId, pin);
+    Loading.hide();
+    refreshUserBar();
+    renderFormList();
+    show('step-form');
+  } catch (err) {
+    Loading.hide();
+    showToast('เข้าสู่ระบบไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+document.getElementById('login-pin').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+// ----- เลือกฟอร์ม -----
+function renderFormList() {
+  const el = document.getElementById('form-list');
+  el.innerHTML = '';
+  CONFIG.FORMS.forEach(function (f) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-choice';
+    btn.innerHTML = '<b>' + f.title + '</b><br><small>' + (f.mode === 'log-sheet' ? 'Checklist ประจำสถานี (ทั้งกะ)' : 'ตรวจชิ้นงานตัวแรก (1 แผ่น = 1 การตรวจ)') + '</small>';
+    btn.addEventListener('click', function () { selectForm(f); });
+    el.appendChild(btn);
+  });
+}
+
+async function selectForm(form) {
+  selectedForm = form;
+  Loading.show('กำลังโหลดฟอร์ม...');
+  try {
+    selectedTemplate = await loadTemplate(form.form_id);
+  } catch (err) {
+    Loading.hide();
+    showToast(err.message, 'error');
+    return;
+  }
+  Loading.hide();
+  document.getElementById('detail-title').textContent = form.title;
+  const stationList = document.getElementById('station-list');
+  const headerForm = document.getElementById('header-form');
+  const btnStart = document.getElementById('btn-start');
+
+  if (selectedTemplate.mode === 'log-sheet') {
+    // เลือกสถานีก่อน แล้วค่อยกรอก header
+    stationList.style.display = 'grid';
+    headerForm.style.display = 'none';
+    btnStart.style.display = 'none';
+    stationList.innerHTML = '';
+    (selectedTemplate.stations || []).forEach(function (st) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn-choice btn-station';
+      b.textContent = 'สถานี ' + st;
+      b.addEventListener('click', function () { renderHeaderForm(st); });
+      stationList.appendChild(b);
+    });
+  } else {
+    stationList.style.display = 'none';
+    renderHeaderForm(null);
+  }
+  show('step-detail');
+}
+
+function renderHeaderForm(station) {
+  const headerForm = document.getElementById('header-form');
+  const btnStart = document.getElementById('btn-start');
+  headerForm.style.display = 'block';
+  btnStart.style.display = 'block';
+  btnStart.dataset.station = station == null ? '' : station;
+  document.getElementById('station-list').style.display = 'none';
+
+  let html = station != null ? '<div class="selected-station">สถานี: <b>' + station + '</b></div>' : '';
+  const today = new Date().toISOString().slice(0, 10);
+  (selectedTemplate.header_fields || []).forEach(function (f) {
+    if (f.key === 'time') return; // เวลา entry กรอกในหน้า fill
+    html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
+    if (f.type === 'select') {
+      html += '<select data-header-key="' + f.key + '">' +
+        '<option value="">— เลือก —</option>' +
+        f.options.map(function (o) { return '<option>' + o + '</option>'; }).join('') +
+        '</select>';
+    } else if (f.type === 'date') {
+      html += '<input type="date" data-header-key="' + f.key + '" value="' + today + '">';
+    } else {
+      html += '<input type="text" data-header-key="' + f.key + '" value="' + (f.default || '') + '">';
+    }
+    html += '</label>';
+  });
+  headerForm.innerHTML = html;
+}
+
+document.getElementById('btn-start').addEventListener('click', function () {
+  const header = {};
+  let missing = null;
+  document.querySelectorAll('#header-form [data-header-key]').forEach(function (input) {
+    header[input.dataset.headerKey] = input.value.trim();
+  });
+  (selectedTemplate.header_fields || []).forEach(function (f) {
+    if (f.key === 'time') return;
+    if (f.required && !header[f.key]) missing = missing || f.label;
+  });
+  if (missing) { showToast('กรุณากรอก: ' + missing, 'error'); return; }
+  sessionStorage.setItem('fp_fill_context', JSON.stringify({
+    form_id: selectedForm.form_id,
+    station: this.dataset.station || null,
+    header: header
+  }));
+  location.href = 'fill.html';
+});
+
+document.getElementById('btn-back').addEventListener('click', function () { show('step-form'); });
+
+// ----- เริ่มต้น -----
+refreshUserBar();
+if (Auth.isLoggedIn()) {
+  renderFormList();
+  show('step-form');
+} else {
+  show('step-login');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ค้นหาบันทึก / คิวรออนุมัติ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <a href="index.html" class="btn-small">◀ หน้าแรก</a>
+  <div class="app-title">ค้นหาบันทึก</div>
+</header>
+
+<main class="container container-wide">
+
+  <!-- แท็บ -->
+  <div class="tab-bar">
+    <button type="button" class="tab active" id="tab-search" onclick="switchTab('search')">🔍 ค้นหาบันทึก</button>
+    <button type="button" class="tab" id="tab-approve" onclick="switchTab('approve')" style="display:none">
+      ⏳ รออนุมัติ <span class="badge-count" id="approve-count"></span>
+    </button>
+  </div>
+
+  <!-- filter -->
+  <section class="card" id="filter-card">
+    <div class="filter-grid">
+      <label class="field"><span>ฟอร์ม</span>
+        <select id="f-form"><option value="">ทั้งหมด</option></select></label>
+      <label class="field"><span>สถานี</span>
+        <input type="text" id="f-station" placeholder="เช่น 5"></label>
+      <label class="field"><span>วันที่เริ่ม</span>
+        <input type="date" id="f-date-from"></label>
+      <label class="field"><span>วันที่สิ้นสุด</span>
+        <input type="date" id="f-date-to"></label>
+      <label class="field"><span>สถานะ</span>
+        <select id="f-status">
+          <option value="">ทั้งหมด</option>
+          <option value="PENDING_LEADER">รอ Leader</option>
+          <option value="PENDING_QI">รอ QI</option>
+          <option value="COMPLETED">เสร็จสมบูรณ์</option>
+          <option value="REJECTED">ตีกลับ</option>
+        </select></label>
+      <label class="field"><span>รุ่น (Product Model)</span>
+        <input type="text" id="f-model"></label>
+    </div>
+    <button type="button" class="btn-primary" id="btn-search">ค้นหา</button>
+  </section>
+
+  <!-- ตารางผลลัพธ์ -->
+  <section class="card">
+    <div class="table-scroll">
+      <table class="record-table">
+        <thead><tr>
+          <th>เลขที่บันทึก</th><th>ฟอร์ม</th><th>สถานี</th><th>รุ่น</th><th>วันที่</th><th>กะ</th>
+          <th>สถานะ</th><th>NOK</th><th></th>
+        </tr></thead>
+        <tbody id="record-rows"><tr><td colspan="9" class="empty-hint">กด "ค้นหา" เพื่อแสดงบันทึก</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Modal: ดู record เต็ม + อนุมัติ/ตีกลับ -->
+<div id="detail-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3 id="detail-record-id"></h3>
+      <button type="button" class="btn-small" onclick="closeDetail()">✕ ปิด</button>
+    </div>
+    <div id="detail-body"></div>
+    <div class="approve-bar" id="approve-bar" style="display:none">
+      <label class="field"><span>เหตุผล (กรณีตีกลับ)</span>
+        <input type="text" id="reject-reason"></label>
+      <div class="approve-buttons">
+        <button type="button" class="btn-approve" id="btn-approve">✔ อนุมัติ</button>
+        <button type="button" class="btn-reject" id="btn-reject">✗ ตีกลับ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+const user = Auth.requireLogin();
+let currentTab = 'search';
+let templatesCache = {};
+
+// เติมตัวเลือกฟอร์ม
+CONFIG.FORMS.forEach(function (f) {
+  const opt = document.createElement('option');
+  opt.value = f.form_id;
+  opt.textContent = f.title;
+  document.getElementById('f-form').appendChild(opt);
+});
+
+// Leader/QI/Admin เห็นแท็บรออนุมัติ
+if (user && (user.role === 'Leader' || user.role === 'QI' || user.role === 'Admin')) {
+  document.getElementById('tab-approve').style.display = 'inline-block';
+  refreshApproveCount();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('tab-approve').classList.toggle('active', tab === 'approve');
+  document.getElementById('filter-card').style.display = tab === 'search' ? 'block' : 'none';
+  if (tab === 'approve') loadApproveQueue();
+}
+
+function myPendingStatus() {
+  if (user.role === 'QI') return 'PENDING_QI';
+  if (user.role === 'Leader') return 'PENDING_LEADER';
+  return ''; // Admin เห็นทั้งหมด
+}
+
+async function refreshApproveCount() {
+  try {
+    const res = await API.get('getRecords', { status: myPendingStatus() });
+    const n = (res.records || []).length;
+    document.getElementById('approve-count').textContent = n ? '(' + n + ')' : '';
+  } catch (e) { /* เงียบ */ }
+}
+
+// ----- ค้นหา -----
+document.getElementById('btn-search').addEventListener('click', doSearch);
+async function doSearch() {
+  Loading.show('กำลังค้นหา...');
+  try {
+    const res = await API.get('getRecords', {
+      form_id: document.getElementById('f-form').value,
+      station: document.getElementById('f-station').value.trim(),
+      date_from: document.getElementById('f-date-from').value,
+      date_to: document.getElementById('f-date-to').value,
+      status: document.getElementById('f-status').value,
+      product_model: document.getElementById('f-model').value.trim()
+    });
+    renderRows(res.records || []);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+}
+
+async function loadApproveQueue() {
+  Loading.show('กำลังโหลดคิวรออนุมัติ...');
+  try {
+    const res = await API.get('getRecords', { status: myPendingStatus() });
+    renderRows(res.records || []);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+}
+
+function statusBadge(status) {
+  const s = CONFIG.STATUS[status];
+  if (!s) return status || '';
+  return '<span class="status-badge" style="background:' + s.color + '">' + s.label + '</span>';
+}
+
+function renderRows(records) {
+  const tbody = document.getElementById('record-rows');
+  if (!records.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-hint">ไม่พบบันทึก</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  records.forEach(function (r) {
+    const form = CONFIG.FORMS.find(function (f) { return f.form_id === r.form_id; });
+    const printUrl = form && form.mode === 'log-sheet'
+      ? 'print.html?form=' + encodeURIComponent(r.form_id) + '&station=' + encodeURIComponent(r.station) + '&date=' + encodeURIComponent(r.date)
+      : 'print.html?record_id=' + encodeURIComponent(r.record_id);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><a href="#" class="record-link">' + r.record_id + '</a></td>' +
+      '<td>' + (form ? form.title : r.form_id) + '</td>' +
+      '<td>' + (r.station || '-') + '</td>' +
+      '<td>' + (r.product_model || '') + '</td>' +
+      '<td>' + (r.date || '') + '</td>' +
+      '<td>' + (r.shift || '') + '</td>' +
+      '<td>' + statusBadge(r.status) + '</td>' +
+      '<td>' + (String(r.has_nok) === 'true' ? '<span class="nok-flag">NOK</span>' : '') + '</td>' +
+      '<td><a class="btn-small" target="_blank" href="' + printUrl + '">🖨 พิมพ์</a></td>';
+    tr.querySelector('.record-link').addEventListener('click', function (e) {
+      e.preventDefault();
+      openDetail(r.record_id);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ----- รายละเอียด record + อนุมัติ/ตีกลับ -----
+let detailRecord = null;
+
+async function getTemplateCached(formId) {
+  if (!templatesCache[formId]) templatesCache[formId] = await loadTemplate(formId);
+  return templatesCache[formId];
+}
+
+async function openDetail(recordId) {
+  Loading.show('กำลังโหลดบันทึก...');
+  try {
+    const res = await API.get('getRecord', { record_id: recordId });
+    detailRecord = res.record;
+    const template = await getTemplateCached(detailRecord.form_id);
+    renderDetail(template, detailRecord, res.recovery || []);
+    document.getElementById('detail-modal').style.display = 'flex';
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+}
+
+function renderDetail(template, record, recovery) {
+  document.getElementById('detail-record-id').textContent = record.record_id;
+  const answers = typeof record.answers_json === 'string' ? JSON.parse(record.answers_json || '{}') : record.answers_json || {};
+  const photos = typeof record.photos_json === 'string' ? JSON.parse(record.photos_json || '{}') : record.photos_json || {};
+
+  let html = '<div class="detail-meta">' + statusBadge(record.status) +
+    ' <b>' + template.title_th + '</b>' +
+    (record.station ? ' | สถานี ' + record.station : '') +
+    ' | รุ่น ' + (record.product_model || '-') + ' | ' + (record.date || '') + ' กะ ' + (record.shift || '') + '</div>';
+  if (record.reject_reason) {
+    html += '<div class="reject-reason">เหตุผลตีกลับ: ' + record.reject_reason + '</div>';
+  }
+
+  template.sections.forEach(function (sec) {
+    html += '<div class="detail-section"><b>' + sec.title + '</b><table class="detail-table">';
+    sec.items.forEach(function (item) {
+      const a = answers[item.item_id] || {};
+      let valTxt = a.value || '';
+      if (item.answer_type === 'torque_value') valTxt = (a.torque_actual != null ? a.torque_actual : '') + (a.out_of_spec ? ' ⚠นอกspec' : '');
+      if (a.way) valTxt += ' [' + a.way + ']';
+      const cls = (a.value === 'NOK' || a.value === 'REJ' || a.out_of_spec) ? 'val-nok' : 'val-ok';
+      html += '<tr><td>' + (item.critical ? '✱ ' : '') + item.text_th + '</td>' +
+        '<td class="' + cls + '">' + valTxt + '</td>' +
+        '<td>' + (a.recorder || '') + ' ' + (a.time || '') + '</td></tr>';
+      const ph = photos[item.item_id] || [];
+      if (ph.length) {
+        html += '<tr><td colspan="3" class="detail-photos">' +
+          ph.map(function (p) {
+            return '<a href="' + drivePhotoUrl(p.fileId, 1200) + '" target="_blank"><img src="' + drivePhotoUrl(p.fileId, 300) + '"></a>';
+          }).join('') + '</td></tr>';
+      }
+    });
+    html += '</table></div>';
+  });
+
+  if (recovery.length) {
+    html += '<div class="detail-section"><b>Recovery Plan</b><table class="detail-table">';
+    recovery.forEach(function (rv) {
+      html += '<tr><td>' + rv.item_id + '</td><td>' + rv.problem + '</td><td>' + rv.countermeasure + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+
+  document.getElementById('detail-body').innerHTML = html;
+
+  // แสดงปุ่มอนุมัติเมื่อ record รอที่ role ของเรา
+  const canApprove =
+    (record.status === 'PENDING_LEADER' && (user.role === 'Leader' || user.role === 'Admin')) ||
+    (record.status === 'PENDING_QI' && (user.role === 'QI' || user.role === 'Admin'));
+  document.getElementById('approve-bar').style.display = canApprove ? 'block' : 'none';
+}
+
+function closeDetail() {
+  document.getElementById('detail-modal').style.display = 'none';
+  detailRecord = null;
+}
+
+document.getElementById('btn-approve').addEventListener('click', async function () {
+  if (!detailRecord) return;
+  Loading.show('กำลังอนุมัติ...');
+  try {
+    await API.post('approveRecord', { record_id: detailRecord.record_id });
+    showToast('อนุมัติแล้ว', 'success');
+    closeDetail();
+    if (currentTab === 'approve') loadApproveQueue(); else doSearch();
+    refreshApproveCount();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+});
+
+document.getElementById('btn-reject').addEventListener('click', async function () {
+  if (!detailRecord) return;
+  const reason = document.getElementById('reject-reason').value.trim();
+  if (!reason) { showToast('กรุณาระบุเหตุผลการตีกลับ', 'error'); return; }
+  Loading.show('กำลังตีกลับ...');
+  try {
+    await API.post('rejectRecord', { record_id: detailRecord.record_id, reason: reason });
+    showToast('ตีกลับแล้ว', 'success');
+    closeDetail();
+    if (currentTab === 'approve') loadApproveQueue(); else doSearch();
+    refreshApproveCount();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+});
+
+// ค่าเริ่มต้น: วันนี้
+document.getElementById('f-date-from').value = new Date().toISOString().slice(0, 10);
+document.getElementById('f-date-to').value = new Date().toISOString().slice(0, 10);
+</script>
+</body>
+</html>

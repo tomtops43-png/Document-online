@@ -1,0 +1,351 @@
+{
+  "form_id": "nms-first-piece",
+  "template_rev": "rev1",
+  "doc_no": "JRTLQR860-04/1",
+  "title_th": "FIRST PIECE CHECK LIST: NMS",
+  "mode": "single-record",
+  "lines": ["NMS"],
+  "print_css": "css/print-nms.css",
+  "header_fields": [
+    {"key": "product_model", "label": "Product Model/ รุ่นที่ผลิต", "type": "text", "required": true},
+    {"key": "date", "label": "Date/ วันที่", "type": "date", "required": true},
+    {"key": "line", "label": "Line/ไลน์การผลิต", "type": "text", "default": "NMS", "required": true},
+    {"key": "shift", "label": "Shift/กะ", "type": "select", "options": ["A", "B"], "required": true}
+  ],
+  "way_options_default": ["4Way (BRU30887)", "6Way (BRU30887)", "8Way (BRU30888)", "10Way (BRU30888)", "14Way (BRU30889)"],
+  "sections": [
+    {
+      "section_id": "st1",
+      "title": "Station: 1",
+      "items": [
+        {
+          "item_id": "st1-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Box",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way (BRU30887)", "6Way (BRU30887)", "8Way (BRU30888)", "10Way (BRU30888)", "14Way (BRU30889)"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st2",
+      "title": "Station: 2",
+      "items": [
+        {
+          "item_id": "st2-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Rating Label, Wiring Diagram Label สำหรับ NMS",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
+              {"key": "date_code", "label": "Date Code"}
+            ]
+          },
+          "photo": {"required": true, "label": "ติด Rating Label"},
+          "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st3",
+      "title": "Station: 3",
+      "items": [
+        {
+          "item_id": "st3-1",
+          "text_th": "1. ตรวจสอบ BUSWAY BASE ถูกรุ่น/จำนวนครบพร้อมขันสกรู (75503762AA)",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st3-2",
+          "text_th": "2. ตรวจสอบ BUSWAY BASE ADD-ON 4 WAY",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st3-3",
+          "text_th": "3. ตรวจสอบค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {"min": 1.69, "max": 1.92, "unit": "N.m", "display": "(1.69-1.92 N.m) / 15-17 lbf-in"},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st4",
+      "title": "Station: 4",
+      "items": [
+        {
+          "item_id": "st4-1",
+          "text_th": "1. ตรวจสอบ Interior Way Label และ Neutral Label",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "8Way", "10Way", "14Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st4-2",
+          "text_th": "2. ตรวจสอบตำแหน่ง Warning Label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st4-3",
+          "text_th": "3. ตรวจสอบ Main Busbar และ Neutral Busbar",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "8Way", "10Way", "14Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st6",
+      "title": "Station: 6",
+      "items": [
+        {
+          "item_id": "st6-1",
+          "text_th": "1. ตรวจสอบ Neutral Terminal and screw",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "8Way", "10Way", "14Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st6-2",
+          "text_th": "2. ตรวจสอบค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {"min": 2.6, "max": 3.05, "unit": "N.m", "display": "(2.60-3.05 N.m) / 23-27 lbf-in"},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st8",
+      "title": "Station: 8",
+      "items": [
+        {
+          "item_id": "st8-1",
+          "text_th": "1. ตรวจสอบ Terminal Bar",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "8Way", "10Way", "14Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st8-2",
+          "text_th": "2. ตรวจสอบ Ground Label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st8-3",
+          "text_th": "3. ตรวจสอบ Nut",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["M8 (75500-407-01)", "M5 (23001-00170)"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st8-4",
+          "text_th": "4. ตรวจสอบค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {"min": 2.15, "max": 2.49, "unit": "N.m", "display": "(2.15-2.49 N.m) / 19-22 lbf-in"},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st10",
+      "title": "Station: 10",
+      "items": [
+        {
+          "item_id": "st10-1",
+          "text_th": "1. Version Verify",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st11",
+      "title": "Station: 11",
+      "items": [
+        {
+          "item_id": "st11-1",
+          "text_th": "1. Version Dielectric",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st13",
+      "title": "Station: 13",
+      "items": [
+        {
+          "item_id": "st13-1",
+          "text_th": "1. ตรวจสอบ Busway Cover และ Busway cover add-on ถูกรุ่นและจำนวนครบ",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st14",
+      "title": "Station: 14",
+      "items": [
+        {
+          "item_id": "st14-1",
+          "text_th": "1. Version and GTP Verify",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st15",
+      "title": "Station: 15",
+      "items": [
+        {
+          "item_id": "st15-1",
+          "text_th": "1. ตรวจสอบ Cover",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-2",
+          "text_th": "2. ตรวจสอบ QR Code (ต้องสแกนอ่านได้)",
+          "note_th": "หมายเหตุ: งานไทยต้องมีตัว S ตามหลัง QR-Code",
+          "answer_type": "acc_rej",
+          "photo": {"required": true, "label": "ติด QR CODE"},
+          "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-3",
+          "text_th": "3. ตรวจสอบตำแหน่ง On-Off Label (ด้าน On อยู่ด้านบน)",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-4",
+          "text_th": "4. ตรวจสอบ Way Label",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "8Way", "10Way", "14Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-5",
+          "text_th": "5. ตรวจสอบ Circuit Identification Label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st16",
+      "title": "Station: 16",
+      "items": [
+        {
+          "item_id": "st16-1",
+          "text_th": "1. ตรวจสอบ Filler Plate และจำนวนครบ",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st16-2",
+          "text_th": "2. ตรวจสอบ Cover Screw พร้อมขันแน่นสนิท",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st16-3",
+          "text_th": "3. ตรวจสอบค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {"min": 2.6, "max": 3.05, "unit": "N.m", "display": "(2.60-3.05 N.m) / 23-27 lbf-in"},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st17",
+      "title": "Station: 17",
+      "items": [
+        {
+          "item_id": "st17-1",
+          "text_th": "1. ตรวจสอบ Continuity",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st18",
+      "title": "Station: 18",
+      "items": [
+        {
+          "item_id": "st18-1",
+          "text_th": "1. ตรวจสอบ Hinge ครบตามจำนวน",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st18-2",
+          "text_th": "2. ตรวจสอบ Dolly Cover ตรงรุ่นที่ผลิต",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st18-3",
+          "text_th": "3. ตรวจสอบเปิด-ปิด Dolly Cover หลังประกอบ (ยืนยัน Dolly ต้องตั้งค้าง)",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st20",
+      "title": "Station: 20",
+      "items": [
+        {
+          "item_id": "st20-1",
+          "text_th": "1. ตรวจสอบ Carton Box ถูกรุ่นที่ผลิต",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "8Way", "10Way", "14Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st20-2",
+          "text_th": "2. ตรวจสอบ QR-Code สำหรับ NMS",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st21-22",
+      "title": "Station: 21-22",
+      "items": [
+        {
+          "item_id": "st21-1",
+          "text_th": "1. ตรวจสอบ Carton Label ถูกรุ่นที่ผลิต",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
+              {"key": "date_code", "label": "Date Code"}
+            ],
+            "checkboxes": ["TH"]
+          },
+          "photo": {"required": true, "label": "Stick Carton Label"},
+          "critical": false, "recorder": true, "time": true
+        }
+      ]
+    }
+  ],
+  "photo_boxes": [
+    {"item_id": "st2-1", "station_label": "Station2:", "box_label": "ติด Rating Label"},
+    {"item_id": "st15-2", "station_label": "Station15:", "box_label": "ติด QR CODE"},
+    {"item_id": "st21-1", "station_label": "Station21-22:", "box_label": "Stick Carton Label"}
+  ],
+  "signatures": [
+    {"key": "operator", "label": "Production Operator", "role": "Operator"},
+    {"key": "leader", "label": "Prod. Leader", "role": "Leader"},
+    {"key": "qi", "label": "QI", "role": "QI"}
+  ]
+}

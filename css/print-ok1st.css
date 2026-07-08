@@ -1,0 +1,142 @@
+/* ========================================================
+   print-ok1st.css — layout พิมพ์ OK 1st Part Workstation Checklist
+   A4 portrait, หน่วย mm ทั้งหมด, เทียบสัดส่วนจาก Excel ต้นฉบับ
+   (THPLSTL-QA-FRM0-3434 Rev.0 (05/23))
+   โครงกระดาษ: หัวข้อ | Line/Station | ตาราง entry (คอลัมน์รายการตรวจ
+   เป็นตัวหนังสือแนวตั้ง) | Recovery plan | กติกา 3 ข้อ | เลขเอกสาร
+   ======================================================== */
+
+@page { size: A4 portrait; margin: 8mm; }
+
+.sheet-ok1st {
+  width: 194mm;
+  background: #fff;
+  color: #000;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 2.8mm;
+  line-height: 1.2;
+  padding: 2mm;
+  margin-bottom: 6mm;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+@media print {
+  .sheet-ok1st { box-shadow: none; padding: 0; margin: 0; }
+}
+
+/* ---------- หัวเอกสาร ---------- */
+.ok-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 5mm;
+  padding: 1.5mm 0;
+}
+.ok-lineinfo {
+  display: flex;
+  gap: 20mm;
+  font-size: 3.6mm;
+  padding: 1mm 2mm 2mm;
+}
+.ok-lineinfo b { border-bottom: 0.5pt solid #000; padding: 0 6mm; }
+
+/* ---------- ตารางหลัก ---------- */
+.ok-main {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.ok-main th, .ok-main td {
+  border: 0.5pt solid #000;
+  padding: 0.5mm;
+  vertical-align: middle;
+  text-align: center;
+  overflow: hidden;
+}
+.ok-main .h-ref  { width: 26mm; font-size: 2.8mm; }
+.ok-main .h-date { width: 12mm; font-size: 2.6mm; }
+.ok-main .h-time { width: 10mm; font-size: 2.6mm; }
+.ok-main .h-sum  { font-size: 2.6mm; font-weight: 700; }
+
+/* แถวความถี่ (frequency) */
+.freq-row .h-freq {
+  font-size: 2.2mm;
+  height: 10mm;
+  font-weight: 400;
+}
+
+/* แถวเลขข้อ 1*..10*, * */
+.no-row th {
+  height: 5mm;
+  font-size: 3.2mm;
+  font-weight: 700;
+}
+
+/* แถวรายละเอียดข้อ — ตัวหนังสือแนวตั้ง (เหมือนต้นฉบับ row สูง 151.8pt) */
+.desc-row .h-desc {
+  height: 52mm;
+  vertical-align: bottom;
+  padding: 1mm 0.3mm;
+}
+.vtext {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 2.4mm;
+  font-weight: 400;
+  text-align: left;
+  max-height: 50mm;
+  margin: 0 auto;
+  white-space: normal;
+}
+.vtext b { font-size: 2.5mm; }
+
+/* แถว entry (1 แถว = 1 การบันทึก) */
+.entry-row td {
+  height: 9mm;
+  font-size: 2.8mm;
+}
+.entry-row .c-mark { font-weight: 700; font-size: 3.6mm; }
+.entry-row .c-sign { font-size: 2.4mm; }
+
+/* ---------- Recovery plan ---------- */
+.ok-recovery-title {
+  font-weight: 700;
+  font-size: 3.8mm;
+  padding: 2mm 0 1mm;
+}
+.ok-recovery {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.ok-recovery th, .ok-recovery td {
+  border: 0.5pt solid #000;
+  padding: 0.8mm;
+  font-size: 2.6mm;
+  text-align: center;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.ok-recovery thead th { height: 9mm; font-weight: 700; }
+.ok-recovery tbody td { height: 9mm; }
+.ok-recovery .r-ref { width: 24mm; }
+.ok-recovery .r-date { width: 12mm; }
+.ok-recovery .r-time { width: 10mm; }
+.ok-recovery .r-item { width: 24mm; }
+.ok-recovery .r-problem { width: auto; }
+.ok-recovery .r-counter { width: auto; }
+.ok-recovery .r-op { width: 16mm; }
+.ok-recovery .r-leader { width: 16mm; }
+.ok-recovery .r-decision { width: 16mm; }
+
+/* ---------- footer กติกา + เลขเอกสาร ---------- */
+.ok-footer { padding-top: 1.5mm; }
+.ok-note { font-size: 2.8mm; line-height: 1.5; }
+.ok-docno {
+  margin-top: 1.5mm;
+  font-size: 2.8mm;
+  font-weight: 600;
+}
+
+/* กันตัดหน้าเฉพาะส่วน */
+.ok-recovery, .ok-footer { page-break-inside: avoid; }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>กรอกฟอร์มตรวจสอบคุณภาพ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <a href="index.html" class="btn-small">◀ หน้าแรก</a>
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
+    <div class="progress-text" id="progress-label"></div>
+  </div>
+</header>
+
+<main class="container">
+  <div id="form-header" class="card"></div>
+  <div id="form-sections"></div>
+  <div class="submit-bar">
+    <button type="button" class="btn-primary btn-block btn-submit" id="btn-submit">✔ บันทึกและส่งอนุมัติ (Submit)</button>
+  </div>
+</main>
+
+<!-- Modal: Recovery Plan (บังคับเมื่อข้อ critical ตอบ NOK) -->
+<div id="recovery-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3>⚠ Recovery Plan (พบความผิดปกติ)</h3>
+    <p class="modal-hint">ข้อที่มีดอกจัน (*) พบความผิดปกติ ต้องกรอกแผนแก้ไขก่อนบันทึก<br>
+    และแจ้ง Leader/Supervisor หยุดไลน์ เปลี่ยน Card สีแดง</p>
+    <div class="recovery-item-label" id="recovery-item-label"></div>
+    <label class="field"><span>ปัญหา / PROBLEM *</span>
+      <textarea id="recovery-problem" rows="3"></textarea></label>
+    <label class="field"><span>การแก้ไข / COUNTERMEASURE *</span>
+      <textarea id="recovery-countermeasure" rows="3"></textarea></label>
+    <button type="button" class="btn-primary btn-block" onclick="FormRender.saveRecoveryFromModal()">บันทึก Recovery Plan</button>
+  </div>
+</div>
+
+<!-- Modal: บันทึกสำเร็จ -->
+<div id="success-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box modal-success">
+    <div class="success-icon">✔</div>
+    <h3>บันทึกสำเร็จ</h3>
+    <p>เลขที่บันทึก: <b id="success-record-id"></b></p>
+    <a href="index.html" class="btn-primary btn-block">กลับหน้าแรก</a>
+    <a href="records.html" class="btn-secondary btn-block">ดูบันทึกทั้งหมด</a>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/form-render.js"></script>
+<script>
+(async function () {
+  if (!Auth.requireLogin()) return;
+  let context;
+  try {
+    context = JSON.parse(sessionStorage.getItem('fp_fill_context'));
+  } catch (e) { context = null; }
+  if (!context || !context.form_id) {
+    location.href = 'index.html';
+    return;
+  }
+  Loading.show('กำลังโหลดฟอร์ม...');
+  try {
+    const template = await loadTemplate(context.form_id);
+    await FormRender.init(template, context);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+  document.getElementById('btn-submit').addEventListener('click', function () {
+    FormRender.submit();
+  });
+})();
+</script>
+</body>
+</html>
