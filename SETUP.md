@@ -117,14 +117,16 @@ GAS_URL: 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_ID/exe
 > ส่วนนี้เป็นการเตรียมระบบไปสู่ ENC Manufacturing QMS (ดู `docs/ARCHITECTURE.md`)
 > ติดตั้งแล้ว**ไม่กระทบระบบเดิม** — ฟอร์มเดิมทำงานเหมือนเดิมทุกอย่าง
 
-1. ใน GAS editor (โปรเจกต์เดียวกับ Code.gs): กด **+ → Script** ตั้งชื่อไฟล์ `Master`
-2. Copy เนื้อหา `gas/Master.gs` จาก repo ไปวาง → Save
-3. อัปเดต `Code.gs` ให้ตรงกับเวอร์ชันล่าสุดใน repo (มีเพิ่ม route `master.getAll`)
-4. รัน `setupMasterSheets` — สร้าง spreadsheet ใหม่ชื่อ **ENC-MASTER** อัตโนมัติ
-   (ดู URL ใน Execution log)
-5. รัน `seedMaster` — seed ENC + Line1/4/5 + 37 สถานี + Document Type 14 ประเภท
+> โค้ด GAS ทั้งหมดรวมอยู่ใน **ไฟล์เดียว**: `gas/Code.gs` — การอัปเดตทุกครั้งคือ
+> เปิดไฟล์นี้จาก repo → เลือกทั้งหมด → วางทับใน GAS editor → Deploy new version
+
+1. เปิด GAS editor → เปิดไฟล์ Code.gs → **ลบของเดิมทั้งหมด แล้ววาง `gas/Code.gs`
+   เวอร์ชันล่าสุดจาก repo** → Save
+2. รัน `setupMasterSheets` — สร้าง spreadsheet ใหม่ชื่อ **ENC-MASTER** อัตโนมัติ
+   (ดู URL ใน Execution log ด้านล่าง)
+3. รัน `seedMaster` — seed ENC + Line1/4/5 + 37 สถานี + Document Type 14 ประเภท
    + Role 10 role + Permission + ลงทะเบียนฟอร์มเดิม 2 ใบเข้าทะเบียนเอกสาร
-6. Deploy → Manage deployments → New version
+4. **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**
 
 หลังจากนี้:
 - แก้ Master (เพิ่มสถานี/role/สิทธิ์) = แก้ในชีท ENC-MASTER แล้วรัน `bumpMasterVersion`
