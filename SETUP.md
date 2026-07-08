@@ -112,6 +112,26 @@ GAS_URL: 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_ID/exe
 
 ---
 
+## 3.5 ติดตั้ง Master Data Layer (Migration Step 1 — ENC QMS)
+
+> ส่วนนี้เป็นการเตรียมระบบไปสู่ ENC Manufacturing QMS (ดู `docs/ARCHITECTURE.md`)
+> ติดตั้งแล้ว**ไม่กระทบระบบเดิม** — ฟอร์มเดิมทำงานเหมือนเดิมทุกอย่าง
+
+1. ใน GAS editor (โปรเจกต์เดียวกับ Code.gs): กด **+ → Script** ตั้งชื่อไฟล์ `Master`
+2. Copy เนื้อหา `gas/Master.gs` จาก repo ไปวาง → Save
+3. อัปเดต `Code.gs` ให้ตรงกับเวอร์ชันล่าสุดใน repo (มีเพิ่ม route `master.getAll`)
+4. รัน `setupMasterSheets` — สร้าง spreadsheet ใหม่ชื่อ **ENC-MASTER** อัตโนมัติ
+   (ดู URL ใน Execution log)
+5. รัน `seedMaster` — seed ENC + Line1/4/5 + 37 สถานี + Document Type 14 ประเภท
+   + Role 10 role + Permission + ลงทะเบียนฟอร์มเดิม 2 ใบเข้าทะเบียนเอกสาร
+6. Deploy → Manage deployments → New version
+
+หลังจากนี้:
+- แก้ Master (เพิ่มสถานี/role/สิทธิ์) = แก้ในชีท ENC-MASTER แล้วรัน `bumpMasterVersion`
+- ลงทะเบียนเอกสารใหม่ (เช่น OK 1st Part ของ Line1 ที่แปลงจาก Excel Master แล้ว):
+  ใช้ฟังก์ชัน `registerDocument({...})` — ดูตัวอย่างในคอมเมนต์ของ `gas/Master.gs`
+- ผูกเอกสารกับสถานี: เพิ่มแถวในชีท `M_DocAssign`
+
 ## 4. การเพิ่มฟอร์ม/ไลน์ใหม่ (template-driven)
 
 1. สร้างไฟล์ JSON ใหม่ใน `templates/` (copy จากไฟล์เดิมแล้วแก้)

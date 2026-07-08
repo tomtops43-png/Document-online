@@ -173,7 +173,8 @@ GAS เปิดด้วย `SpreadsheetApp.openById()` — ID เก็บใ�
 | `M_User` | ผู้ใช้ (แทน Users เดิม) |
 | `M_Role` | role (dynamic — เพิ่มแถวได้) |
 | `M_Permission` | role × action × scope |
-| `M_Product` | รุ่นผลิตภัณฑ์ (ใช้เป็น dropdown + ค้นหา) |
+| `M_ProductFamily` | รุ่นหลัก (NMS, NLC, LC, CU, ...) |
+| `M_Model` | รุ่นย่อยต่อ family (หลักร้อยรุ่น — import ได้) |
 | `M_Shift` | กะ |
 | `Config` | key/value (drive root, ค่าระบบ) |
 
@@ -360,7 +361,8 @@ M_Line       : line_id | plant_id | line_name | display_name | sequence | status
 M_Station    : station_id | line_id | station_no | station_name | sequence | status
 M_DocType    : doctype_id | doctype_name | display_name_th | behavior(form|file|recovery)
              | workflow_json | record_prefix | icon | sequence | status
-M_Document   : doc_id | doctype_id | line_id | doc_name | doc_no(เลขเอกสารควบคุม)
+M_Document   : doc_id | doctype_id | family_id(*|family) | line_id(*|line) | doc_name
+             | doc_no(เลขเอกสารควบคุม — อ่านจาก Master, ผู้สร้างกรอกได้ถ้าไม่มี)
              | current_rev_id | drive_folder_id | print_css | status
 M_DocAssign  : assign_id | doc_id | station_id | status
 M_Revision   : rev_id | doc_id | rev_no | content_ref(template path หรือ Drive fileId)
@@ -370,7 +372,8 @@ M_User       : user_id | employee_id | name | pin_hash | role_id | default_line_
              | token | token_expiry | status
 M_Role       : role_id | role_name | display_name_th | sequence | status
 M_Permission : perm_id | role_id | action | scope_line(*|line_id) | scope_doctype(*|doctype_id)
-M_Product    : product_id | line_id | model_name | status
+M_ProductFamily : family_id | family_name | display_name | sequence | status
+M_Model      : model_id | family_id | model_name | status
 M_Shift      : shift_id | shift_name | time_range | status
 Config       : key | value
 ```
@@ -577,11 +580,34 @@ flowchart LR
 
 ---
 
-## คำถามที่ต้องตัดสินใจก่อนเริ่ม (รอคำตอบ)
+## คำตอบจากเจ้าของระบบ (2026-07-08) — มีผลต่อ schema
 
-1. **ไลน์ NMS/NLC ที่ทำไว้ใน Phase 1 เดิม อยู่ตรงไหนใน ENC?** — เป็นชื่อเก่าของ
-   Line1/4/5 หรือเป็นคนละไลน์? (กระทบ seed data + record เดิม)
-2. **Station ของ Line1/Line5 (8 สถานี)** ใช้ checklist แบบเดียวกับ OK 1st Part
-   ของ NLC หรือมีฟอร์มของตัวเอง?
-3. เลขเอกสารควบคุม (doc_no) ของ WI/Drawing มีระบบเลขอยู่แล้วหรือให้ระบบ generate?
-4. ใครคือ Admin/Document Control คนแรกที่จะดูแล Master Data?
+1. **NMS / NLC / LC / CU = Product Family (รุ่นหลัก) ไม่ใช่ไลน์** — แต่ละ family
+   มีรุ่นย่อยเป็นร้อยรุ่น และผลิตได้ทุกไลน์ (1/4/5)
+   → เพิ่ม `M_ProductFamily` + `M_Model` และให้ **M_Document มี scope ตาม family ได้**
+   (เอกสาร First Piece ของ NMS ใช้ที่ไลน์ไหนก็ได้ที่ผลิต NMS)
+   → มิติของเอกสารจึงเป็น **DocType × Family × Line × Station** โดยทุกแกนเป็น
+   `*` (ทั้งหมด) ได้ — ควบคุมผ่าน M_Document (scope family/line) + M_DocAssign (station)
+2. **Line1/Line5 มี OK 1st Part checklist ของตัวเอง** — Master เป็นไฟล์ Excel
+   ที่จะทยอยแนบเข้ามา ทีละรุ่น/ไลน์/สถานี
+   → กระบวนการรองรับ: Excel Master → แปลงเป็น template JSON (append-only ใน
+   `templates/`) → ลงทะเบียน M_Document + M_Revision + M_DocAssign — ระบบต้องรับ
+   เอกสารใหม่ได้เรื่อยๆ โดยไม่แก้โค้ด engine (ข้อกำหนดนี้คือ acceptance test ของ
+   architecture ใหม่)
+3. **เลขเอกสารควบคุม (doc_no)**: อ่านจากเอกสาร Master เป็นหลัก ถ้าไม่มี ให้มี
+   ช่องกรอกสำหรับ**ผู้สร้างเอกสารเท่านั้น** (permission `document.manage`)
+4. **Admin คนเดียวดูแลทุกส่วน** ในปัจจุบัน → seed role Admin = `*` และเตรียม
+   role อื่นไว้ใน M_Role พร้อมใช้เมื่อทีมโต
+
+### Schema ที่ปรับตามคำตอบ
+
+```
+M_ProductFamily : family_id | family_name | display_name | sequence | status
+M_Model         : model_id | family_id | model_name | status
+M_Document      : + family_id (scope: * หรือ family_id)  — เอกสารผูกตามรุ่นหลักได้
+```
+
+- `M_Product` เดิมในร่างแรก ถูกแทนด้วยคู่ `M_ProductFamily` + `M_Model`
+- record เก็บ `model_name` ที่กรอก + lookup family ได้จาก master
+- Document Center ของสถานี: กรอง M_DocAssign ตาม station แล้วกรองซ้ำตาม family
+  ของรุ่นที่กำลังผลิต (ถ้าผู้ใช้เลือกรุ่นก่อน) หรือแสดงทั้งหมด

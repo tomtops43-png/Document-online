@@ -66,6 +66,10 @@ function handleRequest(e, method) {
     if (!user) return jsonOut({ success: false, error: 'INVALID_TOKEN' });
 
     switch (action) {
+      // ---- Master Data Layer (Master.gs — Migration Step 1) ----
+      case 'master.getAll': return jsonOut(actionMasterGetAll(params, user));
+
+      // ---- ระบบเดิม (form-driven) — ยังทำงานเหมือนเดิมระหว่าง migration ----
       case 'getRecords':   return jsonOut(actionGetRecords(params, user));
       case 'getRecord':    return jsonOut(actionGetRecord(params, user));
       case 'getLogSheet':  return jsonOut(actionGetLogSheet(params, user));
