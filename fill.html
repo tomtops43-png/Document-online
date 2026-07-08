@@ -71,7 +71,9 @@
   }
   Loading.show('กำลังโหลดฟอร์ม...');
   try {
-    const template = await loadTemplate(context.form_id);
+    // context.template_file มีเมื่อเข้าจาก Document Center (data-driven)
+    const template = await loadTemplate(context.form_id, context.template_file);
+    if (!context.form_id) context.form_id = template.form_id;
     await FormRender.init(template, context);
   } catch (err) {
     showToast(err.message, 'error');

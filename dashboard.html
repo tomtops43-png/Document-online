@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENC Document Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-title">🏭 ENC (H9) — Document Center</div>
+  <div class="app-user">
+    <span id="user-name"></span>
+    <a href="records.html" class="btn-small">📋 บันทึก/อนุมัติ</a>
+    <button type="button" class="btn-small" onclick="Auth.logoutAndRedirect()">ออก</button>
+  </div>
+</header>
+
+<main class="container container-wide">
+
+  <!-- breadcrumb -->
+  <div class="crumbs" id="crumbs"></div>
+
+  <!-- การ์ดสรุปงานของฉัน -->
+  <section id="my-work" class="dash-cards" style="display:none"></section>
+
+  <!-- ขั้น 1: เลือกไลน์ -->
+  <section id="step-line" class="card" style="display:none">
+    <h2>เลือกไลน์ผลิต</h2>
+    <div id="line-list" class="big-choice-list"></div>
+  </section>
+
+  <!-- ขั้น 2: เลือกสถานี -->
+  <section id="step-station" class="card" style="display:none">
+    <h2 id="station-title">เลือกสถานี</h2>
+    <div id="station-grid" class="big-choice-list station-grid"></div>
+  </section>
+
+  <!-- ขั้น 3: Document Center ของสถานี -->
+  <section id="step-docs" style="display:none">
+    <div class="card">
+      <h2 id="docs-title"></h2>
+      <div id="doc-list"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Modal: กรอก header ก่อนเริ่มกรอกฟอร์ม -->
+<div id="header-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="header-modal-title"></h3>
+      <button type="button" class="btn-small" onclick="closeHeaderModal()">✕</button>
+    </div>
+    <div id="header-modal-fields"></div>
+    <button type="button" class="btn-primary btn-block" id="btn-start-fill">เริ่มกรอกฟอร์ม ▶</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script>
+const user = Auth.requireLogin();
+document.getElementById('user-name').textContent = user ? user.name + ' (' + user.role + ')' : '';
+
+// state การนำทาง: ?line=L4&station=L4-ST12
+let curLine = null, curStation = null;
+
+function nav(line, station) {
+  const p = new URLSearchParams();
+  if (line) p.set('line', line);
+  if (station) p.set('station', station);
+  history.pushState({}, '', 'dashboard.html' + (p.toString() ? '?' + p.toString() : ''));
+  render();
+}
+window.addEventListener('popstate', render);
+document.addEventListener('master-updated', render);
+
+function crumbs() {
+  const el = document.getElementById('crumbs');
+  let html = '<a href="#" onclick="nav();return false">ENC</a>';
+  if (curLine) {
+    const l = Master.line(curLine);
+    html += ' › <a href="#" onclick="nav(\'' + curLine + '\');return false">' + (l ? l.display_name : curLine) + '</a>';
+  }
+  if (curStation) {
+    const s = Master.station(curStation);
+    html += ' › <b>' + (s ? 'สถานี ' + s.station_no : curStation) + '</b>';
+  }
+  el.innerHTML = html;
+}
+
+async function render() {
+  const p = new URLSearchParams(location.search);
+  curLine = p.get('line');
+  curStation = p.get('station');
+  await Master.load();
+  crumbs();
+  show(curStation ? 'step-docs' : (curLine ? 'step-station' : 'step-line'));
+  if (curStation) renderDocs();
+  else if (curLine) renderStations();
+  else renderLines();
+}
+
+function show(id) {
+  ['step-line', 'step-station', 'step-docs'].forEach(function (s) {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+  document.getElementById('my-work').style.display = id === 'step-line' ? 'grid' : 'none';
+}
+
+// ---------- ขั้น 1: ไลน์ ----------
+function renderLines() {
+  const el = document.getElementById('line-list');
+  el.innerHTML = '';
+  Master.lines().forEach(function (l) {
+    const n = Master.stations(l.line_id).length;
+    const btn = document.createElement('button');
+    btn.className = 'btn-choice';
+    btn.innerHTML = '<b>' + l.display_name + '</b><br><small>' + n + ' สถานี</small>';
+    btn.addEventListener('click', function () { nav(l.line_id); });
+    el.appendChild(btn);
+  });
+  renderMyWork();
+}
+
+// การ์ดสรุปงานของฉัน (คิวอนุมัติ)
+async function renderMyWork() {
+  const el = document.getElementById('my-work');
+  el.innerHTML = '';
+  const isApprover = user.role === 'Leader' || user.role === 'QI' || user.role === 'Admin';
+  if (!isApprover) return;
+  const status = user.role === 'QI' ? 'PENDING_QI' : (user.role === 'Leader' ? 'PENDING_LEADER' : '');
+  try {
+    const res = await API.get('getRecords', { status: status });
+    const n = (res.records || []).length;
+    if (n > 0) {
+      el.innerHTML = '<a class="dash-card dash-warn" href="records.html">⏳ รออนุมัติจากคุณ <b>' + n + '</b> รายการ — กดเพื่อไปอนุมัติ</a>';
+    }
+  } catch (e) { /* เงียบ — dashboard ต้องเปิดได้แม้ API ล่ม */ }
+}
+
+// ---------- ขั้น 2: สถานี ----------
+function renderStations() {
+  const l = Master.line(curLine);
+  document.getElementById('station-title').textContent = 'เลือกสถานี — ' + (l ? l.display_name : curLine);
+  const el = document.getElementById('station-grid');
+  el.innerHTML = '';
+  Master.stations(curLine).forEach(function (s) {
+    const nDocs = Master.documentsForStation(s.station_id, curLine).length;
+    const btn = document.createElement('button');
+    btn.className = 'btn-choice btn-station';
+    btn.innerHTML = '<b>สถานี ' + s.station_no + '</b><br><small>' + nDocs + ' เอกสาร</small>';
+    btn.addEventListener('click', function () { nav(curLine, s.station_id); });
+    el.appendChild(btn);
+  });
+}
+
+// ---------- ขั้น 3: Document Center ----------
+function renderDocs() {
+  const s = Master.station(curStation);
+  const l = Master.line(curLine);
+  document.getElementById('docs-title').textContent =
+    (l ? l.display_name : '') + ' / สถานี ' + (s ? s.station_no : '') + ' — เอกสารทั้งหมด';
+  const docs = Master.documentsForStation(curStation, curLine);
+  const el = document.getElementById('doc-list');
+
+  if (!docs.length) {
+    el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารผูกกับสถานีนี้ — Admin เพิ่มได้ที่ชีท M_Document / M_DocAssign ใน ENC-MASTER</div>';
+    return;
+  }
+
+  // จัดกลุ่มตาม DocType (เรียงตาม sequence ของ type)
+  const byType = {};
+  docs.forEach(function (d) {
+    const tid = d.doctype_id;
+    (byType[tid] = byType[tid] || []).push(d);
+  });
+
+  el.innerHTML = '';
+  Master.docTypes().forEach(function (t) {
+    const group = byType[t.doctype_id];
+    if (!group) return;
+    group.forEach(function (d) {
+      el.appendChild(docCard(d, t));
+    });
+  });
+}
+
+function docCard(d, t) {
+  const card = document.createElement('div');
+  card.className = 'doc-card';
+  const rev = d.current_rev;
+  let meta = (d.doc_no ? 'เลขที่: ' + d.doc_no + ' | ' : '') +
+    (rev ? 'Revision: ' + rev.rev_no + (rev.effective_date ? ' (มีผล ' + rev.effective_date + ')' : '') : 'ยังไม่มี revision');
+  let buttons = '';
+
+  if (t.behavior === 'form') {
+    buttons =
+      '<button type="button" class="btn-primary" data-act="fill">✏️ กรอก</button>' +
+      '<a class="btn-secondary" href="records.html?station=' + encodeURIComponent(stationNo()) + '">📋 ประวัติ</a>';
+  } else if (t.behavior === 'file') {
+    buttons = '<a class="btn-primary" href="viewer.html?doc_id=' + encodeURIComponent(d.doc_id) + '">📖 เปิดดู</a>';
+  } else if (t.behavior === 'recovery') {
+    buttons = '<button type="button" class="btn-secondary" disabled>🔧 เปิดใช้ใน Step ถัดไป</button>';
+  }
+
+  card.innerHTML =
+    '<div class="doc-icon">' + (t.icon || '📄') + '</div>' +
+    '<div class="doc-info"><div class="doc-name">' + d.doc_name + '</div>' +
+    '<div class="doc-meta">' + meta + '</div></div>' +
+    '<div class="doc-actions">' + buttons + '</div>';
+
+  const fillBtn = card.querySelector('[data-act="fill"]');
+  if (fillBtn) fillBtn.addEventListener('click', function () { openHeaderModal(d); });
+  return card;
+}
+
+function stationNo() {
+  const s = Master.station(curStation);
+  return s ? s.station_no : '';
+}
+
+// ---------- เริ่มกรอกฟอร์ม: โหลด template → กรอก header → ไป fill.html ----------
+let pendingDoc = null, pendingTemplate = null;
+
+async function openHeaderModal(d) {
+  if (!d.current_rev || !/\.json$/.test(String(d.current_rev.content_ref))) {
+    showToast('เอกสารนี้ยังไม่มี template revision ที่ใช้กรอกได้', 'error');
+    return;
+  }
+  Loading.show('กำลังโหลดฟอร์ม...');
+  try {
+    pendingTemplate = await loadTemplate(null, d.current_rev.content_ref);
+    pendingDoc = d;
+  } catch (err) {
+    Loading.hide();
+    showToast(err.message, 'error');
+    return;
+  }
+  Loading.hide();
+  document.getElementById('header-modal-title').textContent = d.doc_name;
+  const fieldsEl = document.getElementById('header-modal-fields');
+  const today = new Date().toISOString().slice(0, 10);
+  let html = '<div class="selected-station">สถานี: <b>' + stationNo() + '</b> | ' + (Master.line(curLine) || {}).display_name + '</div>';
+  (pendingTemplate.header_fields || []).forEach(function (f) {
+    if (f.key === 'time') return;
+    html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
+    if (f.type === 'select') {
+      html += '<select data-hk="' + f.key + '"><option value="">— เลือก —</option>' +
+        f.options.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
+    } else if (f.type === 'date') {
+      html += '<input type="date" data-hk="' + f.key + '" value="' + today + '">';
+    } else if (f.key === 'line') {
+      html += '<input type="text" data-hk="' + f.key + '" value="' + ((Master.line(curLine) || {}).line_name || f.default || '') + '">';
+    } else {
+      html += '<input type="text" data-hk="' + f.key + '" value="' + (f.default || '') + '">';
+    }
+    html += '</label>';
+  });
+  fieldsEl.innerHTML = html;
+  document.getElementById('header-modal').style.display = 'flex';
+}
+
+function closeHeaderModal() {
+  document.getElementById('header-modal').style.display = 'none';
+}
+
+document.getElementById('btn-start-fill').addEventListener('click', function () {
+  const header = {};
+  let missing = null;
+  document.querySelectorAll('#header-modal-fields [data-hk]').forEach(function (i) {
+    header[i.dataset.hk] = i.value.trim();
+  });
+  (pendingTemplate.header_fields || []).forEach(function (f) {
+    if (f.key === 'time') return;
+    if (f.required && !header[f.key]) missing = missing || f.label;
+  });
+  if (missing) { showToast('กรุณากรอก: ' + missing, 'error'); return; }
+  sessionStorage.setItem('fp_fill_context', JSON.stringify({
+    form_id: pendingTemplate.form_id,
+    template_file: pendingDoc.current_rev.content_ref,
+    doc_id: pendingDoc.doc_id,
+    station: pendingTemplate.mode === 'log-sheet' ? stationNo() : null,
+    header: header
+  }));
+  location.href = 'fill.html';
+});
+
+// ---------- เริ่มต้น ----------
+Loading.show('กำลังโหลดข้อมูลโรงงาน...');
+render().catch(function (err) {
+  document.getElementById('step-line').style.display = 'block';
+  document.getElementById('line-list').innerHTML =
+    '<div class="empty-hint">โหลด Master Data ไม่สำเร็จ: ' + err.message +
+    '<br>ตรวจว่า Deploy GAS เวอร์ชันล่าสุด และรัน setupMasterSheets + seedMaster แล้ว</div>';
+}).finally(function () { Loading.hide(); });
+</script>
+</body>
+</html>

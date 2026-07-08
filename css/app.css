@@ -226,6 +226,48 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .btn-approve { background: #27ae60; }
 .btn-reject { background: #e74c3c; }
 
+/* ---------- Document Center (dashboard/viewer) ---------- */
+.crumbs { font-size: 16px; margin-bottom: 12px; }
+.crumbs a { color: #2980b9; text-decoration: none; font-weight: 600; }
+
+.dash-cards { display: grid; gap: 12px; margin-bottom: 14px; }
+.dash-card {
+  display: block; background: #fff; border-radius: 12px; padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); text-decoration: none; color: #2c3e50;
+  font-size: 18px;
+}
+.dash-warn { border-left: 6px solid #e67e22; }
+
+.station-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+.doc-card {
+  display: flex; align-items: center; gap: 14px;
+  border: 1.5px solid #e5e8e8; border-radius: 12px;
+  padding: 14px; margin-bottom: 10px; background: #fff;
+}
+.doc-icon { font-size: 32px; width: 48px; text-align: center; }
+.doc-info { flex: 1; min-width: 0; }
+.doc-name { font-size: 18px; font-weight: 700; }
+.doc-meta { font-size: 14px; color: #7f8c8d; }
+.doc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.doc-actions .btn-primary, .doc-actions .btn-secondary {
+  min-height: 48px; font-size: 16px; padding: 10px 16px;
+}
+@media (max-width: 640px) {
+  .doc-card { flex-wrap: wrap; }
+  .doc-actions { width: 100%; }
+  .doc-actions .btn-primary, .doc-actions .btn-secondary { flex: 1; }
+}
+
+.viewer-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.viewer-actions .btn-primary, .viewer-actions .btn-secondary {
+  min-height: 48px; font-size: 16px; padding: 10px 16px;
+}
+.rev-viewing { font-size: 16px; }
+.preview-frame {
+  width: 100%; height: 70vh; border: 1px solid #e5e8e8; border-radius: 8px;
+}
+
 /* ---------- loading + toast ---------- */
 #loading-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100;

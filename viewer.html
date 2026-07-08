@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เอกสาร — Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <a href="#" class="btn-small" onclick="history.back();return false">◀ กลับ</a>
+  <div class="app-title" id="doc-title">เอกสาร</div>
+</header>
+
+<main class="container container-wide">
+
+  <section class="card">
+    <div class="detail-meta" id="doc-meta"></div>
+    <div class="viewer-actions" id="doc-actions"></div>
+  </section>
+
+  <section class="card" id="preview-card" style="display:none">
+    <iframe id="preview-frame" class="preview-frame" allow="autoplay"></iframe>
+  </section>
+
+  <section class="card">
+    <h2>ประวัติ Revision</h2>
+    <div class="table-scroll">
+      <table class="record-table">
+        <thead><tr>
+          <th>Revision</th><th>สถานะ</th><th>วันที่มีผล</th><th>อนุมัติโดย</th><th>เหตุผล</th><th></th>
+        </tr></thead>
+        <tbody id="rev-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script>
+(async function () {
+  if (!Auth.requireLogin()) return;
+  const docId = new URLSearchParams(location.search).get('doc_id');
+  Loading.show('กำลังโหลดเอกสาร...');
+  try {
+    await Master.load();
+    const doc = Master.document(docId);
+    if (!doc) throw new Error('ไม่พบเอกสาร: ' + docId);
+    const dtype = Master.docType(doc.doctype_id);
+    document.getElementById('doc-title').textContent = (dtype ? dtype.icon + ' ' : '') + doc.doc_name;
+    document.title = doc.doc_name;
+
+    const cur = Master.currentRevision(docId);
+    document.getElementById('doc-meta').innerHTML =
+      (doc.doc_no ? 'เลขที่เอกสาร: <b>' + doc.doc_no + '</b> | ' : '') +
+      'ประเภท: <b>' + (dtype ? dtype.display_name_th : doc.doctype_id) + '</b>' +
+      (cur ? ' | Revision ปัจจุบัน: <b>' + cur.rev_no + '</b>' : ' | <span class="nok-flag">ยังไม่มี revision</span>');
+
+    renderRevision(doc, cur, true);
+
+    // ตารางทุก revision
+    const rows = Master.revisions(docId).slice().sort(function (a, b) {
+      return String(b.rev_no).localeCompare(String(a.rev_no));
+    });
+    const tbody = document.getElementById('rev-rows');
+    tbody.innerHTML = rows.length ? '' : '<tr><td colspan="6" class="empty-hint">ยังไม่มี revision</td></tr>';
+    rows.forEach(function (r) {
+      const tr = document.createElement('tr');
+      const badge = r.status === 'CURRENT'
+        ? '<span class="status-badge" style="background:#27ae60">CURRENT</span>'
+        : '<span class="status-badge" style="background:#95a5a6">' + r.status + '</span>';
+      tr.innerHTML = '<td><b>' + r.rev_no + '</b></td><td>' + badge + '</td>' +
+        '<td>' + (r.effective_date || '') + '</td><td>' + (r.approved_by || '') + '</td>' +
+        '<td>' + (r.reason || '') + '</td>' +
+        '<td><button type="button" class="btn-small">👁 ดู</button></td>';
+      tr.querySelector('button').addEventListener('click', function () { renderRevision(doc, r, false); });
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    document.getElementById('doc-meta').textContent = err.message;
+  } finally {
+    Loading.hide();
+  }
+})();
+
+// แสดง revision: content_ref เป็น Drive fileId (behavior=file)
+// หรือ path template JSON (กรณีเอกสาร form — ให้ลิงก์ไปพิมพ์ฟอร์มเปล่าแทน)
+function renderRevision(doc, rev, isCurrent) {
+  const actions = document.getElementById('doc-actions');
+  const previewCard = document.getElementById('preview-card');
+  const frame = document.getElementById('preview-frame');
+  if (!rev) { actions.innerHTML = ''; return; }
+
+  const ref = String(rev.content_ref || '');
+  const isTemplate = /\.json$/.test(ref);
+  let html = '<span class="rev-viewing">กำลังดู: <b>' + rev.rev_no + '</b>' +
+    (isCurrent ? '' : ' <span class="nok-flag">ไม่ใช่ฉบับปัจจุบัน</span>') + '</span> ';
+
+  if (isTemplate) {
+    previewCard.style.display = 'none';
+    html += '<a class="btn-secondary" target="_blank" href="print.html?form=' + encodeURIComponent(doc.doc_id) + '">🖨 ดู/พิมพ์ฟอร์มเปล่า</a>';
+    actions.innerHTML = html;
+  } else if (ref) {
+    // Drive fileId
+    html += '<a class="btn-primary" target="_blank" href="https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/view">🔍 เปิดเต็มจอ</a> ' +
+      '<a class="btn-secondary" target="_blank" href="https://drive.google.com/uc?export=download&id=' + encodeURIComponent(ref) + '">⬇ ดาวน์โหลด</a>';
+    actions.innerHTML = html;
+    frame.src = 'https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/preview';
+    previewCard.style.display = 'block';
+  } else {
+    previewCard.style.display = 'none';
+    actions.innerHTML = html + '<span class="empty-hint">revision นี้ยังไม่แนบไฟล์</span>';
+  }
+}
+</script>
+</body>
+</html>

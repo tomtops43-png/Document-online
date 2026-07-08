@@ -46,10 +46,17 @@ function drivePhotoUrl(fileId, width) {
 }
 
 // โหลด template JSON จาก templates/
-async function loadTemplate(formId) {
-  const form = CONFIG.FORMS.find(function (f) { return f.form_id === formId; });
-  if (!form) throw new Error('ไม่พบฟอร์ม: ' + formId);
-  const res = await fetch(form.template_file, { cache: 'no-cache' });
-  if (!res.ok) throw new Error('โหลด template ไม่สำเร็จ: ' + form.template_file);
+// - ระบบเดิม: loadTemplate('nms-first-piece') → หาจาก CONFIG.FORMS
+// - ระบบใหม่ (data-driven): loadTemplate(null, 'templates/xxx.json') → โหลดตรงจาก path
+//   (path มาจาก M_Revision.content_ref ใน ENC-MASTER)
+async function loadTemplate(formId, templateFile) {
+  let file = templateFile;
+  if (!file) {
+    const form = CONFIG.FORMS.find(function (f) { return f.form_id === formId; });
+    if (!form) throw new Error('ไม่พบฟอร์ม: ' + formId);
+    file = form.template_file;
+  }
+  const res = await fetch(file, { cache: 'no-cache' });
+  if (!res.ok) throw new Error('โหลด template ไม่สำเร็จ: ' + file);
   return res.json();
 }

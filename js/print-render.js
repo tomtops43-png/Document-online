@@ -27,7 +27,7 @@ const PrintRender = {
         Loading.show('กำลังโหลดข้อมูล...');
         const res = await API.get('getRecord', { record_id: recordId });
         const record = res.record;
-        const template = await loadTemplate(record.form_id);
+        const template = await PrintRender.smartLoadTemplate(record.form_id);
         this.loadPrintCss(template);
         if (template.mode === 'log-sheet') {
           // record เดี่ยวของ log-sheet → ดึงทั้งแผ่นของ station+date เดียวกัน
@@ -41,7 +41,7 @@ const PrintRender = {
       } else if (formId) {
         const station = params.get('station');
         const date = params.get('date');
-        const template = await loadTemplate(formId);
+        const template = await PrintRender.smartLoadTemplate(formId);
         this.loadPrintCss(template);
         if (template.mode === 'log-sheet') {
           Loading.show('กำลังโหลดข้อมูล...');
@@ -61,6 +61,28 @@ const PrintRender = {
     } finally {
       Loading.hide();
     }
+  },
+
+  // หา template จาก form_id (ระบบเดิม) / doc_id (ระบบใหม่) / ค้นจาก Master
+  async smartLoadTemplate(id) {
+    try {
+      return await loadTemplate(id); // CONFIG.FORMS (ระบบเดิม)
+    } catch (e) { /* ลองทางอื่นต่อ */ }
+    if (typeof Master !== 'undefined') {
+      await Master.load();
+      // id เป็น doc_id ของทะเบียนเอกสาร?
+      const doc = Master.document(id);
+      if (doc) {
+        const rev = Master.currentRevision(doc.doc_id);
+        if (rev && /\.json$/.test(String(rev.content_ref))) {
+          return loadTemplate(null, rev.content_ref);
+        }
+      }
+      // id เป็น form_id ของ template ที่ลงทะเบียนใน Master
+      const path = await Master.resolveTemplate(id);
+      return loadTemplate(null, path);
+    }
+    throw new Error('ไม่พบฟอร์ม: ' + id);
   },
 
   // โหลด print CSS ตามที่ template ระบุ (แต่ละฟอร์มมี layout ของตัวเอง)

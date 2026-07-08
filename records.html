@@ -177,7 +177,9 @@ function renderRows(records) {
   tbody.innerHTML = '';
   records.forEach(function (r) {
     const form = CONFIG.FORMS.find(function (f) { return f.form_id === r.form_id; });
-    const printUrl = form && form.mode === 'log-sheet'
+    // ฟอร์มใหม่ (data-driven) ไม่อยู่ใน CONFIG.FORMS — ใช้ mode จาก record แทน
+    const mode = form ? form.mode : r.mode;
+    const printUrl = mode === 'log-sheet'
       ? 'print.html?form=' + encodeURIComponent(r.form_id) + '&station=' + encodeURIComponent(r.station) + '&date=' + encodeURIComponent(r.date)
       : 'print.html?record_id=' + encodeURIComponent(r.record_id);
     const tr = document.createElement('tr');
@@ -316,6 +318,24 @@ document.getElementById('btn-reject').addEventListener('click', async function (
 // ค่าเริ่มต้น: วันนี้
 document.getElementById('f-date-from').value = new Date().toISOString().slice(0, 10);
 document.getElementById('f-date-to').value = new Date().toISOString().slice(0, 10);
+
+// เปิดจาก Document Center: prefill filter จาก URL แล้วค้นหาทันที
+(function () {
+  const qp = new URLSearchParams(location.search);
+  let auto = false;
+  if (qp.get('station')) { document.getElementById('f-station').value = qp.get('station'); auto = true; }
+  if (qp.get('form_id')) {
+    const sel = document.getElementById('f-form');
+    if (![].some.call(sel.options, function (o) { return o.value === qp.get('form_id'); })) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = qp.get('form_id');
+      sel.appendChild(opt);
+    }
+    sel.value = qp.get('form_id');
+    auto = true;
+  }
+  if (auto) doSearch();
+})();
 </script>
 </body>
 </html>
