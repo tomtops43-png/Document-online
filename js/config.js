@@ -4,7 +4,7 @@
 // ========================================================
 const CONFIG = {
   // URL ของ GAS Web App (ลงท้ายด้วย /exec) — ต้องแก้เป็นของจริงหลัง deploy
-  GAS_URL: '17oRQI3lDRC7Ilr1KXVnFC7VX90ZHFyoWNa93v8RlzRfHIbrjPBcBkDTT',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwVpypb8iyWePmfNHhzommRpk9TEFWNitU9oT_s3-LAazaKXl7ZiRGz4RAvsV9f72SvwQ/exec',
 
   // รายชื่อฟอร์มที่ระบบรู้จัก (เพิ่มฟอร์มใหม่ = เพิ่มไฟล์ JSON ใน templates/ แล้วเพิ่มรายการที่นี่)
   FORMS: [
