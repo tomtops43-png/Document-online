@@ -190,10 +190,10 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 }
 .btn-small:hover, .btn-small:active { background: rgba(255,255,255,.24); }
 /* btn-small ใช้นอก app-bar (พื้นสว่าง) ต้องกลับสี */
-.card .btn-small, .doc-actions .btn-small, main .btn-small:not(.app-bar *) {
+.card .btn-small, .doc-actions .btn-small, main .btn-small:not(.app-bar *), .modal-box .btn-small {
   background: var(--canvas-alt); color: var(--text); border-color: var(--border);
 }
-.card .btn-small:hover { background: var(--border); }
+.card .btn-small:hover, .modal-box .btn-small:hover { background: var(--border); }
 
 /* ================= เลือกตัวเลือกใหญ่ (ไลน์ / สถานี / ฟอร์ม) ================= */
 .big-choice-list { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 10px; }

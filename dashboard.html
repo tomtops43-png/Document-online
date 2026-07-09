@@ -294,6 +294,13 @@ function closeHeaderModal() {
   document.getElementById('header-modal').style.display = 'none';
 }
 
+// Click outside to close modal
+document.getElementById('header-modal').addEventListener('click', function (e) {
+  if (e.target === this) {
+    closeHeaderModal();
+  }
+});
+
 document.getElementById('btn-start-fill').addEventListener('click', function () {
   const header = {};
   let missing = null;

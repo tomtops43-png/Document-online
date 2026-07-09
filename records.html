@@ -290,6 +290,13 @@ function closeDetail() {
   detailRecord = null;
 }
 
+// Click outside to close modal
+document.getElementById('detail-modal').addEventListener('click', function (e) {
+  if (e.target === this) {
+    closeDetail();
+  }
+});
+
 document.getElementById('btn-approve').addEventListener('click', async function () {
   if (!detailRecord) return;
   Loading.show('กำลังอนุมัติ...');
