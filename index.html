@@ -3,26 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>First Piece / OK 1st Part — ระบบบันทึกคุณภาพ</title>
+<title>ENC Manufacturing QMS — เข้าสู่ระบบ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
+<style>
+  .login-shell {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 16px; background: radial-gradient(circle at 20% 0%, #16324d 0%, var(--ink-900) 55%, #081522 100%);
+  }
+  .login-brand { text-align: center; color: #fff; margin-bottom: 22px; }
+  .login-logo {
+    width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 14px;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+    display: flex; align-items: center; justify-content: center; font-size: 30px;
+    box-shadow: 0 8px 22px rgba(43,125,233,.4);
+  }
+  .login-brand h1 { font-size: 22px; margin: 0 0 4px; font-weight: 800; letter-spacing: .3px; }
+  .login-brand p { margin: 0; font-size: 14px; opacity: .7; }
+  .login-card { width: 100%; max-width: 380px; }
+  #step-form.card { max-width: 480px; margin: 40px auto 0; }
+</style>
 </head>
-<body>
+<body class="login-body">
 
-<header class="app-bar">
-  <div class="app-title">ระบบบันทึกคุณภาพ First Piece / OK 1st Part</div>
-  <div class="app-user" id="app-user" style="display:none">
-    <span id="user-name"></span>
-    <button type="button" class="btn-small" onclick="Auth.logoutAndRedirect()">ออกจากระบบ</button>
+<main class="login-shell" id="login-shell">
+  <div class="login-brand">
+    <div class="login-logo">🏭</div>
+    <h1>ENC Manufacturing QMS</h1>
+    <p>ระบบบริหารเอกสารคุณภาพและการตรวจสอบ — ไลน์ ENC (H9)</p>
   </div>
-</header>
-
-<main class="container">
 
   <!-- ===== ขั้น 1: Login ===== -->
-  <section id="step-login" class="card" style="display:none">
+  <section id="step-login" class="card login-card" style="display:none">
     <h2>เข้าสู่ระบบ</h2>
     <label class="field">
       <span>รหัสพนักงาน</span>
@@ -34,6 +48,16 @@
     </label>
     <button type="button" class="btn-primary btn-block" id="btn-login">เข้าสู่ระบบ</button>
   </section>
+</main>
+
+<main class="container" id="post-login-shell" style="display:none">
+  <header class="app-bar" style="position:static;margin:-20px -16px 20px;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+    <div class="app-title">🏭 ENC Manufacturing QMS</div>
+    <div class="app-user" id="app-user">
+      <span id="user-name"></span>
+      <button type="button" class="btn-small" onclick="Auth.logoutAndRedirect()">ออกจากระบบ</button>
+    </div>
+  </header>
 
   <!-- ===== ขั้น 2: เลือกฟอร์ม ===== -->
   <section id="step-form" class="card" style="display:none">
@@ -65,6 +89,8 @@ let selectedForm = null;
 let selectedTemplate = null;
 
 function show(stepId) {
+  document.getElementById('login-shell').style.display = stepId === 'step-login' ? 'flex' : 'none';
+  document.getElementById('post-login-shell').style.display = stepId === 'step-login' ? 'none' : 'block';
   ['step-login', 'step-form', 'step-detail'].forEach(function (id) {
     document.getElementById(id).style.display = id === stepId ? 'block' : 'none';
   });

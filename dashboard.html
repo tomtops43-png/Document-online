@@ -26,25 +26,35 @@
   <!-- breadcrumb -->
   <div class="crumbs" id="crumbs"></div>
 
+  <!-- Hero: ภาพรวมโรงงาน (แสดงเฉพาะขั้นเลือกไลน์) -->
+  <div id="dash-hero" class="dash-hero" style="display:none">
+    <div class="dash-hero-title">🏭 ENC (H9)</div>
+    <p class="dash-hero-sub">ระบบบริหารเอกสารคุณภาพและการตรวจสอบ — เลือกไลน์เพื่อเริ่มต้น</p>
+    <div class="dash-hero-stats" id="hero-stats"></div>
+  </div>
+
   <!-- การ์ดสรุปงานของฉัน -->
   <section id="my-work" class="dash-cards" style="display:none"></section>
 
   <!-- ขั้น 1: เลือกไลน์ -->
   <section id="step-line" class="card" style="display:none">
-    <h2>เลือกไลน์ผลิต</h2>
+    <div class="section-heading"><h2>เลือกไลน์ผลิต</h2></div>
     <div id="line-list" class="big-choice-list"></div>
   </section>
 
   <!-- ขั้น 2: เลือกสถานี -->
   <section id="step-station" class="card" style="display:none">
-    <h2 id="station-title">เลือกสถานี</h2>
+    <div class="section-heading"><h2 id="station-title">เลือกสถานี</h2></div>
     <div id="station-grid" class="big-choice-list station-grid"></div>
   </section>
 
   <!-- ขั้น 3: Document Center ของสถานี -->
   <section id="step-docs" style="display:none">
     <div class="card">
-      <h2 id="docs-title"></h2>
+      <div class="section-heading">
+        <h2 id="docs-title"></h2>
+        <span class="count-pill" id="docs-count"></span>
+      </div>
       <div id="doc-list"></div>
     </div>
   </section>
@@ -118,20 +128,29 @@ function show(id) {
     document.getElementById(s).style.display = s === id ? 'block' : 'none';
   });
   document.getElementById('my-work').style.display = id === 'step-line' ? 'grid' : 'none';
+  if (id !== 'step-line') document.getElementById('dash-hero').style.display = 'none';
 }
 
 // ---------- ขั้น 1: ไลน์ ----------
 function renderLines() {
   const el = document.getElementById('line-list');
   el.innerHTML = '';
+  let totalStations = 0, totalDocs = 0;
   Master.lines().forEach(function (l) {
     const n = Master.stations(l.line_id).length;
+    totalStations += n;
     const btn = document.createElement('button');
     btn.className = 'btn-choice';
     btn.innerHTML = '<b>' + l.display_name + '</b><br><small>' + n + ' สถานี</small>';
     btn.addEventListener('click', function () { nav(l.line_id); });
     el.appendChild(btn);
   });
+  totalDocs = (Master.data.M_Document || []).length;
+  document.getElementById('dash-hero').style.display = 'block';
+  document.getElementById('hero-stats').innerHTML =
+    '<div class="dash-stat"><b>' + Master.lines().length + '</b><span>ไลน์ผลิต</span></div>' +
+    '<div class="dash-stat"><b>' + totalStations + '</b><span>สถานีทั้งหมด</span></div>' +
+    '<div class="dash-stat"><b>' + totalDocs + '</b><span>เอกสารในระบบ</span></div>';
   renderMyWork();
 }
 
@@ -161,7 +180,7 @@ function renderStations() {
     const nDocs = Master.documentsForStation(s.station_id, curLine).length;
     const btn = document.createElement('button');
     btn.className = 'btn-choice btn-station';
-    btn.innerHTML = '<b>สถานี ' + s.station_no + '</b><br><small>' + nDocs + ' เอกสาร</small>';
+    btn.innerHTML = '<span class="station-num">' + s.station_no + '</span><br><small>' + nDocs + ' เอกสาร</small>';
     btn.addEventListener('click', function () { nav(curLine, s.station_id); });
     el.appendChild(btn);
   });
@@ -172,9 +191,10 @@ function renderDocs() {
   const s = Master.station(curStation);
   const l = Master.line(curLine);
   document.getElementById('docs-title').textContent =
-    (l ? l.display_name : '') + ' / สถานี ' + (s ? s.station_no : '') + ' — เอกสารทั้งหมด';
+    '📂 ' + (l ? l.display_name : '') + ' / สถานี ' + (s ? s.station_no : '');
   const docs = Master.documentsForStation(curStation, curLine);
   const el = document.getElementById('doc-list');
+  document.getElementById('docs-count').textContent = docs.length + ' เอกสาร';
 
   if (!docs.length) {
     el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารผูกกับสถานีนี้ — Admin เพิ่มได้ที่ชีท M_Document / M_DocAssign ใน ENC-MASTER</div>';
@@ -198,9 +218,12 @@ function renderDocs() {
   });
 }
 
+const BEHAVIOR_LABEL = { form: 'กรอก/ตรวจสอบ', file: 'เอกสารอ้างอิง', recovery: 'แผนแก้ไข' };
+
 function docCard(d, t) {
   const card = document.createElement('div');
   card.className = 'doc-card';
+  card.dataset.behavior = t.behavior;
   const rev = d.current_rev;
   let meta = (d.doc_no ? 'เลขที่: ' + d.doc_no + ' | ' : '') +
     (rev ? 'Revision: ' + rev.rev_no + (rev.effective_date ? ' (มีผล ' + rev.effective_date + ')' : '') : 'ยังไม่มี revision');
@@ -218,7 +241,9 @@ function docCard(d, t) {
 
   card.innerHTML =
     '<div class="doc-icon">' + (t.icon || '📄') + '</div>' +
-    '<div class="doc-info"><div class="doc-name">' + d.doc_name + '</div>' +
+    '<div class="doc-info">' +
+    '<span class="doc-behavior-tag">' + (BEHAVIOR_LABEL[t.behavior] || t.behavior) + '</span>' +
+    '<div class="doc-name">' + d.doc_name + '</div>' +
     '<div class="doc-meta">' + meta + '</div></div>' +
     '<div class="doc-actions">' + buttons + '</div>';
 
