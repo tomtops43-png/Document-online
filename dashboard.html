@@ -155,7 +155,13 @@ async function renderMyWork() {
   const status = user.role === 'QI' ? 'PENDING_QI' : (user.role === 'Leader' ? 'PENDING_LEADER' : '');
   try {
     const res = await API.get('getRecords', { status: status });
-    const n = (res.records || []).length;
+    let records = res.records || [];
+    if (user.role === 'Admin') {
+      records = records.filter(function (r) {
+        return r.status === 'PENDING_LEADER' || r.status === 'PENDING_QI';
+      });
+    }
+    const n = records.length;
     if (n > 0) {
       el.innerHTML = '<a class="dash-card dash-warn" href="records.html">⏳ รออนุมัติจากคุณ <b>' + n + '</b> รายการ — กดเพื่อไปอนุมัติ</a>';
     }

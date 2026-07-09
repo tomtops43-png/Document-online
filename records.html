@@ -126,7 +126,13 @@ function myPendingStatus() {
 async function refreshApproveCount() {
   try {
     const res = await API.get('getRecords', { status: myPendingStatus() });
-    const n = (res.records || []).length;
+    let records = res.records || [];
+    if (user.role === 'Admin') {
+      records = records.filter(function (r) {
+        return r.status === 'PENDING_LEADER' || r.status === 'PENDING_QI';
+      });
+    }
+    const n = records.length;
     document.getElementById('approve-count').textContent = n ? '(' + n + ')' : '';
   } catch (e) { /* เงียบ */ }
 }
@@ -156,7 +162,13 @@ async function loadApproveQueue() {
   Loading.show('กำลังโหลดคิวรออนุมัติ...');
   try {
     const res = await API.get('getRecords', { status: myPendingStatus() });
-    renderRows(res.records || []);
+    let records = res.records || [];
+    if (user.role === 'Admin') {
+      records = records.filter(function (r) {
+        return r.status === 'PENDING_LEADER' || r.status === 'PENDING_QI';
+      });
+    }
+    renderRows(records);
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
