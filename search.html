@@ -130,8 +130,7 @@ async function doSearch() {
   resEl.innerHTML = '';
 
   try {
-    const res = await apiCall('search', { query: q, line: line, station: station, doctype: doctype });
-    if (!res.success) throw new Error(res.error);
+    const res = await API.get('search', { query: q, line: line, station: station, doctype: doctype });
     
     if (!res.results || res.results.length === 0) {
       statusEl.textContent = 'ไม่พบผลลัพธ์ที่ตรงกับคำค้นหา';

@@ -91,6 +91,7 @@
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/master.js"></script>
 <script>
 const user = Auth.requireLogin();
 let currentTab = 'search';
@@ -217,7 +218,14 @@ async function openDetail(recordId) {
   try {
     const res = await API.get('getRecord', { record_id: recordId });
     detailRecord = res.record;
-    const template = await getTemplateCached(detailRecord.form_id);
+    let template;
+    // ลองโหลด template: ใหม่ (data-driven) ก่อน แล้ว fallback ระบบเดิม
+    try {
+      const tplPath = await Master.resolveTemplate(detailRecord.form_id);
+      template = await loadTemplate(null, tplPath);
+    } catch (e) {
+      template = await getTemplateCached(detailRecord.form_id);
+    }
     renderDetail(template, detailRecord, res.recovery || []);
     document.getElementById('detail-modal').style.display = 'flex';
   } catch (err) {
