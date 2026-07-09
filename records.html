@@ -31,7 +31,7 @@
       <label class="field"><span>ฟอร์ม</span>
         <select id="f-form"><option value="">ทั้งหมด</option></select></label>
       <label class="field"><span>Station</span>
-        <input type="text" id="f-station" placeholder="เช่น 5"></label>
+        <select id="f-station"><option value="">ทั้งหมด</option></select></label>
       <label class="field"><span>วันที่เริ่ม</span>
         <input type="date" id="f-date-from"></label>
       <label class="field"><span>วันที่สิ้นสุด</span>
@@ -45,7 +45,7 @@
           <option value="REJECTED">ตีกลับ</option>
         </select></label>
       <label class="field"><span>รุ่น (Product Model)</span>
-        <input type="text" id="f-model"></label>
+        <select id="f-model"><option value="">ทั้งหมด</option></select></label>
     </div>
     <button type="button" class="btn-primary" id="btn-search">ค้นหา</button>
   </section>
@@ -177,19 +177,89 @@ function canvasIsBlank(canvas) {
   return canvas.toDataURL() === blank.toDataURL();
 }
 
-// เติมตัวเลือกฟอร์ม
-CONFIG.FORMS.forEach(function (f) {
-  const opt = document.createElement('option');
-  opt.value = f.form_id;
-  opt.textContent = f.title;
-  document.getElementById('f-form').appendChild(opt);
-});
+// โหลดข้อมูลและตัวเลือกทั้งหมด
+(async function initFilters() {
+  CONFIG.FORMS.forEach(function (f) {
+    const opt = document.createElement('option');
+    opt.value = f.form_id;
+    opt.textContent = f.title;
+    document.getElementById('f-form').appendChild(opt);
+  });
 
-// Leader/QI/Admin เห็นแท็บรออนุมัติ
-if (user && (user.role === 'Leader' || user.role === 'QI' || user.role === 'Admin')) {
-  document.getElementById('tab-approve').style.display = 'inline-block';
-  refreshApproveCount();
-}
+  if (user && (user.role === 'Leader' || user.role === 'QI' || user.role === 'Admin')) {
+    document.getElementById('tab-approve').style.display = 'inline-block';
+    refreshApproveCount();
+  }
+
+  try {
+    await Master.load();
+
+    // เติมตัวเลือก Station
+    const stationSel = document.getElementById('f-station');
+    const uniqueStations = [];
+    (Master.data.M_Station || []).forEach(function (s) {
+      const num = String(s.station_no).trim();
+      if (num && uniqueStations.indexOf(num) < 0) {
+        uniqueStations.push(num);
+      }
+    });
+    uniqueStations.sort(function (a, b) {
+      return (Number(a) || 0) - (Number(b) || 0);
+    });
+    uniqueStations.forEach(function (num) {
+      const opt = document.createElement('option');
+      opt.value = num;
+      opt.textContent = num;
+      stationSel.appendChild(opt);
+    });
+
+    // เติมตัวเลือก รุ่น (Product Model)
+    const modelSel = document.getElementById('f-model');
+    const uniqueModels = [];
+    (Master.data.M_Model || []).forEach(function (m) {
+      const name = String(m.model_name || '').trim();
+      if (name && uniqueModels.indexOf(name) < 0) {
+        uniqueModels.push(name);
+      }
+    });
+    uniqueModels.sort();
+    uniqueModels.forEach(function (name) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      modelSel.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('โหลด Master Data ล้มเหลว:', err);
+  }
+
+  // เปิดจาก Document Center: prefill filter จาก URL แล้วค้นหาทันที
+  const qp = new URLSearchParams(location.search);
+  let auto = false;
+  if (qp.get('station')) {
+    const stVal = qp.get('station');
+    const stationSel = document.getElementById('f-station');
+    if (![].some.call(stationSel.options, function (o) { return o.value === stVal; })) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = stVal;
+      stationSel.appendChild(opt);
+    }
+    stationSel.value = stVal;
+    auto = true;
+  }
+  if (qp.get('form_id')) {
+    const fVal = qp.get('form_id');
+    const sel = document.getElementById('f-form');
+    if (![].some.call(sel.options, function (o) { return o.value === fVal; })) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = fVal;
+      sel.appendChild(opt);
+    }
+    sel.value = fVal;
+    auto = true;
+  }
+  if (auto) doSearch();
+})();
 
 function switchTab(tab) {
   currentTab = tab;
@@ -449,23 +519,7 @@ document.getElementById('btn-reject').addEventListener('click', async function (
 document.getElementById('f-date-from').value = new Date().toISOString().slice(0, 10);
 document.getElementById('f-date-to').value = new Date().toISOString().slice(0, 10);
 
-// เปิดจาก Document Center: prefill filter จาก URL แล้วค้นหาทันที
-(function () {
-  const qp = new URLSearchParams(location.search);
-  let auto = false;
-  if (qp.get('station')) { document.getElementById('f-station').value = qp.get('station'); auto = true; }
-  if (qp.get('form_id')) {
-    const sel = document.getElementById('f-form');
-    if (![].some.call(sel.options, function (o) { return o.value === qp.get('form_id'); })) {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = qp.get('form_id');
-      sel.appendChild(opt);
-    }
-    sel.value = qp.get('form_id');
-    auto = true;
-  }
-  if (auto) doSearch();
-})();
+
 </script>
 </body>
 </html>
