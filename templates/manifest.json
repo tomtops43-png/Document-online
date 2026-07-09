@@ -16,7 +16,7 @@
       "doc_no": "",
       "mode": "single-record",
       "rev_no": "Rev01",
-      "family_id": null
+      "family_id": "PDB"
     },
     {
       "form_id": "lc-classic-ez-first-piece",
@@ -61,7 +61,7 @@
       "doc_no": "",
       "mode": "single-record",
       "rev_no": "Rev01",
-      "family_id": null
+      "family_id": "PDB"
     },
     {
       "form_id": "nlc-extension-box-first-piece",
@@ -133,7 +133,7 @@
       "doc_no": "",
       "mode": "single-record",
       "rev_no": "Rev01",
-      "family_id": null
+      "family_id": "PDB"
     },
     {
       "form_id": "resi9-nzl-first-piece",
@@ -142,7 +142,7 @@
       "doc_no": "",
       "mode": "single-record",
       "rev_no": "Rev01",
-      "family_id": null
+      "family_id": "PDB"
     }
   ]
 }
