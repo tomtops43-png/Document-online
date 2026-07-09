@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="css/app.css">
 <style>
   .search-hero {
-    background: linear-gradient(135deg, var(--brand-700), var(--brand-900));
-    color: white; padding: 40px 20px; border-radius: 12px; margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--ink-900), var(--brand-600) 130%);
+    color: white; padding: 40px 20px; border-radius: var(--radius-lg); margin-bottom: 24px;
     text-align: center;
   }
   .search-hero h1 { margin: 0 0 16px; font-size: 28px; font-weight: 700; }
@@ -29,23 +29,21 @@
     padding: 10px 24px; font-weight: 600; cursor: pointer; font-size: 16px;
   }
   .search-result-item {
-    padding: 16px; border-bottom: 1px solid var(--ink-200);
+    padding: 16px; border-bottom: 1px solid var(--border);
     display: flex; flex-direction: column; gap: 8px;
   }
   .search-result-item:last-child { border-bottom: none; }
   .search-result-header { display: flex; align-items: center; justify-content: space-between; }
   .search-result-title { font-weight: 600; font-size: 16px; color: var(--brand-600); text-decoration: none; }
   .search-result-title:hover { text-decoration: underline; }
-  .search-result-meta { font-size: 13px; color: var(--ink-500); display: flex; gap: 12px; align-items: center; }
-  .search-result-kw { font-size: 13px; color: var(--ink-600); background: var(--ink-50); padding: 6px 10px; border-radius: 6px; }
+  .search-result-meta { font-size: 13px; color: var(--text-faint); display: flex; gap: 12px; align-items: center; }
+  .search-result-kw { font-size: 13px; color: var(--text-soft); background: var(--canvas-alt); padding: 6px 10px; border-radius: 6px; }
 </style>
 </head>
 <body>
 
 <header class="app-bar">
-  <a href="dashboard.html" class="btn-small">◀ Document Center</a>
   <div class="app-title">🔍 ค้นหา (Global Search)</div>
-  <div class="app-user"><span id="user-name"></span></div>
 </header>
 
 <main class="container container-wide">
@@ -61,11 +59,11 @@
   <section class="card">
     <div class="filter-grid" style="margin-bottom: 16px;">
       <label class="field"><span>ไลน์ (Line)</span><select id="f-line"><option value="">-- ทั้งหมด --</option></select></label>
-      <label class="field"><span>สถานี (Station)</span><select id="f-station"><option value="">-- ทั้งหมด --</option></select></label>
+      <label class="field"><span>Station</span><select id="f-station"><option value="">-- ทั้งหมด --</option></select></label>
       <label class="field"><span>ประเภทเอกสาร</span><select id="f-doctype"><option value="">-- ทั้งหมด --</option></select></label>
     </div>
 
-    <div id="search-status" style="padding: 16px; text-align: center; color: var(--ink-500);">พิมพ์คำค้นหาเพื่อเริ่มต้น</div>
+    <div id="search-status" style="padding: 16px; text-align: center; color: var(--text-faint);">พิมพ์คำค้นหาเพื่อเริ่มต้น</div>
     
     <div id="search-results" style="display:none;"></div>
   </section>
@@ -76,9 +74,10 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/master.js"></script>
+<script src="js/shell.js"></script>
 <script>
 const user = Auth.requireLogin();
-document.getElementById('user-name').textContent = user ? user.name : '';
+AppShell.init('search');
 
 async function init() {
   await Master.load();
@@ -131,7 +130,7 @@ async function doSearch() {
 
   try {
     const res = await API.get('search', { query: q, line: line, station: station, doctype: doctype });
-    
+
     if (!res.results || res.results.length === 0) {
       statusEl.textContent = 'ไม่พบผลลัพธ์ที่ตรงกับคำค้นหา';
       return;
@@ -154,7 +153,7 @@ async function doSearch() {
         icon = '📝';
       }
 
-      // ดึงชื่อไลน์และสถานีแบบมนุษย์อ่านง่าย
+      // ดึงชื่อไลน์และ Station แบบมนุษย์อ่านง่าย
       const lineName = Master.data.M_Line.find(l => l.line_id === r.line)?.line_name || r.line;
       
       item.innerHTML = `

@@ -114,8 +114,8 @@ const Master = {
     return this.revisions(docId).find(function (r) { return String(r.status) === 'CURRENT'; }) || null;
   },
 
-  // เอกสารของสถานี: (1) ผูกตรงใน M_DocAssign หรือ
-  // (2) เอกสาร scope ระดับไลน์/ทั้งโรงงาน (line_id='*' หรือตรงไลน์) ที่ยังไม่ผูกสถานีใดเลย
+  // เอกสารของ Station: (1) ผูกตรงใน M_DocAssign หรือ
+  // (2) เอกสาร scope ระดับไลน์/ทั้งโรงงาน (line_id='*' หรือตรงไลน์) ที่ยังไม่ผูก Station ใดเลย
   documentsForStation(stationId, lineId) {
     const assigns = (this.data.M_DocAssign || []);
     const assignedHere = {};
@@ -127,7 +127,7 @@ const Master = {
     const self = this;
     return (this.data.M_Document || []).filter(function (d) {
       if (assignedHere[d.doc_id]) return true;
-      if (hasAnyAssign[d.doc_id]) return false; // ผูกสถานีอื่นไว้เจาะจงแล้ว
+      if (hasAnyAssign[d.doc_id]) return false; // ผูก Station อื่นไว้เจาะจงแล้ว
       return String(d.line_id) === '*' || String(d.line_id) === String(lineId);
     }).map(function (d) {
       return Object.assign({}, d, {

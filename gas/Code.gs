@@ -877,6 +877,75 @@ function auditLog(user, action, entityType, entityId, before, after) {
 }
 
 // ========================================================
+// Search Index (T_SearchIndex ใน spreadsheet เดิม — สร้างชีทถ้ายังไม่มี)
+// 1 แถวต่อ entity — upsert เมื่อบันทึก record/ลงทะเบียนเอกสาร
+// ========================================================
+var SEARCH_INDEX_HEADER = ['entity_type', 'entity_id', 'line_id', 'station_id', 'doctype_id', 'keywords', 'updated_at'];
+
+function getSearchIndexSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('T_SearchIndex');
+  if (!sheet) {
+    sheet = ss.insertSheet('T_SearchIndex');
+    sheet.getRange(1, 1, 1, SEARCH_INDEX_HEADER.length).setValues([SEARCH_INDEX_HEADER]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function buildSearchIndex(entityType, entityId, lineId, stationId, doctypeId, keywords) {
+  var sheet = getSearchIndexSheet_();
+  var values = sheet.getDataRange().getValues();
+  var row = [entityType, entityId, lineId || '', stationId || '', doctypeId || '', String(keywords || '').slice(0, 1000), nowISO()];
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === entityType && String(values[i][1]) === String(entityId)) {
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+      return;
+    }
+  }
+  sheet.appendRow(row);
+}
+
+// ค้นหาทั้งระบบ — กรองด้วย query (substring ใน keywords/entity_id) + line/station/doctype
+function actionSearch(params, user) {
+  var sheet = getSearchIndexSheet_();
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return { success: true, results: [] };
+  var header = values[0];
+  var q = String(params.query || '').trim().toLowerCase();
+  var lineFilter = String(params.line || '');
+  var stationFilter = String(params.station || '');
+  var doctypeFilter = String(params.doctype || '');
+
+  var results = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = {};
+    for (var j = 0; j < header.length; j++) r[header[j]] = values[i][j];
+    if (q) {
+      var hay = (String(r.keywords || '') + ' ' + String(r.entity_id || '')).toLowerCase();
+      if (hay.indexOf(q) < 0) continue;
+    }
+    if (lineFilter && String(r.line_id || '') !== lineFilter) continue;
+    if (stationFilter && String(r.station_id || '').indexOf(stationFilter) < 0) continue;
+    if (doctypeFilter && String(r.doctype_id || '') !== doctypeFilter) continue;
+    results.push({
+      entity_type: r.entity_type,
+      entity_id: r.entity_id,
+      line: r.line_id,
+      station: r.station_id,
+      doctype: r.doctype_id,
+      keywords: r.keywords,
+      updated_at: r.updated_at instanceof Date
+        ? Utilities.formatDate(r.updated_at, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss")
+        : String(r.updated_at || '')
+    });
+    if (results.length >= 100) break; // จำกัดผลลัพธ์
+  }
+  results.sort(function (a, b) { return a.updated_at < b.updated_at ? 1 : -1; });
+  return { success: true, results: results };
+}
+
+// ========================================================
 // ลงทะเบียนเอกสารใหม่ + revision (ใช้ตอนแนบ Master Excel ที่แปลงเป็น template แล้ว)
 // เรียกจาก editor หรือจาก API document.manage ในอนาคต
 //

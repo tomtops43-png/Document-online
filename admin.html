@@ -12,12 +12,7 @@
 <body>
 
 <header class="app-bar">
-  <a href="dashboard.html" class="btn-small">◀ Document Center</a>
   <div class="app-title">⚙️ จัดการเอกสาร Master</div>
-  <div class="app-user">
-    <span id="user-name"></span>
-    <a href="search.html" class="btn-small">🔍 ค้นหา (Global)</a>
-  </div>
 </header>
 
 <main class="container container-wide">
@@ -26,14 +21,14 @@
     <button type="button" class="tab active" id="tab-formreg" onclick="switchTab('formreg')">📋 ลงทะเบียนฟอร์ม <span class="count-pill" id="formreg-count"></span></button>
     <button type="button" class="tab" id="tab-new" onclick="switchTab('new')">➕ เพิ่มเอกสารไฟล์ใหม่</button>
     <button type="button" class="tab" id="tab-rev" onclick="switchTab('rev')">🔄 เพิ่ม Revision</button>
-    <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔สถานี</button>
+    <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔Station</button>
   </div>
 
   <!-- ===== ลงทะเบียนฟอร์ม (จาก template ที่ Claude แปลงและ push ไว้แล้ว) ===== -->
   <section id="pane-formreg" class="card">
     <h2>ลงทะเบียนฟอร์ม (First Piece / Check Sheet ที่แปลงจาก Excel ไว้แล้ว)</h2>
     <p class="modal-hint">รายการนี้ดึงจาก <code>templates/manifest.json</code> — ฟอร์มที่ Claude แปลงและ push เข้าระบบแล้ว
-      แต่ยังไม่ได้ผูกกับไลน์/สถานี เลือกฟอร์ม → กำหนดไลน์และสถานีเอง → กดลงทะเบียน</p>
+      แต่ยังไม่ได้ผูกกับไลน์/Station เลือกฟอร์ม → กำหนดไลน์และ Station เอง → กดลงทะเบียน</p>
 
     <label class="field"><span>เลือกฟอร์ม *</span><select id="f-template"></select></label>
     <div id="f-preview" class="detail-meta" style="margin:8px 0"></div>
@@ -50,7 +45,7 @@
     </div>
     <label class="field"><span>เหตุผล/หมายเหตุ</span><input type="text" id="f-reason" value="ลงทะเบียนครั้งแรก"></label>
 
-    <div class="field"><span>สถานีที่ใช้เอกสารนี้ (เลือกได้หลายสถานี — ไม่เลือก = ใช้ทั้งไลน์)</span>
+    <div class="field"><span>Station ที่ใช้เอกสารนี้ (เลือกได้หลาย Station — ไม่เลือก = ใช้ทั้งไลน์)</span>
       <div id="f-stations" class="station-check-grid"></div>
     </div>
 
@@ -76,7 +71,7 @@
     </div>
     <label class="field"><span>เหตุผล/หมายเหตุ</span><input type="text" id="n-reason" value="ลงทะเบียนครั้งแรก"></label>
 
-    <div class="field"><span>สถานีที่ใช้เอกสารนี้ (เลือกได้หลายสถานี — ไม่เลือก = ใช้ทั้งไลน์)</span>
+    <div class="field"><span>Station ที่ใช้เอกสารนี้ (เลือกได้หลาย Station — ไม่เลือก = ใช้ทั้งไลน์)</span>
       <div id="n-stations" class="station-check-grid"></div>
     </div>
 
@@ -87,7 +82,7 @@
       </div>
       <div id="new-up-file">
         <input type="file" id="n-file" accept="application/pdf,image/*">
-        <div class="upload-hint">รองรับ PDF และรูปภาพ (สูงสุด ~40MB) — ไฟล์จะถูกเก็บใน ENC/{ไลน์}/{สถานี}/{ประเภท}/</div>
+        <div class="upload-hint">รองรับ PDF และรูปภาพ (สูงสุด ~40MB) — ไฟล์จะถูกเก็บใน ENC/{ไลน์}/{Station}/{ประเภท}/</div>
       </div>
       <div id="new-up-drive" style="display:none">
         <input type="text" id="n-drive" placeholder="วางลิงก์ Drive หรือ File ID เช่น https://drive.google.com/file/d/XXXX/view">
@@ -118,12 +113,12 @@
     <button type="button" class="btn-primary btn-block" id="btn-add-rev">✔ เพิ่ม Revision</button>
   </section>
 
-  <!-- ===== ผูกเอกสารกับสถานี ===== -->
+  <!-- ===== ผูกเอกสารกับ Station ===== -->
   <section id="pane-assign" class="card" style="display:none">
-    <h2>ผูก / ถอนเอกสารกับสถานี</h2>
+    <h2>ผูก / ถอนเอกสารกับ Station</h2>
     <label class="field"><span>เลือกเอกสาร *</span><select id="a-doc"></select></label>
     <label class="field"><span>เลือกไลน์</span><select id="a-line"></select></label>
-    <div class="field"><span>ติ๊กสถานีที่ต้องการให้เอกสารนี้ปรากฏ</span>
+    <div class="field"><span>ติ๊ก Station ที่ต้องการให้เอกสารนี้ปรากฏ</span>
       <div id="a-stations" class="station-check-grid"></div>
     </div>
     <button type="button" class="btn-primary btn-block" id="btn-save-assign">✔ บันทึกการผูก</button>
@@ -135,7 +130,7 @@
     <ol class="help-list">
       <li>อัปโหลดไฟล์ Excel Master ขึ้น Google Drive ของคุณ</li>
       <li>แชร์ให้ "ทุกคนที่มีลิงก์ดูได้" แล้ว copy ลิงก์</li>
-      <li>ส่งลิงก์ให้ Claude ในแชท พร้อมบอก ไลน์ / สถานี / รุ่น</li>
+      <li>ส่งลิงก์ให้ Claude ในแชท พร้อมบอก ไลน์ / Station / รุ่น</li>
       <li>Claude จะอ่านไฟล์ แกะโครงสร้างรายการตรวจ แปลงเป็น template JSON
         แล้ว push เข้าระบบ + ลงทะเบียนให้อัตโนมัติ (มีหลักฐานใน Git ทุก revision)</li>
     </ol>
@@ -147,9 +142,10 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/master.js"></script>
+<script src="js/shell.js"></script>
 <script>
 const user = Auth.requireLogin();
-document.getElementById('user-name').textContent = user ? user.name + ' (' + user.role + ')' : '';
+AppShell.init('admin');
 if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
   showToast('หน้านี้สำหรับ Admin / Document Control เท่านั้น', 'error');
   setTimeout(function () { location.href = 'dashboard.html'; }, 1500);
@@ -252,7 +248,7 @@ function fillFormFields() {
     familyNote = '<br><span class="nok-flag">Claude ยังไม่แน่ใจว่าเอกสารนี้อยู่รุ่นหลักไหน (ยังไม่มีใน M_ProductFamily ตอนนี้) — เลือกเองด้านล่าง หรือปล่อย "ทุกรุ่น (*)" ไว้ก่อนได้</span>';
   }
   document.getElementById('f-preview').innerHTML =
-    'โหมด: <b>' + (t.mode === 'log-sheet' ? 'log-sheet (Checklist ประจำสถานี)' : 'single-record (1 แผ่น/การตรวจ)') + '</b> | ' +
+    'โหมด: <b>' + (t.mode === 'log-sheet' ? 'log-sheet (Checklist ประจำ Station)' : 'single-record (1 แผ่น/การตรวจ)') + '</b> | ' +
     'ไฟล์: <code>' + t.path + '</code>' + familyNote;
   document.getElementById('f-name').value = t.title;
   document.getElementById('f-docno').value = t.doc_no || '';
@@ -417,7 +413,7 @@ document.getElementById('btn-add-rev').addEventListener('click', async function 
   }
 });
 
-// ---------- ผูกสถานี ----------
+// ---------- ผูก Station ----------
 function markAssigned() {
   const docId = document.getElementById('a-doc').value;
   const assigns = (Master.data.M_DocAssign || []).filter(function (a) {

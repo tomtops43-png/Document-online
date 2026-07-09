@@ -12,11 +12,7 @@
 <body>
 
 <header class="app-bar">
-  <a href="dashboard.html" class="btn-small">◀ หน้าแรก</a>
-  <div class="app-title">ค้นหาบันทึก</div>
-  <div class="app-user">
-    <a href="search.html" class="btn-small">🔍 ค้นหา (Global)</a>
-  </div>
+  <div class="app-title">📋 ค้นหาบันทึก / คิวรออนุมัติ</div>
 </header>
 
 <main class="container container-wide">
@@ -34,7 +30,7 @@
     <div class="filter-grid">
       <label class="field"><span>ฟอร์ม</span>
         <select id="f-form"><option value="">ทั้งหมด</option></select></label>
-      <label class="field"><span>สถานี</span>
+      <label class="field"><span>Station</span>
         <input type="text" id="f-station" placeholder="เช่น 5"></label>
       <label class="field"><span>วันที่เริ่ม</span>
         <input type="date" id="f-date-from"></label>
@@ -59,7 +55,7 @@
     <div class="table-scroll">
       <table class="record-table">
         <thead><tr>
-          <th>เลขที่บันทึก</th><th>ฟอร์ม</th><th>สถานี</th><th>รุ่น</th><th>วันที่</th><th>กะ</th>
+          <th>เลขที่บันทึก</th><th>ฟอร์ม</th><th>Station</th><th>รุ่น</th><th>วันที่</th><th>กะ</th>
           <th>สถานะ</th><th>NOK</th><th></th>
         </tr></thead>
         <tbody id="record-rows"><tr><td colspan="9" class="empty-hint">กด "ค้นหา" เพื่อแสดงบันทึก</td></tr></tbody>
@@ -92,8 +88,10 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/master.js"></script>
+<script src="js/shell.js"></script>
 <script>
 const user = Auth.requireLogin();
+AppShell.init('records');
 let currentTab = 'search';
 let templatesCache = {};
 
@@ -242,7 +240,7 @@ function renderDetail(template, record, recovery) {
 
   let html = '<div class="detail-meta">' + statusBadge(record.status) +
     ' <b>' + template.title_th + '</b>' +
-    (record.station ? ' | สถานี ' + record.station : '') +
+    (record.station ? ' | Station ' + record.station : '') +
     ' | รุ่น ' + (record.product_model || '-') + ' | ' + (record.date || '') + ' กะ ' + (record.shift || '') + '</div>';
   if (record.reject_reason) {
     html += '<div class="reject-reason">เหตุผลตีกลับ: ' + record.reject_reason + '</div>';

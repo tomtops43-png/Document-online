@@ -61,7 +61,7 @@
 
   <!-- ===== ขั้น 2: เลือกฟอร์ม ===== -->
   <section id="step-form" class="card" style="display:none">
-    <a href="dashboard.html" class="btn-primary btn-block" style="margin-bottom:14px">🏭 Document Center (เลือกไลน์ → สถานี → เอกสาร)</a>
+    <a href="dashboard.html" class="btn-primary btn-block" style="margin-bottom:14px">🏭 Document Center (เลือกไลน์ → Station → เอกสาร)</a>
     <h2>เลือกฟอร์ม (ทางลัดแบบเดิม)</h2>
     <div id="form-list" class="big-choice-list"></div>
     <div class="nav-links">
@@ -69,7 +69,7 @@
     </div>
   </section>
 
-  <!-- ===== ขั้น 3: เลือกสถานี (log-sheet) หรือกรอก header (single-record) ===== -->
+  <!-- ===== ขั้น 3: เลือก Station (log-sheet) หรือกรอก header (single-record) ===== -->
   <section id="step-detail" class="card" style="display:none">
     <h2 id="detail-title"></h2>
     <div id="station-list" class="big-choice-list" style="display:none"></div>
@@ -136,7 +136,7 @@ function renderFormList() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-choice';
-    btn.innerHTML = '<b>' + f.title + '</b><br><small>' + (f.mode === 'log-sheet' ? 'Checklist ประจำสถานี (ทั้งกะ)' : 'ตรวจชิ้นงานตัวแรก (1 แผ่น = 1 การตรวจ)') + '</small>';
+    btn.innerHTML = '<b>' + f.title + '</b><br><small>' + (f.mode === 'log-sheet' ? 'Checklist ประจำ Station (ทั้งกะ)' : 'ตรวจชิ้นงานตัวแรก (1 แผ่น = 1 การตรวจ)') + '</small>';
     btn.addEventListener('click', function () { selectForm(f); });
     el.appendChild(btn);
   });
@@ -159,7 +159,7 @@ async function selectForm(form) {
   const btnStart = document.getElementById('btn-start');
 
   if (selectedTemplate.mode === 'log-sheet') {
-    // เลือกสถานีก่อน แล้วค่อยกรอก header
+    // เลือก Station ก่อน แล้วค่อยกรอก header
     stationList.style.display = 'grid';
     headerForm.style.display = 'none';
     btnStart.style.display = 'none';
@@ -168,7 +168,7 @@ async function selectForm(form) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'btn-choice btn-station';
-      b.textContent = 'สถานี ' + st;
+      b.textContent = 'Station ' + st;
       b.addEventListener('click', function () { renderHeaderForm(st); });
       stationList.appendChild(b);
     });
@@ -187,7 +187,7 @@ function renderHeaderForm(station) {
   btnStart.dataset.station = station == null ? '' : station;
   document.getElementById('station-list').style.display = 'none';
 
-  let html = station != null ? '<div class="selected-station">สถานี: <b>' + station + '</b></div>' : '';
+  let html = station != null ? '<div class="selected-station">Station: <b>' + station + '</b></div>' : '';
   const today = new Date().toISOString().slice(0, 10);
   (selectedTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return; // เวลา entry กรอกในหน้า fill

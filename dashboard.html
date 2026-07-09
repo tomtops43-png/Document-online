@@ -13,13 +13,6 @@
 
 <header class="app-bar">
   <div class="app-title">🏭 ENC (H9) — Document Center</div>
-  <div class="app-user">
-    <span id="user-name"></span>
-    <a href="search.html" class="btn-small">🔍 ค้นหา</a>
-    <a href="records.html" class="btn-small">📋 บันทึก/อนุมัติ</a>
-    <a href="admin.html" class="btn-small" id="admin-link" style="display:none">⚙️ จัดการเอกสาร</a>
-    <button type="button" class="btn-small" onclick="Auth.logoutAndRedirect()">ออก</button>
-  </div>
 </header>
 
 <main class="container container-wide">
@@ -43,13 +36,13 @@
     <div id="line-list" class="big-choice-list"></div>
   </section>
 
-  <!-- ขั้น 2: เลือกสถานี -->
+  <!-- ขั้น 2: เลือก Station -->
   <section id="step-station" class="card" style="display:none">
-    <div class="section-heading"><h2 id="station-title">เลือกสถานี</h2></div>
+    <div class="section-heading"><h2 id="station-title">เลือก Station</h2></div>
     <div id="station-grid" class="big-choice-list station-grid"></div>
   </section>
 
-  <!-- ขั้น 3: Document Center ของสถานี -->
+  <!-- ขั้น 3: Document Center ของ Station -->
   <section id="step-docs" style="display:none">
     <div class="card">
       <div class="section-heading">
@@ -78,12 +71,10 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/master.js"></script>
+<script src="js/shell.js"></script>
 <script>
 const user = Auth.requireLogin();
-document.getElementById('user-name').textContent = user ? user.name + ' (' + user.role + ')' : '';
-if (user && (user.role === 'Admin' || user.role === 'DocControl')) {
-  document.getElementById('admin-link').style.display = 'inline-block';
-}
+AppShell.init('dashboard');
 
 // state การนำทาง: ?line=L4&station=L4-ST12
 let curLine = null, curStation = null;
@@ -107,7 +98,7 @@ function crumbs() {
   }
   if (curStation) {
     const s = Master.station(curStation);
-    html += ' › <b>' + (s ? 'สถานี ' + s.station_no : curStation) + '</b>';
+    html += ' › <b>' + (s ? 'Station ' + s.station_no : curStation) + '</b>';
   }
   el.innerHTML = html;
 }
@@ -142,7 +133,7 @@ function renderLines() {
     totalStations += n;
     const btn = document.createElement('button');
     btn.className = 'btn-choice';
-    btn.innerHTML = '<b>' + l.display_name + '</b><br><small>' + n + ' สถานี</small>';
+    btn.innerHTML = '<b>' + l.display_name + '</b><br><small>' + n + ' Station</small>';
     btn.addEventListener('click', function () { nav(l.line_id); });
     el.appendChild(btn);
   });
@@ -150,7 +141,7 @@ function renderLines() {
   document.getElementById('dash-hero').style.display = 'block';
   document.getElementById('hero-stats').innerHTML =
     '<div class="dash-stat"><b>' + Master.lines().length + '</b><span>ไลน์ผลิต</span></div>' +
-    '<div class="dash-stat"><b>' + totalStations + '</b><span>สถานีทั้งหมด</span></div>' +
+    '<div class="dash-stat"><b>' + totalStations + '</b><span>Station ทั้งหมด</span></div>' +
     '<div class="dash-stat"><b>' + totalDocs + '</b><span>เอกสารในระบบ</span></div>';
   renderMyWork();
 }
@@ -171,10 +162,10 @@ async function renderMyWork() {
   } catch (e) { /* เงียบ — dashboard ต้องเปิดได้แม้ API ล่ม */ }
 }
 
-// ---------- ขั้น 2: สถานี ----------
+// ---------- ขั้น 2: Station ----------
 function renderStations() {
   const l = Master.line(curLine);
-  document.getElementById('station-title').textContent = 'เลือกสถานี — ' + (l ? l.display_name : curLine);
+  document.getElementById('station-title').textContent = 'เลือก Station — ' + (l ? l.display_name : curLine);
   const el = document.getElementById('station-grid');
   el.innerHTML = '';
   Master.stations(curLine).forEach(function (s) {
@@ -192,13 +183,13 @@ function renderDocs() {
   const s = Master.station(curStation);
   const l = Master.line(curLine);
   document.getElementById('docs-title').textContent =
-    '📂 ' + (l ? l.display_name : '') + ' / สถานี ' + (s ? s.station_no : '');
+    '📂 ' + (l ? l.display_name : '') + ' / Station ' + (s ? s.station_no : '');
   const docs = Master.documentsForStation(curStation, curLine);
   const el = document.getElementById('doc-list');
   document.getElementById('docs-count').textContent = docs.length + ' เอกสาร';
 
   if (!docs.length) {
-    el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารผูกกับสถานีนี้ — Admin เพิ่มได้ที่ชีท M_Document / M_DocAssign ใน ENC-MASTER</div>';
+    el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารผูกกับ Station นี้ — Admin เพิ่มได้ที่ชีท M_Document / M_DocAssign ใน ENC-MASTER</div>';
     return;
   }
 
@@ -279,7 +270,7 @@ async function openHeaderModal(d) {
   document.getElementById('header-modal-title').textContent = d.doc_name;
   const fieldsEl = document.getElementById('header-modal-fields');
   const today = new Date().toISOString().slice(0, 10);
-  let html = '<div class="selected-station">สถานี: <b>' + stationNo() + '</b> | ' + (Master.line(curLine) || {}).display_name + '</div>';
+  let html = '<div class="selected-station">Station: <b>' + stationNo() + '</b> | ' + (Master.line(curLine) || {}).display_name + '</div>';
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
