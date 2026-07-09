@@ -87,11 +87,16 @@ const PrintRender = {
 
   // โหลด print CSS ตามที่ template ระบุ (แต่ละฟอร์มมี layout ของตัวเอง)
   loadPrintCss(template) {
-    if (!template.print_css) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = template.print_css;
-    document.head.appendChild(link);
+    if (template.print_css) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = template.print_css;
+      document.head.appendChild(link);
+    }
+    // Inject signature styling
+    const style = document.createElement('style');
+    style.innerHTML = '.sig-img-inline { max-height: 8mm; max-width: 100%; display: block; margin: 0 auto; }';
+    document.head.appendChild(style);
   },
 
   // ====================================================
@@ -209,8 +214,12 @@ const PrintRender = {
       const name = record ? (record[sig.key + '_name'] || '') : '';
       const ts = record ? (record[sig.key + '_ts'] || '') : '';
       const dateStr = ts ? String(ts).slice(0, 10) : '';
+      let signHtml = '';
+      if (record && answers['_' + sig.key + '_sign']) {
+        signHtml = '<img src="' + answers['_' + sig.key + '_sign'] + '" class="sig-img-inline" style="max-height:10mm; display:inline-block; vertical-align:middle; margin-left:10px;">';
+      }
       html += '<tr><td class="sig-role">' + esc(sig.label) + '</td>' +
-        '<td class="sig-name">Name: <span class="fill-value">' + esc(name) + '</span></td>' +
+        '<td class="sig-name">Name: <span class="fill-value">' + esc(name) + '</span>' + signHtml + '</td>' +
         '<td class="sig-date">Date: <span class="fill-value">' + esc(dateStr) + '</span></td></tr>';
     });
     html += '</table>';
@@ -276,8 +285,16 @@ const PrintRender = {
         html += '<td class="c-mark">' + PrintRender.markPO(ans[i.item_id]) + '</td>';
       });
       // สรุปผล: ลงชื่อผู้ตรวจสอบ / หัวหน้างานยืนยัน
-      html += '<td class="c-sign">' + esc(rec ? (rec.operator_name || '') : '') + '</td>';
-      html += '<td class="c-sign">' + esc(rec && rec.leader_name && (rec.status === 'COMPLETED' || rec.status === 'PENDING_QI') ? rec.leader_name : '') + '</td>';
+      let opSign = esc(rec ? (rec.operator_name || '') : '');
+      if (rec && ans._operator_sign) {
+        opSign = '<img src="' + ans._operator_sign + '" class="sig-img-inline">';
+      }
+      let ldSign = esc(rec && rec.leader_name && (rec.status === 'COMPLETED' || rec.status === 'PENDING_QI') ? rec.leader_name : '');
+      if (rec && ans._leader_sign && (rec.status === 'COMPLETED' || rec.status === 'PENDING_QI')) {
+        ldSign = '<img src="' + ans._leader_sign + '" class="sig-img-inline">';
+      }
+      html += '<td class="c-sign">' + opSign + '</td>';
+      html += '<td class="c-sign">' + ldSign + '</td>';
       html += '<td class="c-mark">' + PrintRender.markPO(ans[lpItem ? lpItem.item_id : '']) + '</td>';
       html += '</tr>';
     }

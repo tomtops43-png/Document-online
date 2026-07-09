@@ -452,6 +452,18 @@ const FormRender = {
       return;
     }
 
+    const canvas = document.getElementById('signature-canvas');
+    if (canvas) {
+      const isBlank = typeof canvasIsBlank !== 'undefined' 
+        ? canvasIsBlank(canvas) 
+        : (canvas.toDataURL() === document.createElement('canvas').toDataURL());
+      if (isBlank) {
+        showToast('กรุณาเซ็นชื่อผู้ตรวจสอบก่อนส่ง', 'error');
+        return;
+      }
+      this.answers._operator_sign = canvas.toDataURL('image/png');
+    }
+
     const t = this.template;
     const ctx = this.context;
     // โหมด log-sheet: บันทึกเวลาของ entry (คอลัมน์ "เวลา/Time" บนกระดาษ)

@@ -74,6 +74,13 @@
     </div>
     <div id="detail-body"></div>
     <div class="approve-bar" id="approve-bar" style="display:none">
+      <div class="card signature-card" style="margin-top: 10px; margin-bottom: 12px; padding: 12px; background: var(--canvas-alt); border: 1.5px solid var(--border); border-radius: var(--radius-md);">
+        <span style="font-weight: 700; display: block; margin-bottom: 6px; color: var(--ink-800);">ลงชื่ออนุมัติ (Signature) *</span>
+        <div class="signature-pad-container" style="border: 2px dashed var(--border); border-radius: var(--radius-md); background: #fbfcfd; position: relative; height: 120px;">
+          <canvas id="approve-signature-canvas" style="width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair;"></canvas>
+          <button type="button" class="btn-small" id="btn-clear-approve-sig" style="position: absolute; right: 10px; bottom: 10px; z-index: 10; font-size: 12px; padding: 4px 10px; min-height: 28px;">ล้าง</button>
+        </div>
+      </div>
       <label class="field"><span>เหตุผล (กรณีตีกลับ)</span>
         <input type="text" id="reject-reason"></label>
       <div class="approve-buttons">
@@ -94,6 +101,81 @@ const user = Auth.requireLogin();
 AppShell.init('records');
 let currentTab = 'search';
 let templatesCache = {};
+
+function initSignatureCanvas(canvas, clearBtn) {
+  const ctx = canvas.getContext('2d');
+  
+  canvas.width = canvas.offsetWidth || 300;
+  canvas.height = canvas.offsetHeight || 120;
+  
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  let drawing = false;
+  let lastX = 0;
+  let lastY = 0;
+  
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: ((clientX - rect.left) / rect.width) * canvas.width,
+      y: ((clientY - rect.top) / rect.height) * canvas.height
+    };
+  }
+  
+  function startDraw(e) {
+    drawing = true;
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+    
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fill();
+  }
+  
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+  
+  function stopDraw() {
+    drawing = false;
+  }
+  
+  canvas.onmousedown = startDraw;
+  canvas.onmousemove = draw;
+  canvas.onmouseup = stopDraw;
+  canvas.onmouseleave = stopDraw;
+  
+  canvas.ontouchstart = startDraw;
+  canvas.ontouchmove = draw;
+  canvas.ontouchend = stopDraw;
+  
+  clearBtn.onclick = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+}
+
+function canvasIsBlank(canvas) {
+  const blank = document.createElement('canvas');
+  blank.width = canvas.width;
+  blank.height = canvas.height;
+  return canvas.toDataURL() === blank.toDataURL();
+}
 
 // เติมตัวเลือกฟอร์ม
 CONFIG.FORMS.forEach(function (f) {
@@ -238,6 +320,16 @@ async function openDetail(recordId) {
     }
     renderDetail(template, detailRecord, res.recovery || []);
     document.getElementById('detail-modal').style.display = 'flex';
+    
+    // Initialize signature pad if approve-bar is visible
+    const approveBar = document.getElementById('approve-bar');
+    if (approveBar && approveBar.style.display !== 'none') {
+      const canvas = document.getElementById('approve-signature-canvas');
+      const clearBtn = document.getElementById('btn-clear-approve-sig');
+      if (canvas && clearBtn) {
+        initSignatureCanvas(canvas, clearBtn);
+      }
+    }
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -311,9 +403,19 @@ document.getElementById('detail-modal').addEventListener('click', function (e) {
 
 document.getElementById('btn-approve').addEventListener('click', async function () {
   if (!detailRecord) return;
+  const canvas = document.getElementById('approve-signature-canvas');
+  if (canvas && canvasIsBlank(canvas)) {
+    showToast('กรุณาเซ็นชื่อก่อนอนุมัติ', 'error');
+    return;
+  }
+  const sigDataUrl = canvas ? canvas.toDataURL('image/png') : '';
+
   Loading.show('กำลังอนุมัติ...');
   try {
-    await API.post('approveRecord', { record_id: detailRecord.record_id });
+    await API.post('approveRecord', { 
+      record_id: detailRecord.record_id,
+      signature: sigDataUrl 
+    });
     showToast('อนุมัติแล้ว', 'success');
     closeDetail();
     if (currentTab === 'approve') loadApproveQueue(); else doSearch();

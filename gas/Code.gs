@@ -388,6 +388,13 @@ function actionApproveRecord(params, user) {
       r.leader_id = user.employee_id;
       r.leader_name = user.name;
       r.leader_ts = now;
+      if (params.signature) {
+        try {
+          var answers = JSON.parse(r.answers_json || '{}');
+          answers._leader_sign = String(params.signature);
+          r.answers_json = JSON.stringify(answers);
+        } catch (e) {}
+      }
       // log-sheet มี 2 ระดับ: Leader อนุมัติ = จบ
       r.status = (String(r.mode) === 'log-sheet') ? 'COMPLETED' : 'PENDING_QI';
     } else if (String(r.status) === 'PENDING_QI') {
@@ -397,6 +404,13 @@ function actionApproveRecord(params, user) {
       r.qi_id = user.employee_id;
       r.qi_name = user.name;
       r.qi_ts = now;
+      if (params.signature) {
+        try {
+          var answers = JSON.parse(r.answers_json || '{}');
+          answers._qi_sign = String(params.signature);
+          r.answers_json = JSON.stringify(answers);
+        } catch (e) {}
+      }
       r.status = 'COMPLETED';
     } else {
       return { success: false, error: 'สถานะปัจจุบัน (' + r.status + ') อนุมัติไม่ได้' };
