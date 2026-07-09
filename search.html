@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ค้นหาเอกสาร (Global Search)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .search-hero {
+    background: linear-gradient(135deg, var(--brand-700), var(--brand-900));
+    color: white; padding: 40px 20px; border-radius: 12px; margin-bottom: 24px;
+    text-align: center;
+  }
+  .search-hero h1 { margin: 0 0 16px; font-size: 28px; font-weight: 700; }
+  .search-box-large {
+    display: flex; max-width: 600px; margin: 0 auto;
+    background: #fff; border-radius: 30px; padding: 4px 4px 4px 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+  .search-box-large input {
+    flex: 1; border: none; background: transparent; font-size: 18px; outline: none;
+    font-family: inherit; color: var(--ink-900);
+  }
+  .search-box-large button {
+    background: var(--brand-500); color: white; border: none; border-radius: 26px;
+    padding: 10px 24px; font-weight: 600; cursor: pointer; font-size: 16px;
+  }
+  .search-result-item {
+    padding: 16px; border-bottom: 1px solid var(--ink-200);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-header { display: flex; align-items: center; justify-content: space-between; }
+  .search-result-title { font-weight: 600; font-size: 16px; color: var(--brand-600); text-decoration: none; }
+  .search-result-title:hover { text-decoration: underline; }
+  .search-result-meta { font-size: 13px; color: var(--ink-500); display: flex; gap: 12px; align-items: center; }
+  .search-result-kw { font-size: 13px; color: var(--ink-600); background: var(--ink-50); padding: 6px 10px; border-radius: 6px; }
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <a href="dashboard.html" class="btn-small">◀ Document Center</a>
+  <div class="app-title">🔍 ค้นหา (Global Search)</div>
+  <div class="app-user"><span id="user-name"></span></div>
+</header>
+
+<main class="container container-wide">
+  
+  <div class="search-hero">
+    <h1>ค้นหาเอกสารและบันทึก</h1>
+    <form id="search-form" class="search-box-large" onsubmit="event.preventDefault(); doSearch();">
+      <input type="text" id="q" placeholder="พิมพ์ชื่อเอกสาร, รหัสเอกสาร, รุ่น, หรือคีย์เวิร์ด..." autocomplete="off">
+      <button type="submit">ค้นหา</button>
+    </form>
+  </div>
+
+  <section class="card">
+    <div class="filter-grid" style="margin-bottom: 16px;">
+      <label class="field"><span>ไลน์ (Line)</span><select id="f-line"><option value="">-- ทั้งหมด --</option></select></label>
+      <label class="field"><span>สถานี (Station)</span><select id="f-station"><option value="">-- ทั้งหมด --</option></select></label>
+      <label class="field"><span>ประเภทเอกสาร</span><select id="f-doctype"><option value="">-- ทั้งหมด --</option></select></label>
+    </div>
+
+    <div id="search-status" style="padding: 16px; text-align: center; color: var(--ink-500);">พิมพ์คำค้นหาเพื่อเริ่มต้น</div>
+    
+    <div id="search-results" style="display:none;"></div>
+  </section>
+
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script>
+const user = Auth.requireLogin();
+document.getElementById('user-name').textContent = user ? user.name : '';
+
+async function init() {
+  await Master.load();
+  
+  // เติม dropdown
+  const lineSel = document.getElementById('f-line');
+  Master.data.M_Line.forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l.line_id; opt.textContent = l.line_name;
+    lineSel.appendChild(opt);
+  });
+
+  const stSel = document.getElementById('f-station');
+  Master.data.M_Station.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.station_id; opt.textContent = s.station_name;
+    stSel.appendChild(opt);
+  });
+
+  const dtSel = document.getElementById('f-doctype');
+  Master.data.M_DocType.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.doctype_id; opt.textContent = d.display_name_th || d.doctype_name;
+    dtSel.appendChild(opt);
+  });
+
+  // ดูว่ามี query param มาหรือไม่
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('q')) {
+    document.getElementById('q').value = qp.get('q');
+    doSearch();
+  }
+}
+
+async function doSearch() {
+  const q = document.getElementById('q').value.trim();
+  const line = document.getElementById('f-line').value;
+  const station = document.getElementById('f-station').value;
+  const doctype = document.getElementById('f-doctype').value;
+
+  if (!q && !line && !station && !doctype) return;
+
+  const statusEl = document.getElementById('search-status');
+  const resEl = document.getElementById('search-results');
+  
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'กำลังค้นหา...';
+  resEl.style.display = 'none';
+  resEl.innerHTML = '';
+
+  try {
+    const res = await apiCall('search', { query: q, line: line, station: station, doctype: doctype });
+    if (!res.success) throw new Error(res.error);
+    
+    if (!res.results || res.results.length === 0) {
+      statusEl.textContent = 'ไม่พบผลลัพธ์ที่ตรงกับคำค้นหา';
+      return;
+    }
+
+    statusEl.style.display = 'none';
+    resEl.style.display = 'block';
+
+    res.results.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'search-result-item';
+      
+      let link = '#';
+      let icon = '📄';
+      if (r.entity_type === 'Document') {
+        link = `viewer.html?doc_id=${r.entity_id}`;
+        icon = '📘';
+      } else if (r.entity_type === 'Record') {
+        link = `records.html?q=${r.entity_id}`;
+        icon = '📝';
+      }
+
+      // ดึงชื่อไลน์และสถานีแบบมนุษย์อ่านง่าย
+      const lineName = Master.data.M_Line.find(l => l.line_id === r.line)?.line_name || r.line;
+      
+      item.innerHTML = `
+        <div class="search-result-header">
+          <a href="${link}" class="search-result-title">${icon} ${r.entity_id}</a>
+          <a href="${link}" class="btn-small">เปิดดู</a>
+        </div>
+        <div class="search-result-meta">
+          <span>ประเภท: ${r.entity_type} ${r.doctype ? '('+r.doctype+')' : ''}</span>
+          <span>ไลน์: ${lineName || '-'}</span>
+          <span>อัปเดตเมื่อ: ${r.updated_at.split('T')[0]}</span>
+        </div>
+        <div class="search-result-kw">Keywords: ${r.keywords}</div>
+      `;
+      resEl.appendChild(item);
+    });
+
+  } catch (err) {
+    statusEl.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

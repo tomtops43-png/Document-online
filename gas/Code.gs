@@ -83,6 +83,7 @@ function handleRequest(e, method) {
       case 'rejectRecord': return jsonOut(actionRejectRecord(params, user));
       case 'uploadPhoto':  return jsonOut(actionUploadPhoto(params, user));
       case 'addRecovery':  return jsonOut(actionAddRecovery(params, user));
+      case 'search':       return jsonOut(actionSearch(params, user));
       default:
         return jsonOut({ success: false, error: 'UNKNOWN_ACTION: ' + action });
     }
@@ -351,6 +352,17 @@ function actionCreateRecord(params, user) {
       var rvSheet = getSheet(SHEET_RECOVERY);
       rvSheet.getRange(rvSheet.getLastRow() + 1, 1, rvRows.length, RECOVERY_HEADER.length).setValues(rvRows);
     }
+
+    try {
+      var keywords = (params.product_model || '') + ' ' + (user.name || '');
+      if (recovery.length) {
+        recovery.forEach(function(r) { keywords += ' ' + (r.problem || '') + ' ' + (r.item_id || ''); });
+      }
+      buildSearchIndex('Record', recordId, params.line || '', params.station || '', params.form_id || '', keywords);
+    } catch(e) {
+      Logger.log('Search Index Error: ' + e);
+    }
+
     return { success: true, record_id: recordId };
   } finally {
     lock.releaseLock();
@@ -927,6 +939,13 @@ function registerDocument(def) {
     if (newRows.length) {
       asSheet.getRange(asSheet.getLastRow() + 1, 1, newRows.length, 4).setValues(newRows);
     }
+  }
+
+  try {
+    var keywords = def.doc_name + ' ' + (def.doc_no || '') + ' ' + def.rev_no;
+    buildSearchIndex('Document', def.doc_id, def.line_id || '', (def.station_ids || []).join(','), def.doctype_id || '', keywords);
+  } catch(e) {
+    Logger.log('Search Index Error: ' + e);
   }
 
   bumpMasterVersion();
