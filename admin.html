@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — จัดการเอกสาร Master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <a href="dashboard.html" class="btn-small">◀ Document Center</a>
+  <div class="app-title">⚙️ จัดการเอกสาร Master</div>
+  <div class="app-user"><span id="user-name"></span></div>
+</header>
+
+<main class="container container-wide">
+
+  <div class="tab-bar">
+    <button type="button" class="tab active" id="tab-new" onclick="switchTab('new')">➕ เพิ่มเอกสารใหม่</button>
+    <button type="button" class="tab" id="tab-rev" onclick="switchTab('rev')">🔄 เพิ่ม Revision</button>
+    <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔สถานี</button>
+  </div>
+
+  <!-- ===== เพิ่มเอกสารใหม่ (file behavior) ===== -->
+  <section id="pane-new" class="card">
+    <h2>เพิ่มเอกสารไฟล์ใหม่ (WI / Drawing / OWS / Spec / NG / Photo / Training)</h2>
+    <p class="modal-hint">สำหรับเอกสารประเภทฟอร์ม (First Piece / Check Sheet ที่มาจาก Excel)
+      ให้แนบไฟล์ Excel ผ่าน Google Drive แล้วแจ้ง Claude แปลงเป็น template — ดูวิธีท้ายหน้า</p>
+
+    <div class="filter-grid">
+      <label class="field"><span>ไลน์ *</span><select id="n-line"></select></label>
+      <label class="field"><span>ประเภทเอกสาร *</span><select id="n-doctype"></select></label>
+      <label class="field"><span>รุ่นหลัก (Family)</span><select id="n-family"></select></label>
+      <label class="field"><span>เลข Revision *</span><input type="text" id="n-rev" value="Rev01"></label>
+    </div>
+    <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="n-name" placeholder="เช่น WI ประกอบ Busbar"></label>
+    <div class="filter-grid">
+      <label class="field"><span>เลขที่เอกสารควบคุม (ถ้ามีในเอกสาร)</span><input type="text" id="n-docno" placeholder="เช่น WI-L4-012"></label>
+      <label class="field"><span>วันที่มีผล (Effective Date)</span><input type="date" id="n-eff"></label>
+    </div>
+    <label class="field"><span>เหตุผล/หมายเหตุ</span><input type="text" id="n-reason" value="ลงทะเบียนครั้งแรก"></label>
+
+    <div class="field"><span>สถานีที่ใช้เอกสารนี้ (เลือกได้หลายสถานี — ไม่เลือก = ใช้ทั้งไลน์)</span>
+      <div id="n-stations" class="station-check-grid"></div>
+    </div>
+
+    <div class="upload-box">
+      <div class="upload-tabs">
+        <button type="button" class="uptab active" data-up="file" onclick="setUpMode('new','file')">📎 อัปโหลดไฟล์</button>
+        <button type="button" class="uptab" data-up="drive" onclick="setUpMode('new','drive')">🔗 วางลิงก์ Google Drive</button>
+      </div>
+      <div id="new-up-file">
+        <input type="file" id="n-file" accept="application/pdf,image/*">
+        <div class="upload-hint">รองรับ PDF และรูปภาพ (สูงสุด ~40MB) — ไฟล์จะถูกเก็บใน ENC/{ไลน์}/{สถานี}/{ประเภท}/</div>
+      </div>
+      <div id="new-up-drive" style="display:none">
+        <input type="text" id="n-drive" placeholder="วางลิงก์ Drive หรือ File ID เช่น https://drive.google.com/file/d/XXXX/view">
+        <div class="upload-hint">ระบบจะดึง File ID อัตโนมัติ และตั้งสิทธิ์ให้เปิดดูได้ (ถ้าเป็นไฟล์ของคุณ)</div>
+      </div>
+    </div>
+
+    <button type="button" class="btn-primary btn-block" id="btn-register">✔ ลงทะเบียนเอกสาร</button>
+  </section>
+
+  <!-- ===== เพิ่ม Revision ให้เอกสารเดิม ===== -->
+  <section id="pane-rev" class="card" style="display:none">
+    <h2>เพิ่ม Revision ใหม่ (ฉบับเดิมจะกลายเป็น OBSOLETE อัตโนมัติ)</h2>
+    <label class="field"><span>เลือกเอกสาร *</span><select id="r-doc"></select></label>
+    <div class="filter-grid">
+      <label class="field"><span>เลข Revision ใหม่ *</span><input type="text" id="r-rev" placeholder="เช่น Rev09"></label>
+      <label class="field"><span>วันที่มีผล</span><input type="date" id="r-eff"></label>
+    </div>
+    <label class="field"><span>เหตุผลการแก้ไข *</span><input type="text" id="r-reason" placeholder="เช่น อัปเดตค่า Torque"></label>
+    <div class="upload-box">
+      <div class="upload-tabs">
+        <button type="button" class="uptab active" data-up="file" onclick="setUpMode('rev','file')">📎 อัปโหลดไฟล์</button>
+        <button type="button" class="uptab" data-up="drive" onclick="setUpMode('rev','drive')">🔗 ลิงก์ Drive</button>
+      </div>
+      <div id="rev-up-file"><input type="file" id="r-file" accept="application/pdf,image/*"></div>
+      <div id="rev-up-drive" style="display:none"><input type="text" id="r-drive" placeholder="ลิงก์ Drive หรือ File ID"></div>
+    </div>
+    <button type="button" class="btn-primary btn-block" id="btn-add-rev">✔ เพิ่ม Revision</button>
+  </section>
+
+  <!-- ===== ผูกเอกสารกับสถานี ===== -->
+  <section id="pane-assign" class="card" style="display:none">
+    <h2>ผูก / ถอนเอกสารกับสถานี</h2>
+    <label class="field"><span>เลือกเอกสาร *</span><select id="a-doc"></select></label>
+    <label class="field"><span>เลือกไลน์</span><select id="a-line"></select></label>
+    <div class="field"><span>ติ๊กสถานีที่ต้องการให้เอกสารนี้ปรากฏ</span>
+      <div id="a-stations" class="station-check-grid"></div>
+    </div>
+    <button type="button" class="btn-primary btn-block" id="btn-save-assign">✔ บันทึกการผูก</button>
+  </section>
+
+  <!-- คำแนะนำเอกสารฟอร์ม -->
+  <section class="card">
+    <h2>📋 เอกสารประเภทฟอร์ม (First Piece / Check Sheet จาก Excel)</h2>
+    <ol class="help-list">
+      <li>อัปโหลดไฟล์ Excel Master ขึ้น Google Drive ของคุณ</li>
+      <li>แชร์ให้ "ทุกคนที่มีลิงก์ดูได้" แล้ว copy ลิงก์</li>
+      <li>ส่งลิงก์ให้ Claude ในแชท พร้อมบอก ไลน์ / สถานี / รุ่น</li>
+      <li>Claude จะอ่านไฟล์ แกะโครงสร้างรายการตรวจ แปลงเป็น template JSON
+        แล้ว push เข้าระบบ + ลงทะเบียนให้อัตโนมัติ (มีหลักฐานใน Git ทุก revision)</li>
+    </ol>
+  </section>
+
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script>
+const user = Auth.requireLogin();
+document.getElementById('user-name').textContent = user ? user.name + ' (' + user.role + ')' : '';
+if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
+  showToast('หน้านี้สำหรับ Admin / Document Control เท่านั้น', 'error');
+  setTimeout(function () { location.href = 'dashboard.html'; }, 1500);
+}
+
+let upMode = { new: 'file', rev: 'file' };
+
+function switchTab(t) {
+  ['new', 'rev', 'assign'].forEach(function (x) {
+    document.getElementById('tab-' + x).classList.toggle('active', x === t);
+    document.getElementById('pane-' + x).style.display = x === t ? 'block' : 'none';
+  });
+}
+function setUpMode(pane, mode) {
+  upMode[pane] = mode;
+  document.querySelectorAll('#pane-' + pane + ' .uptab').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.up === mode);
+  });
+  document.getElementById(pane + '-up-file').style.display = mode === 'file' ? 'block' : 'none';
+  document.getElementById(pane + '-up-drive').style.display = mode === 'drive' ? 'block' : 'none';
+}
+
+// ---------- init dropdowns จาก master ----------
+(async function () {
+  Loading.show('กำลังโหลด Master...');
+  try {
+    await Master.load();
+    fillLineSelect('n-line'); fillLineSelect('a-line');
+    fillDocTypeSelect('n-doctype');
+    fillFamilySelect('n-family');
+    fillDocSelect('r-doc'); fillDocSelect('a-doc');
+    renderStationChecks('n-stations', document.getElementById('n-line').value);
+    renderStationChecks('a-stations', document.getElementById('a-line').value);
+    document.getElementById('n-line').addEventListener('change', function () {
+      renderStationChecks('n-stations', this.value);
+    });
+    document.getElementById('a-line').addEventListener('change', function () {
+      renderStationChecks('a-stations', this.value);
+    });
+    document.getElementById('a-doc').addEventListener('change', markAssigned);
+    document.getElementById('n-eff').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('r-eff').value = new Date().toISOString().slice(0, 10);
+  } catch (err) {
+    showToast('โหลด Master ไม่สำเร็จ: ' + err.message, 'error');
+  } finally {
+    Loading.hide();
+  }
+})();
+
+function fillLineSelect(id) {
+  const el = document.getElementById(id);
+  el.innerHTML = Master.lines().map(function (l) {
+    return '<option value="' + l.line_id + '">' + l.display_name + '</option>';
+  }).join('');
+}
+function fillDocTypeSelect(id) {
+  const el = document.getElementById(id);
+  // เฉพาะ behavior=file (ฟอร์มมาจาก Excel ผ่าน Claude)
+  el.innerHTML = Master.docTypes().filter(function (t) { return t.behavior === 'file'; })
+    .map(function (t) { return '<option value="' + t.doctype_id + '">' + t.icon + ' ' + t.display_name_th + '</option>'; }).join('');
+}
+function fillFamilySelect(id) {
+  const el = document.getElementById(id);
+  el.innerHTML = '<option value="*">ทุกรุ่น (*)</option>' +
+    Master.families().map(function (f) { return '<option value="' + f.family_id + '">' + f.display_name + '</option>'; }).join('');
+}
+function fillDocSelect(id) {
+  const el = document.getElementById(id);
+  const docs = (Master.data.M_Document || []);
+  el.innerHTML = docs.map(function (d) {
+    const cur = Master.currentRevision(d.doc_id);
+    return '<option value="' + d.doc_id + '">' + d.doc_name + (cur ? ' (ปัจจุบัน ' + cur.rev_no + ')' : '') + '</option>';
+  }).join('');
+}
+function renderStationChecks(containerId, lineId) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = Master.stations(lineId).map(function (s) {
+    return '<label class="station-check"><input type="checkbox" value="' + s.station_id + '"> ' + s.station_no + '</label>';
+  }).join('');
+  if (containerId === 'a-stations') markAssigned();
+}
+function checkedStations(containerId) {
+  return [].map.call(document.querySelectorAll('#' + containerId + ' input:checked'), function (i) { return i.value; });
+}
+
+// ---------- ไฟล์ → base64 ----------
+function fileToBase64(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () { resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- ลงทะเบียนเอกสารใหม่ ----------
+document.getElementById('btn-register').addEventListener('click', async function () {
+  const name = document.getElementById('n-name').value.trim();
+  if (!name) { showToast('กรุณากรอกชื่อเอกสาร', 'error'); return; }
+  const payload = {
+    line_id: document.getElementById('n-line').value,
+    doctype_id: document.getElementById('n-doctype').value,
+    family_id: document.getElementById('n-family').value,
+    doc_name: name,
+    doc_no: document.getElementById('n-docno').value.trim(),
+    rev_no: document.getElementById('n-rev').value.trim() || 'Rev01',
+    effective_date: document.getElementById('n-eff').value,
+    reason: document.getElementById('n-reason').value.trim(),
+    station_ids: checkedStations('n-stations')
+  };
+  try {
+    if (upMode.new === 'file') {
+      const f = document.getElementById('n-file').files[0];
+      if (!f) { showToast('เลือกไฟล์ก่อน', 'error'); return; }
+      Loading.show('กำลังอัปโหลด...');
+      payload.base64 = await fileToBase64(f);
+      payload.file_name = f.name;
+      payload.mime_type = f.type || 'application/pdf';
+    } else {
+      const link = document.getElementById('n-drive').value.trim();
+      if (!link) { showToast('วางลิงก์ Drive ก่อน', 'error'); return; }
+      payload.drive_id = link;
+      Loading.show('กำลังลงทะเบียน...');
+    }
+    const res = await API.post('doc.register', payload);
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    Loading.hide();
+    showToast('ลงทะเบียนสำเร็จ: ' + res.doc_id, 'success');
+    document.getElementById('n-name').value = '';
+    document.getElementById('n-docno').value = '';
+    document.getElementById('n-file').value = '';
+    document.getElementById('n-drive').value = '';
+    await Master.load(); fillDocSelect('r-doc'); fillDocSelect('a-doc');
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+
+// ---------- เพิ่ม revision ----------
+document.getElementById('btn-add-rev').addEventListener('click', async function () {
+  const payload = {
+    doc_id: document.getElementById('r-doc').value,
+    rev_no: document.getElementById('r-rev').value.trim(),
+    effective_date: document.getElementById('r-eff').value,
+    reason: document.getElementById('r-reason').value.trim()
+  };
+  if (!payload.rev_no) { showToast('กรอกเลข Revision', 'error'); return; }
+  try {
+    if (upMode.rev === 'file') {
+      const f = document.getElementById('r-file').files[0];
+      if (!f) { showToast('เลือกไฟล์ก่อน', 'error'); return; }
+      Loading.show('กำลังอัปโหลด...');
+      payload.base64 = await fileToBase64(f);
+      payload.file_name = f.name;
+      payload.mime_type = f.type || 'application/pdf';
+    } else {
+      const link = document.getElementById('r-drive').value.trim();
+      if (!link) { showToast('วางลิงก์ Drive ก่อน', 'error'); return; }
+      payload.drive_id = link;
+      Loading.show('กำลังบันทึก...');
+    }
+    await API.post('doc.addRevision', payload);
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    Loading.hide();
+    showToast('เพิ่ม Revision สำเร็จ', 'success');
+    document.getElementById('r-rev').value = '';
+    document.getElementById('r-file').value = '';
+    await Master.load(); fillDocSelect('r-doc');
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+
+// ---------- ผูกสถานี ----------
+function markAssigned() {
+  const docId = document.getElementById('a-doc').value;
+  const assigns = (Master.data.M_DocAssign || []).filter(function (a) {
+    return String(a.doc_id) === String(docId) && String(a.status).toUpperCase() !== 'INACTIVE';
+  }).map(function (a) { return String(a.station_id); });
+  document.querySelectorAll('#a-stations input').forEach(function (i) {
+    i.checked = assigns.indexOf(i.value) >= 0;
+  });
+}
+document.getElementById('btn-save-assign').addEventListener('click', async function () {
+  const docId = document.getElementById('a-doc').value;
+  const wanted = checkedStations('a-stations');
+  const current = (Master.data.M_DocAssign || []).filter(function (a) {
+    return String(a.doc_id) === String(docId) && String(a.status).toUpperCase() !== 'INACTIVE';
+  }).map(function (a) { return String(a.station_id); });
+  const lineStations = Master.stations(document.getElementById('a-line').value).map(function (s) { return s.station_id; });
+
+  const toAdd = wanted.filter(function (s) { return current.indexOf(s) < 0; });
+  const toRemove = current.filter(function (s) { return lineStations.indexOf(s) >= 0 && wanted.indexOf(s) < 0; });
+  if (!toAdd.length && !toRemove.length) { showToast('ไม่มีการเปลี่ยนแปลง', 'info'); return; }
+
+  Loading.show('กำลังบันทึก...');
+  try {
+    for (let i = 0; i < toAdd.length; i++) await API.post('doc.assign', { doc_id: docId, station_id: toAdd[i] });
+    for (let i = 0; i < toRemove.length; i++) await API.post('doc.assign', { doc_id: docId, station_id: toRemove[i], remove: true });
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('บันทึกการผูกสำเร็จ (+' + toAdd.length + ' / -' + toRemove.length + ')', 'success');
+    markAssigned();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+</script>
+</body>
+</html>

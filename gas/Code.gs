@@ -66,8 +66,13 @@ function handleRequest(e, method) {
     if (!user) return jsonOut({ success: false, error: 'INVALID_TOKEN' });
 
     switch (action) {
-      // ---- Master Data Layer (Master.gs — Migration Step 1) ----
+      // ---- Master Data Layer (Migration Step 1-2) ----
       case 'master.getAll': return jsonOut(actionMasterGetAll(params, user));
+
+      // ---- Admin: จัดการเอกสาร (self-service — Migration Step 2) ----
+      case 'doc.register':    return jsonOut(actionDocRegister(params, user));
+      case 'doc.addRevision': return jsonOut(actionDocAddRevision(params, user));
+      case 'doc.assign':      return jsonOut(actionDocAssign(params, user));
 
       // ---- ระบบเดิม (form-driven) — ยังทำงานเหมือนเดิมระหว่าง migration ----
       case 'getRecords':   return jsonOut(actionGetRecords(params, user));
@@ -607,10 +612,12 @@ function bumpMasterVersion() {
 // master.getAll — คืน master ทุกชีท + version (client cache ทั้งก้อน)
 function actionMasterGetAll(params, user) {
   var data = {};
+  // ทิ้งเฉพาะแถวที่ปิดใช้งานจริงๆ — ห้ามทิ้ง CURRENT/OBSOLETE (M_Revision ใช้ค่าเหล่านี้)
+  // viewer ต้องเห็น OBSOLETE เพื่อดูประวัติ revision ด้วย
+  var DROP = { 'INACTIVE': 1, 'DELETED': 1, 'DISABLED': 1 };
   Object.keys(MASTER_SHEET_DEFS).forEach(function (name) {
-    // ส่งเฉพาะแถว active (status ว่าง = ถือว่า active)
     data[name] = readMaster(name).filter(function (r) {
-      return !('status' in r) || r.status === '' || String(r.status).toUpperCase() === 'ACTIVE';
+      return !('status' in r) || !DROP[String(r.status).toUpperCase()];
     });
   });
   return { success: true, master: data, master_version: getMasterVersion() };
@@ -633,6 +640,223 @@ function can(user, action, scope) {
     if (lineOk && docOk) return true;
   }
   return false;
+}
+
+// ========================================================
+// Drive: สร้างโฟลเดอร์ตาม path (สร้างทุกชั้นที่ยังไม่มี) แล้วคืน folder
+// ensureFolderPath(['ENC','Line4','Station12','WI'])
+// ========================================================
+function ensureFolderPath(parts) {
+  var rootId = getConfigValue('drive_root_folder_id');
+  if (!rootId) throw new Error('ยังไม่ได้ตั้งค่า drive_root_folder_id ในชีท Config');
+  var folder = DriveApp.getFolderById(rootId);
+  (parts || []).forEach(function (name) {
+    name = String(name || '').trim() || 'X';
+    var it = folder.getFoldersByName(name);
+    folder = it.hasNext() ? it.next() : folder.createFolder(name);
+  });
+  return folder;
+}
+
+// ดึง fileId จากลิงก์ Google Drive หลายรูปแบบ หรือรับ id ตรงๆ
+function extractDriveId(input) {
+  var s = String(input || '').trim();
+  if (!s) return '';
+  var m = s.match(/[-\w]{25,}/); // id ของ Drive ยาว 25+ อักขระ
+  return m ? m[0] : s;
+}
+
+// ========================================================
+// Admin: ลงทะเบียนเอกสารไฟล์ (WI/Drawing/OWS/...) — self-service ผ่านหน้าเว็บ
+// อัปโหลดไฟล์ (base64) หรืออ้าง Drive fileId เดิม → สร้าง Document + Revision + Assign
+// ========================================================
+function actionDocRegister(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var lineId = String(params.line_id || '');
+    var doctypeId = String(params.doctype_id || '');
+    var docName = String(params.doc_name || '').trim();
+    if (!lineId || !doctypeId || !docName) {
+      return { success: false, error: 'กรอกไม่ครบ (line/doctype/ชื่อเอกสาร)' };
+    }
+    var stationIds = params.station_ids || [];
+    var revNo = String(params.rev_no || 'Rev01').trim();
+
+    // doc_id: DOC-{DOCTYPE}-{LINE}-{seq} (unique)
+    var docId = String(params.doc_id || '').trim();
+    if (!docId) {
+      docId = 'DOC-' + doctypeId.toUpperCase().replace(/[^A-Z0-9]/g, '') + '-' + lineId + '-' + Date.now().toString(36);
+    }
+
+    // หาชื่อไลน์/ประเภทสำหรับตั้งชื่อโฟลเดอร์
+    var lineName = lineId, doctypeName = doctypeId;
+    var lineRows = readMaster('M_Line');
+    for (var i = 0; i < lineRows.length; i++) if (String(lineRows[i].line_id) === lineId) lineName = lineRows[i].line_name;
+    var dtRows = readMaster('M_DocType');
+    for (var j = 0; j < dtRows.length; j++) if (String(dtRows[j].doctype_id) === doctypeId) doctypeName = dtRows[j].doctype_name;
+
+    // เนื้อหา revision: อัปโหลดไฟล์ หรืออ้าง fileId
+    var contentRef = '';
+    var driveFolderId = '';
+    if (params.base64 && params.file_name) {
+      // สร้างโฟลเดอร์ ENC/{Line}/{Station|_Shared}/{DocType}/
+      var stationSeg = (stationIds.length === 1) ? stationLabel(stationIds[0]) : '_Shared';
+      var folder = ensureFolderPath(['ENC', lineName, stationSeg, doctypeName]);
+      driveFolderId = folder.getId();
+      var mime = params.mime_type || 'application/pdf';
+      var blob = Utilities.newBlob(Utilities.base64Decode(params.base64), mime, revNo + '_' + params.file_name);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      contentRef = file.getId();
+    } else if (params.drive_id) {
+      contentRef = extractDriveId(params.drive_id);
+      // เปิดสิทธิ์อ่านให้ลิงก์ (ถ้าเป็นไฟล์ของเรา)
+      try {
+        DriveApp.getFileById(contentRef).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) { /* อาจเป็นไฟล์คนอื่น — ข้าม */ }
+    } else {
+      return { success: false, error: 'ต้องแนบไฟล์ หรือใส่ลิงก์/ID ของ Google Drive' };
+    }
+
+    registerDocument({
+      doc_id: docId,
+      doctype_id: doctypeId,
+      family_id: String(params.family_id || '*'),
+      line_id: lineId,
+      doc_name: docName,
+      doc_no: String(params.doc_no || ''),
+      drive_folder_id: driveFolderId,
+      rev_no: revNo,
+      content_ref: contentRef,
+      effective_date: String(params.effective_date || ''),
+      approved_by: user.name,
+      reason: String(params.reason || 'ลงทะเบียนครั้งแรก'),
+      station_ids: stationIds
+    });
+
+    auditLog(user, 'document.register', 'M_Document', docId, '', JSON.stringify({ rev: revNo, ref: contentRef }));
+    return { success: true, doc_id: docId, content_ref: contentRef };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// เพิ่ม revision ใหม่ให้เอกสารเดิม (ตัวเก่ากลายเป็น OBSOLETE อัตโนมัติใน registerDocument)
+function actionDocAddRevision(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var docId = String(params.doc_id || '');
+    if (!docId) return { success: false, error: 'ไม่ระบุ doc_id' };
+    var docRows = readMaster('M_Document');
+    var doc = null;
+    for (var i = 0; i < docRows.length; i++) if (String(docRows[i].doc_id) === docId) doc = docRows[i];
+    if (!doc) return { success: false, error: 'ไม่พบเอกสาร: ' + docId };
+
+    var revNo = String(params.rev_no || '').trim();
+    if (!revNo) return { success: false, error: 'ไม่ระบุเลข Revision' };
+
+    var contentRef = '';
+    if (params.base64 && params.file_name) {
+      var folder = doc.drive_folder_id
+        ? DriveApp.getFolderById(doc.drive_folder_id)
+        : ensureFolderPath(['ENC', '_Uploads']);
+      var mime = params.mime_type || 'application/pdf';
+      var blob = Utilities.newBlob(Utilities.base64Decode(params.base64), mime, revNo + '_' + params.file_name);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      contentRef = file.getId();
+    } else if (params.drive_id) {
+      contentRef = extractDriveId(params.drive_id);
+    } else {
+      return { success: false, error: 'ต้องแนบไฟล์ หรือใส่ลิงก์ Drive' };
+    }
+
+    registerDocument({
+      doc_id: docId,
+      doctype_id: doc.doctype_id,
+      family_id: doc.family_id,
+      line_id: doc.line_id,
+      doc_name: doc.doc_name,
+      doc_no: doc.doc_no,
+      drive_folder_id: doc.drive_folder_id,
+      print_css: doc.print_css,
+      rev_no: revNo,
+      content_ref: contentRef,
+      effective_date: String(params.effective_date || ''),
+      approved_by: user.name,
+      reason: String(params.reason || ''),
+      station_ids: []
+    });
+
+    auditLog(user, 'document.addRevision', 'M_Document', docId, doc.current_rev_id, revNo);
+    return { success: true, doc_id: docId, rev_no: revNo };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ผูก/ถอนเอกสารกับสถานี (แก้ M_DocAssign ผ่านหน้าเว็บแทนการแก้ชีทเอง)
+function actionDocAssign(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ' };
+  }
+  var ss = getMasterSS();
+  var sheet = ss.getSheetByName('M_DocAssign');
+  var docId = String(params.doc_id || '');
+  var stationId = String(params.station_id || '');
+  if (!docId || !stationId) return { success: false, error: 'ต้องระบุ doc_id + station_id' };
+
+  var data = sheet.getDataRange().getValues();
+  var rowIdx = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][1]) === docId && String(data[i][2]) === stationId) { rowIdx = i + 1; break; }
+  }
+  if (params.remove) {
+    if (rowIdx > 0) sheet.getRange(rowIdx, 4).setValue('INACTIVE');
+  } else {
+    if (rowIdx > 0) sheet.getRange(rowIdx, 4).setValue('ACTIVE');
+    else sheet.appendRow([docId + '@' + stationId, docId, stationId, 'ACTIVE']);
+  }
+  bumpMasterVersion();
+  auditLog(user, params.remove ? 'doc.unassign' : 'doc.assign', 'M_DocAssign', docId + '@' + stationId, '', '');
+  return { success: true };
+}
+
+// label สถานีสำหรับตั้งชื่อโฟลเดอร์ (เช่น Station12)
+function stationLabel(stationId) {
+  var rows = readMaster('M_Station');
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].station_id) === String(stationId)) {
+      var no = String(rows[i].station_no);
+      return 'Station' + (no.length < 2 ? '0' + no : no);
+    }
+  }
+  return String(stationId);
+}
+
+// ========================================================
+// Audit Log (T_AuditLog ใน spreadsheet เดิม — สร้างชีทถ้ายังไม่มี)
+// ========================================================
+function auditLog(user, action, entityType, entityId, before, after) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('T_AuditLog');
+    if (!sheet) {
+      sheet = ss.insertSheet('T_AuditLog');
+      sheet.getRange(1, 1, 1, 8).setValues([['ts', 'user_id', 'user_name', 'action', 'entity_type', 'entity_id', 'before', 'after']]);
+      sheet.setFrozenRows(1);
+    }
+    sheet.appendRow([nowISO(), user ? user.employee_id : '', user ? user.name : '',
+      action, entityType, entityId, String(before || '').slice(0, 500), String(after || '').slice(0, 500)]);
+  } catch (e) { /* audit ห้ามทำให้ action หลักล้ม */ }
 }
 
 // ========================================================

@@ -16,6 +16,7 @@
   <div class="app-user">
     <span id="user-name"></span>
     <a href="records.html" class="btn-small">📋 บันทึก/อนุมัติ</a>
+    <a href="admin.html" class="btn-small" id="admin-link" style="display:none">⚙️ จัดการเอกสาร</a>
     <button type="button" class="btn-small" onclick="Auth.logoutAndRedirect()">ออก</button>
   </div>
 </header>
@@ -69,6 +70,9 @@
 <script>
 const user = Auth.requireLogin();
 document.getElementById('user-name').textContent = user ? user.name + ' (' + user.role + ')' : '';
+if (user && (user.role === 'Admin' || user.role === 'DocControl')) {
+  document.getElementById('admin-link').style.display = 'inline-block';
+}
 
 // state การนำทาง: ?line=L4&station=L4-ST12
 let curLine = null, curStation = null;
