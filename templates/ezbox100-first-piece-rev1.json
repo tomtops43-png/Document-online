@@ -1,0 +1,124 @@
+{
+  "form_id": "ezbox100-first-piece",
+  "template_rev": "rev1",
+  "doc_no": "",
+  "title_th": "FIRST PIECE CHECK LIST: EASY BOX (EZABOXC / EZBOX100)",
+  "mode": "single-record",
+  "lines": [],
+  "print_css": "css/print-nms.css",
+  "header_fields": [
+    {"key": "product_model", "label": "รุ่นที่จะทำการผลิต", "type": "text", "required": true},
+    {"key": "date", "label": "วันที่", "type": "date", "required": true},
+    {"key": "line", "label": "line", "type": "text", "required": true},
+    {"key": "shift", "label": "กะ", "type": "select", "options": ["A", "B"], "required": true}
+  ],
+  "sections": [
+    {
+      "section_id": "st1",
+      "title": "Station: 1",
+      "items": [
+        {
+          "item_id": "st1-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Easybox Assembly",
+          "note_th": "7550348901",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st1-2",
+          "text_th": "2. ตรวจสอบความถูกต้อง Blank Side Label",
+          "answer_type": "acc_rej",
+          "options_extra": {"texts": [
+            {"key": "label_model", "label": "ระบุรุ่นบน Label"},
+            {"key": "date_code", "label": "Date Code"}
+          ]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st1-3",
+          "text_th": "3. ตรวจสอบความถูกต้องตำแหน่งของ Ground Label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st1-4",
+          "text_th": "4. ตรวจสอบความถูกต้องจำนวนของ TOOTH LOCK WASHER 6MM",
+          "note_th": "75500-271-01 x 2",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st1-5",
+          "text_th": "5. ตรวจสอบความถูกต้องของ NUT M6",
+          "note_th": "75500-270-01",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st2",
+      "title": "Station: 2",
+      "items": [
+        {
+          "item_id": "st2-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Easybox Cover",
+          "note_th": "7550349001",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st2-2",
+          "text_th": "2. ตรวจสอบความถูกต้อง Schneider Front label Easybox",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st2-3",
+          "text_th": "3. ตรวจสอบความถูกต้อง Easybox logo label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st2-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของชุด Cover Seal Screw",
+          "note_th": "75503-495-01 / 75503-501-01",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st3",
+      "title": "Station: 3",
+      "items": [
+        {
+          "item_id": "st3-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Carton Label",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
+              {"key": "date_code", "label": "Date Code"}
+            ],
+            "checkboxes": ["TH"]
+          },
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st3-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Carton Easybox ถูกต้องตามรุ่นที่กำลังผลิต",
+          "note_th": "75503731AA",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    }
+  ],
+  "photo_boxes": [],
+  "signatures": [
+    {"key": "operator", "label": "Production Operator", "role": "Operator"},
+    {"key": "leader", "label": "Line Leader", "role": "Leader"},
+    {"key": "qi", "label": "QI", "role": "QI"}
+  ]
+}

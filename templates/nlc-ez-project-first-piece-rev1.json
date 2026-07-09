@@ -1,0 +1,839 @@
+{
+  "form_id": "nlc-ez-project-first-piece",
+  "template_rev": "rev1",
+  "doc_no": "JRTLQR860-04/2",
+  "title_th": "FIRST PIECE CHECK LIST: NLC (PROJECT) ใช้สำหรับรุ่น EZ",
+  "mode": "single-record",
+  "lines": [],
+  "print_css": "css/print-nms.css",
+  "header_fields": [
+    {
+      "key": "product_model",
+      "label": "Product Model/ รุ่นที่ผลิต",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "date",
+      "label": "Date/ วันที่",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "line",
+      "label": "Line/ไลน์การผลิต",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "shift",
+      "label": "Shift/กะ",
+      "type": "select",
+      "options": [
+        "A",
+        "B"
+      ],
+      "required": true
+    }
+  ],
+  "sections": [
+    {
+      "section_id": "st1",
+      "title": "Station: 1",
+      "items": [
+        {
+          "item_id": "st1-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Box และ cover",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "450 (BOXSA450P) 12way — สำหรับรุ่น 100EZ",
+              "600 (BOXSA600P) 18,24 & 30 way — สำหรับรุ่น 100EZ",
+              "750 (BOXSA750P) 36 & 42 way — สำหรับรุ่น 100EZ",
+              "600 (BOXSA600P) 12,18 way — สำหรับรุ่น 250EZ",
+              "750 (BOXSA750P) 24 & 30 way — สำหรับรุ่น 250EZ",
+              "900 (BOXSA900P) 36,42,48 way — สำหรับรุ่น 250EZ"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st2",
+      "title": "Station: 2",
+      "items": [
+        {
+          "item_id": "st2-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Rating Label และ Wiring Diagram Label สำหรับงาน NLC Qwik-plug",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
+            ],
+            "checkboxes": [
+              "TH"
+            ]
+          },
+          "photo": {
+            "required": true,
+            "label": "ติด Rating Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st3",
+      "title": "Station: 3",
+      "items": [
+        {
+          "item_id": "st3-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Earth Terminal และ Earth pad และ Screw",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "100",
+              "250"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st3-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Ground Label",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st3-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.05,
+            "unit": "N.m",
+            "display": "2.60-3.05 N.m (23-27 lbf-in)"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st4",
+      "title": "Station: 4",
+      "items": [
+        {
+          "item_id": "st4-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Incomming Platform และ Neutral Bridge",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st4-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของตำแหน่ง Incoming Platform และ Neutral Label และ Screw",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st4-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.0,
+            "unit": "N.m",
+            "display": "2.8 ± 0.2 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st5",
+      "title": "Station: 5",
+      "items": [
+        {
+          "item_id": "st5-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Out going base",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st5-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Busbar",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "12 way",
+              "18 way",
+              "24 way",
+              "30 way",
+              "36 way",
+              "42 way",
+              "48 way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st5-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Neutral Busbar Left & Right",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "12 way",
+              "18 way",
+              "24 way",
+              "30 way",
+              "36 way",
+              "42 way",
+              "48 way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st5-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของ Busway neutral cover และประกอบลงแนบสนิท",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st6",
+      "title": "Station: 6",
+      "items": [
+        {
+          "item_id": "st6-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Center Cover",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st6-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Center connector",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st6-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Neutral Terminal และ screw",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "12 way",
+              "18 way",
+              "24 way",
+              "30 way",
+              "36 way",
+              "42 way",
+              "48 way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st6-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของค่า Torque (BRU53712)",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.1,
+            "max": 2.5,
+            "unit": "N.m",
+            "display": "2.3 ± 0.2 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st6-5",
+          "text_th": "5. ตรวจสอบความถูกต้องของค่า Torque (75503594AA)",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.0,
+            "unit": "N.m",
+            "display": "2.8 ± 0.2 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st7",
+      "title": "Station: 7",
+      "items": [
+        {
+          "item_id": "st7-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Lateral connecter และ screw",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st7-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "acc_rej",
+          "note_th": "100A: 1.81-2.49 N.m (16-22 lbf-in) | 250A: 2.26-3.05 N.m (20-27 lbf-in)",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st8",
+      "title": "Station: 8",
+      "items": [
+        {
+          "item_id": "st8-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Lug Body และ Lug Support Screw",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st8-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของค่า Torque (48020-043-05)",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 1.1,
+            "max": 1.5,
+            "unit": "N.m",
+            "display": "1.3 ± 0.2 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st8-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของค่า Torque (NAT20547)",
+          "answer_type": "acc_rej",
+          "note_th": "100A: 2.60-3.05 N.m (23-27 lbf-in) | 250A: 3.39-3.73 N.m (30-33 lbf-in)",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st8-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของ Phase label & warning label",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st9",
+      "title": "Station: 9",
+      "items": [
+        {
+          "item_id": "st9-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Copper Link MB และ Screw (สำหรับรุ่น EZ)",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st9-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 3.39,
+            "max": 3.73,
+            "unit": "N.m",
+            "display": "3.39-3.73 N.m (30-33 lbf-in)"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st10",
+      "title": "Station: 10",
+      "items": [
+        {
+          "item_id": "st10-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของการประกอบชิ้นงานด้วยเครื่องตรวจอัตโนมัติ",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st11",
+      "title": "Station: 11",
+      "items": [
+        {
+          "item_id": "st11-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของค่าแรงดัน Dielectric 2.5 kilovolts และความพร้อมของอุปกรณ์",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st13",
+      "title": "Station: 13",
+      "items": [
+        {
+          "item_id": "st13-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Shroud & Plastite Screw",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st13-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Out going cover",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st13-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 1.47,
+            "max": 1.7,
+            "unit": "N.m",
+            "display": "1.47-1.70 N.m (13-15 lbf-in)"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st14",
+      "title": "Station: 14",
+      "items": [
+        {
+          "item_id": "st14-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของการประกอบชิ้นงาน และความถูกต้องของ GT2",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st15",
+      "title": "Station: 15",
+      "items": [
+        {
+          "item_id": "st15-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Loading Table paper และ Plastic cover",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st15-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Way Label Cover",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st15-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ SUM (สำหรับรุ่น EZ)",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st15-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของ (Filler)",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st16",
+      "title": "Station: 16",
+      "items": [
+        {
+          "item_id": "st16-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Panel captive screw",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st16-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Door handle",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st16-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.0,
+            "unit": "N.m",
+            "display": "2.8 ± 0.2 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st17",
+      "title": "Station: 17",
+      "items": [
+        {
+          "item_id": "st17-1",
+          "text_th": "1. Verify Continuity",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st18",
+      "title": "Station: 18",
+      "items": [
+        {
+          "item_id": "st18-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ MCCB warning label",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st18-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Receptical",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st18-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Banner",
+          "note_th": "Banner for Project BRU53759",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st18-4",
+          "text_th": "4. Vision Verify 18 ตรวจสอบความถูกต้องของการเลือกโปรแกรม",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {
+                "key": "program",
+                "label": "ระบุรุ่นบน Program"
+              }
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st18-5",
+          "text_th": "5. ตรวจสอบความถูกต้องของ Main Breaker Label (สำหรับรุ่น EZ)",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "100 A",
+              "250 A"
+            ]
+          },
+          "photo": {
+            "required": true,
+            "label": "ติด Main Breaker Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st18-6",
+          "text_th": "6. ตรวจสอบความถูกต้องของ Product warning label",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st19",
+      "title": "Station: 19",
+      "items": [
+        {
+          "item_id": "st19-1",
+          "text_th": "1. Vision Verify 19-1 ตรวจสอบความถูกต้องของการเลือกโปรแกรม",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {
+                "key": "program",
+                "label": "ระบุรุ่นบน Program"
+              }
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st19-2",
+          "text_th": "2. Vision Verify 19-2 ตรวจสอบความถูกต้องของการเลือกโปรแกรม",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {
+                "key": "program",
+                "label": "ระบุรุ่นบน Program"
+              }
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st20",
+      "title": "Station: 20",
+      "items": [
+        {
+          "item_id": "st20-1",
+          "text_th": "1. Vision Verify 20 ตรวจสอบความถูกต้องของการเลือกโปรแกรม",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {
+                "key": "program",
+                "label": "ระบุรุ่นบน Program"
+              }
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st21",
+      "title": "Station: 21",
+      "items": [
+        {
+          "item_id": "st21-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Carton Box",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "450 (BRU53767)",
+              "600 (BRU53768)",
+              "750 (BRU53769)",
+              "900 (BRU53770)"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st21-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ QR-Code",
+          "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st21-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Carton Label ถูกต้องตามรุ่นที่กำลังผลิต",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
+            ],
+            "checkboxes": [
+              "TH"
+            ]
+          },
+          "photo": {
+            "required": true,
+            "label": "ติด Carton Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
+        }
+      ]
+    }
+  ],
+  "photo_boxes": [
+    {
+      "item_id": "st2-1",
+      "station_label": "Station2:",
+      "box_label": "ติด Rating Label"
+    },
+    {
+      "item_id": "st18-5",
+      "station_label": "Station18:",
+      "box_label": "ติด Main Breaker Label"
+    },
+    {
+      "item_id": "st21-3",
+      "station_label": "Station21:",
+      "box_label": "ติด Carton Label"
+    }
+  ],
+  "signatures": [
+    {
+      "key": "operator",
+      "label": "Production Operator",
+      "role": "Operator"
+    },
+    {
+      "key": "leader",
+      "label": "Prod. Leader",
+      "role": "Leader"
+    },
+    {
+      "key": "qi",
+      "label": "QI",
+      "role": "QI"
+    }
+  ]
+}
