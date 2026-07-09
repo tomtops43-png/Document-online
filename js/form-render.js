@@ -461,7 +461,7 @@ const FormRender = {
         showToast('กรุณาเซ็นชื่อผู้ตรวจสอบก่อนส่ง', 'error');
         return;
       }
-      this.answers._operator_sign = canvas.toDataURL('image/png');
+      this.answers._operator_sign = cropCanvas(canvas).toDataURL('image/png');
     }
 
     const t = this.template;
@@ -525,4 +525,39 @@ function esc(s) {
 }
 function escAttr(s) {
   return esc(s).replace(/"/g, '&quot;');
+}
+
+function cropCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const alpha = data[((y * w) + x) * 4 + 3];
+      if (alpha > 0) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX === -1) return canvas;
+  const pad = 4;
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(w - 1, maxX + pad);
+  maxY = Math.min(h - 1, maxY + pad);
+  const cropW = maxX - minX + 1;
+  const cropH = maxY - minY + 1;
+  const cropCanvas = document.createElement('canvas');
+  cropCanvas.width = cropW;
+  cropCanvas.height = cropH;
+  const cropCtx = cropCanvas.getContext('2d');
+  cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+  return cropCanvas;
 }

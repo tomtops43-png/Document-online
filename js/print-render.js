@@ -337,10 +337,10 @@ const PrintRender = {
     root.innerHTML = html;
   },
 
-  // แปลงคำตอบเป็นเครื่องหมายบนกระดาษ: OK → P, NOK → O, NA → n/a
+  // แปลงคำตอบเป็นเครื่องหมายบนกระดาษ: OK → ✓, NOK → O, NA → n/a
   markPO(ans) {
     if (!ans || !ans.value) return '&nbsp;';
-    if (ans.value === 'OK' || ans.value === 'ACC') return 'P';
+    if (ans.value === 'OK' || ans.value === 'ACC') return '✓';
     if (ans.value === 'NOK' || ans.value === 'REJ') return 'O';
     if (ans.value === 'NA') return 'n/a';
     return esc(ans.value);
