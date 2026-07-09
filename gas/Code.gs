@@ -711,10 +711,13 @@ function actionDocRegister(params, user) {
     var dtRows = readMaster('M_DocType');
     for (var j = 0; j < dtRows.length; j++) if (String(dtRows[j].doctype_id) === doctypeId) doctypeName = dtRows[j].doctype_name;
 
-    // เนื้อหา revision: อัปโหลดไฟล์ หรืออ้าง fileId
+    // เนื้อหา revision: template JSON ใน repo (behavior=form) หรืออัปโหลดไฟล์ หรืออ้าง fileId
     var contentRef = '';
     var driveFolderId = '';
-    if (params.base64 && params.file_name) {
+    if (params.template_path) {
+      // เอกสารประเภทฟอร์ม — เนื้อหาคือไฟล์ template ที่ push เข้า git แล้ว ไม่ต้องใช้ Drive
+      contentRef = String(params.template_path).trim();
+    } else if (params.base64 && params.file_name) {
       // สร้างโฟลเดอร์ ENC/{Line}/{Station|_Shared}/{DocType}/
       var stationSeg = (stationIds.length === 1) ? stationLabel(stationIds[0]) : '_Shared';
       var folder = ensureFolderPath(['ENC', lineName, stationSeg, doctypeName]);
@@ -776,7 +779,9 @@ function actionDocAddRevision(params, user) {
     if (!revNo) return { success: false, error: 'ไม่ระบุเลข Revision' };
 
     var contentRef = '';
-    if (params.base64 && params.file_name) {
+    if (params.template_path) {
+      contentRef = String(params.template_path).trim();
+    } else if (params.base64 && params.file_name) {
       var folder = doc.drive_folder_id
         ? DriveApp.getFolderById(doc.drive_folder_id)
         : ensureFolderPath(['ENC', '_Uploads']);

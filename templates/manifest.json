@@ -1,0 +1,132 @@
+{
+  "templates": [
+    {
+      "form_id": "cu-line5-first-piece",
+      "path": "templates/cu-line5-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Consumer Unit (CU Classic+ / CU Split bus) — Line 5",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "ezbox100-first-piece",
+      "path": "templates/ezbox100-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: EASY BOX (EZABOXC / EZBOX100)",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "lc-classic-ez-first-piece",
+      "path": "templates/lc-classic-ez-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Loadcenter Classic ใช้สำหรับรุ่น EZ",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "lc-classic-l-first-piece",
+      "path": "templates/lc-classic-l-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Loadcenter Classic ใช้สำหรับรุ่น L",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "lc-visismart-ez-first-piece",
+      "path": "templates/lc-visismart-ez-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Loadcenter Visi Smart ใช้สำหรับรุ่น EZ",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "lc-visismart-l-first-piece",
+      "path": "templates/lc-visismart-l-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Loadcenter Visi Smart ใช้สำหรับรุ่น L",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "max9-first-piece",
+      "path": "templates/max9-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: MAX9",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "nlc-extension-box-first-piece",
+      "path": "templates/nlc-extension-box-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NLC EXTENSION BOX",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "nlc-ez-diffuse-first-piece",
+      "path": "templates/nlc-ez-diffuse-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NLC (DIFFUSE) ใช้สำหรับรุ่น EZ",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "nlc-ez-project-first-piece",
+      "path": "templates/nlc-ez-project-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NLC (PROJECT) ใช้สำหรับรุ่น EZ",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "nlc-lu-diffuse-first-piece",
+      "path": "templates/nlc-lu-diffuse-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NLC (DIFFUSE) ใช้สำหรับรุ่น LU",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "nlc-lu-project-first-piece",
+      "path": "templates/nlc-lu-project-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NLC (PROJECT) ใช้สำหรับรุ่น LU",
+      "doc_no": "JRTLQR860-04/2",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "nms-first-piece",
+      "path": "templates/nms-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NMS",
+      "doc_no": "JRTLQR860-04/1",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "ok-1st-part-nlc",
+      "path": "templates/ok-1st-part-nlc-rev0.json",
+      "title": "Ok 1st Part Workstation Check list",
+      "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+      "mode": "log-sheet",
+      "rev_no": "Rev00"
+    },
+    {
+      "form_id": "resi9-aul-first-piece",
+      "path": "templates/resi9-aul-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Resi9 (AUL)",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    },
+    {
+      "form_id": "resi9-nzl-first-piece",
+      "path": "templates/resi9-nzl-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Resi9 (NZL)",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01"
+    }
+  ]
+}

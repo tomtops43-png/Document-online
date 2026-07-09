@@ -23,13 +23,42 @@
 <main class="container container-wide">
 
   <div class="tab-bar">
-    <button type="button" class="tab active" id="tab-new" onclick="switchTab('new')">➕ เพิ่มเอกสารใหม่</button>
+    <button type="button" class="tab active" id="tab-formreg" onclick="switchTab('formreg')">📋 ลงทะเบียนฟอร์ม <span class="count-pill" id="formreg-count"></span></button>
+    <button type="button" class="tab" id="tab-new" onclick="switchTab('new')">➕ เพิ่มเอกสารไฟล์ใหม่</button>
     <button type="button" class="tab" id="tab-rev" onclick="switchTab('rev')">🔄 เพิ่ม Revision</button>
     <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔สถานี</button>
   </div>
 
+  <!-- ===== ลงทะเบียนฟอร์ม (จาก template ที่ Claude แปลงและ push ไว้แล้ว) ===== -->
+  <section id="pane-formreg" class="card">
+    <h2>ลงทะเบียนฟอร์ม (First Piece / Check Sheet ที่แปลงจาก Excel ไว้แล้ว)</h2>
+    <p class="modal-hint">รายการนี้ดึงจาก <code>templates/manifest.json</code> — ฟอร์มที่ Claude แปลงและ push เข้าระบบแล้ว
+      แต่ยังไม่ได้ผูกกับไลน์/สถานี เลือกฟอร์ม → กำหนดไลน์และสถานีเอง → กดลงทะเบียน</p>
+
+    <label class="field"><span>เลือกฟอร์ม *</span><select id="f-template"></select></label>
+    <div id="f-preview" class="detail-meta" style="margin:8px 0"></div>
+
+    <div class="filter-grid">
+      <label class="field"><span>ไลน์ *</span><select id="f-line"></select></label>
+      <label class="field"><span>ประเภทเอกสาร *</span><select id="f-doctype"></select></label>
+      <label class="field"><span>รุ่นหลัก (Family)</span><select id="f-family"></select></label>
+    </div>
+    <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="f-name"></label>
+    <div class="filter-grid">
+      <label class="field"><span>เลขที่เอกสารควบคุม</span><input type="text" id="f-docno"></label>
+      <label class="field"><span>วันที่มีผล (Effective Date)</span><input type="date" id="f-eff"></label>
+    </div>
+    <label class="field"><span>เหตุผล/หมายเหตุ</span><input type="text" id="f-reason" value="ลงทะเบียนครั้งแรก"></label>
+
+    <div class="field"><span>สถานีที่ใช้เอกสารนี้ (เลือกได้หลายสถานี — ไม่เลือก = ใช้ทั้งไลน์)</span>
+      <div id="f-stations" class="station-check-grid"></div>
+    </div>
+
+    <button type="button" class="btn-primary btn-block" id="btn-register-form">✔ ลงทะเบียนฟอร์มนี้</button>
+  </section>
+
   <!-- ===== เพิ่มเอกสารใหม่ (file behavior) ===== -->
-  <section id="pane-new" class="card">
+  <section id="pane-new" class="card" style="display:none">
     <h2>เพิ่มเอกสารไฟล์ใหม่ (WI / Drawing / OWS / Spec / NG / Photo / Training)</h2>
     <p class="modal-hint">สำหรับเอกสารประเภทฟอร์ม (First Piece / Check Sheet ที่มาจาก Excel)
       ให้แนบไฟล์ Excel ผ่าน Google Drive แล้วแจ้ง Claude แปลงเป็น template — ดูวิธีท้ายหน้า</p>
@@ -129,7 +158,7 @@ if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
 let upMode = { new: 'file', rev: 'file' };
 
 function switchTab(t) {
-  ['new', 'rev', 'assign'].forEach(function (x) {
+  ['formreg', 'new', 'rev', 'assign'].forEach(function (x) {
     document.getElementById('tab-' + x).classList.toggle('active', x === t);
     document.getElementById('pane-' + x).style.display = x === t ? 'block' : 'none';
   });
@@ -144,31 +173,114 @@ function setUpMode(pane, mode) {
 }
 
 // ---------- init dropdowns จาก master ----------
+let manifestTemplates = [];
+
 (async function () {
   Loading.show('กำลังโหลด Master...');
   try {
     await Master.load();
-    fillLineSelect('n-line'); fillLineSelect('a-line');
+    fillLineSelect('n-line'); fillLineSelect('a-line'); fillLineSelect('f-line');
     fillDocTypeSelect('n-doctype');
-    fillFamilySelect('n-family');
+    fillFormDocTypeSelect('f-doctype');
+    fillFamilySelect('n-family'); fillFamilySelect('f-family');
     fillDocSelect('r-doc'); fillDocSelect('a-doc');
     renderStationChecks('n-stations', document.getElementById('n-line').value);
     renderStationChecks('a-stations', document.getElementById('a-line').value);
+    renderStationChecks('f-stations', document.getElementById('f-line').value);
     document.getElementById('n-line').addEventListener('change', function () {
       renderStationChecks('n-stations', this.value);
     });
     document.getElementById('a-line').addEventListener('change', function () {
       renderStationChecks('a-stations', this.value);
     });
+    document.getElementById('f-line').addEventListener('change', function () {
+      renderStationChecks('f-stations', this.value);
+    });
     document.getElementById('a-doc').addEventListener('change', markAssigned);
     document.getElementById('n-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('r-eff').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('f-eff').value = new Date().toISOString().slice(0, 10);
+    await loadManifest();
   } catch (err) {
     showToast('โหลด Master ไม่สำเร็จ: ' + err.message, 'error');
   } finally {
     Loading.hide();
   }
 })();
+
+function fillFormDocTypeSelect(id) {
+  const el = document.getElementById(id);
+  // เฉพาะ behavior=form (First Piece / Check Sheet ที่แปลงจาก Excel)
+  el.innerHTML = Master.docTypes().filter(function (t) { return t.behavior === 'form'; })
+    .map(function (t) { return '<option value="' + t.doctype_id + '">' + t.icon + ' ' + t.display_name_th + '</option>'; }).join('');
+}
+
+// ---------- ลงทะเบียนฟอร์ม (จาก templates/manifest.json) ----------
+async function loadManifest() {
+  const res = await fetch('templates/manifest.json', { cache: 'no-cache' });
+  const data = await res.json();
+  // ซ่อนฟอร์มที่ผูก revision เข้า Master แล้ว (content_ref ตรงกับ path ใน manifest)
+  const registeredPaths = {};
+  (Master.data.M_Revision || []).forEach(function (r) { registeredPaths[r.content_ref] = true; });
+  manifestTemplates = data.templates.filter(function (t) { return !registeredPaths[t.path]; });
+
+  const sel = document.getElementById('f-template');
+  document.getElementById('formreg-count').textContent = manifestTemplates.length ? manifestTemplates.length : '';
+  if (!manifestTemplates.length) {
+    sel.innerHTML = '<option value="">— ไม่มีฟอร์มค้างลงทะเบียน —</option>';
+    document.getElementById('f-preview').textContent = 'ฟอร์มทั้งหมดที่ Claude แปลงไว้ถูกลงทะเบียนครบแล้ว';
+    document.getElementById('btn-register-form').disabled = true;
+    return;
+  }
+  document.getElementById('btn-register-form').disabled = false;
+  sel.innerHTML = manifestTemplates.map(function (t, i) {
+    return '<option value="' + i + '">' + t.title + ' (' + t.form_id + ')</option>';
+  }).join('');
+  sel.addEventListener('change', fillFormFields);
+  fillFormFields();
+}
+
+function fillFormFields() {
+  const t = manifestTemplates[document.getElementById('f-template').value];
+  if (!t) return;
+  document.getElementById('f-preview').innerHTML =
+    'โหมด: <b>' + (t.mode === 'log-sheet' ? 'log-sheet (Checklist ประจำสถานี)' : 'single-record (1 แผ่น/การตรวจ)') + '</b> | ' +
+    'ไฟล์: <code>' + t.path + '</code>';
+  document.getElementById('f-name').value = t.title;
+  document.getElementById('f-docno').value = t.doc_no || '';
+  document.getElementById('f-doctype').value = t.mode === 'log-sheet' ? 'ok-1st-part' : 'first-piece';
+}
+
+document.getElementById('btn-register-form').addEventListener('click', async function () {
+  const t = manifestTemplates[document.getElementById('f-template').value];
+  if (!t) { showToast('ไม่มีฟอร์มให้ลงทะเบียน', 'error'); return; }
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('กรุณากรอกชื่อเอกสาร', 'error'); return; }
+  const payload = {
+    template_path: t.path,
+    line_id: document.getElementById('f-line').value,
+    doctype_id: document.getElementById('f-doctype').value,
+    family_id: document.getElementById('f-family').value,
+    doc_name: name,
+    doc_no: document.getElementById('f-docno').value.trim(),
+    rev_no: t.rev_no,
+    effective_date: document.getElementById('f-eff').value,
+    reason: document.getElementById('f-reason').value.trim(),
+    station_ids: checkedStations('f-stations')
+  };
+  Loading.show('กำลังลงทะเบียน...');
+  try {
+    const res = await API.post('doc.register', payload);
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('ลงทะเบียนสำเร็จ: ' + res.doc_id, 'success');
+    await loadManifest();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
 
 function fillLineSelect(id) {
   const el = document.getElementById(id);
