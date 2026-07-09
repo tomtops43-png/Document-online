@@ -243,12 +243,21 @@ async function loadManifest() {
 function fillFormFields() {
   const t = manifestTemplates[document.getElementById('f-template').value];
   if (!t) return;
+  const familySelect = document.getElementById('f-family');
+  const hasFamilyOption = t.family_id && [].some.call(familySelect.options, function (o) { return o.value === t.family_id; });
+  let familyNote = '';
+  if (t.family_id && !hasFamilyOption) {
+    familyNote = '<br><span class="nok-flag">รุ่นหลัก "' + t.family_id + '" ยังไม่มีใน M_ProductFamily — เพิ่มแถวในชีทนี้ก่อน ถ้าต้องการให้ระบบกรองตามรุ่นได้แม่นยำ (ตอนนี้จะลงทะเบียนเป็น "ทุกรุ่น (*)" แทน)</span>';
+  } else if (!t.family_id) {
+    familyNote = '<br><span class="nok-flag">Claude ยังไม่แน่ใจว่าเอกสารนี้อยู่รุ่นหลักไหน (ยังไม่มีใน M_ProductFamily ตอนนี้) — เลือกเองด้านล่าง หรือปล่อย "ทุกรุ่น (*)" ไว้ก่อนได้</span>';
+  }
   document.getElementById('f-preview').innerHTML =
     'โหมด: <b>' + (t.mode === 'log-sheet' ? 'log-sheet (Checklist ประจำสถานี)' : 'single-record (1 แผ่น/การตรวจ)') + '</b> | ' +
-    'ไฟล์: <code>' + t.path + '</code>';
+    'ไฟล์: <code>' + t.path + '</code>' + familyNote;
   document.getElementById('f-name').value = t.title;
   document.getElementById('f-docno').value = t.doc_no || '';
   document.getElementById('f-doctype').value = t.mode === 'log-sheet' ? 'ok-1st-part' : 'first-piece';
+  familySelect.value = hasFamilyOption ? t.family_id : '*';
 }
 
 document.getElementById('btn-register-form').addEventListener('click', async function () {

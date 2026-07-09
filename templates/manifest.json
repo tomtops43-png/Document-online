@@ -6,7 +6,8 @@
       "title": "FIRST PIECE CHECK LIST: Consumer Unit (CU Classic+ / CU Split bus) — Line 5",
       "doc_no": "",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "CU"
     },
     {
       "form_id": "ezbox100-first-piece",
@@ -14,7 +15,8 @@
       "title": "FIRST PIECE CHECK LIST: EASY BOX (EZABOXC / EZBOX100)",
       "doc_no": "",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": null
     },
     {
       "form_id": "lc-classic-ez-first-piece",
@@ -22,7 +24,8 @@
       "title": "FIRST PIECE CHECK LIST: Loadcenter Classic ใช้สำหรับรุ่น EZ",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "LC"
     },
     {
       "form_id": "lc-classic-l-first-piece",
@@ -30,7 +33,8 @@
       "title": "FIRST PIECE CHECK LIST: Loadcenter Classic ใช้สำหรับรุ่น L",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "LC"
     },
     {
       "form_id": "lc-visismart-ez-first-piece",
@@ -38,7 +42,8 @@
       "title": "FIRST PIECE CHECK LIST: Loadcenter Visi Smart ใช้สำหรับรุ่น EZ",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "LC"
     },
     {
       "form_id": "lc-visismart-l-first-piece",
@@ -46,7 +51,8 @@
       "title": "FIRST PIECE CHECK LIST: Loadcenter Visi Smart ใช้สำหรับรุ่น L",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "LC"
     },
     {
       "form_id": "max9-first-piece",
@@ -54,7 +60,8 @@
       "title": "FIRST PIECE CHECK LIST: MAX9",
       "doc_no": "",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": null
     },
     {
       "form_id": "nlc-extension-box-first-piece",
@@ -62,7 +69,8 @@
       "title": "FIRST PIECE CHECK LIST: NLC EXTENSION BOX",
       "doc_no": "",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "NLC"
     },
     {
       "form_id": "nlc-ez-diffuse-first-piece",
@@ -70,7 +78,8 @@
       "title": "FIRST PIECE CHECK LIST: NLC (DIFFUSE) ใช้สำหรับรุ่น EZ",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "NLC"
     },
     {
       "form_id": "nlc-ez-project-first-piece",
@@ -78,7 +87,8 @@
       "title": "FIRST PIECE CHECK LIST: NLC (PROJECT) ใช้สำหรับรุ่น EZ",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "NLC"
     },
     {
       "form_id": "nlc-lu-diffuse-first-piece",
@@ -86,7 +96,8 @@
       "title": "FIRST PIECE CHECK LIST: NLC (DIFFUSE) ใช้สำหรับรุ่น LU",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "NLC"
     },
     {
       "form_id": "nlc-lu-project-first-piece",
@@ -94,7 +105,8 @@
       "title": "FIRST PIECE CHECK LIST: NLC (PROJECT) ใช้สำหรับรุ่น LU",
       "doc_no": "JRTLQR860-04/2",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "NLC"
     },
     {
       "form_id": "nms-first-piece",
@@ -102,7 +114,8 @@
       "title": "FIRST PIECE CHECK LIST: NMS",
       "doc_no": "JRTLQR860-04/1",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": "NMS"
     },
     {
       "form_id": "ok-1st-part-nlc",
@@ -110,7 +123,8 @@
       "title": "Ok 1st Part Workstation Check list",
       "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
       "mode": "log-sheet",
-      "rev_no": "Rev00"
+      "rev_no": "Rev00",
+      "family_id": "NLC"
     },
     {
       "form_id": "resi9-aul-first-piece",
@@ -118,7 +132,8 @@
       "title": "FIRST PIECE CHECK LIST: Resi9 (AUL)",
       "doc_no": "",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": null
     },
     {
       "form_id": "resi9-nzl-first-piece",
@@ -126,7 +141,8 @@
       "title": "FIRST PIECE CHECK LIST: Resi9 (NZL)",
       "doc_no": "",
       "mode": "single-record",
-      "rev_no": "Rev01"
+      "rev_no": "Rev01",
+      "family_id": null
     }
   ]
 }
