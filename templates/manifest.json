@@ -127,6 +127,51 @@
       "family_id": "NLC"
     },
     {
+      "form_id": "ok-1st-part-nms-line5",
+      "path": "templates/ok-1st-part-nms-line5-rev0.json",
+      "title": "OK 1st Part Workstation Checklist (NMS — Line 5)",
+      "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+      "mode": "log-sheet",
+      "rev_no": "Rev00",
+      "family_id": "NMS"
+    },
+    {
+      "form_id": "ok-1st-part-cu-line4",
+      "path": "templates/ok-1st-part-cu-line4-rev0.json",
+      "title": "OK 1st Part Workstation Checklist (CU — Line 4)",
+      "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+      "mode": "log-sheet",
+      "rev_no": "Rev00",
+      "family_id": "CU"
+    },
+    {
+      "form_id": "ok-1st-part-lc",
+      "path": "templates/ok-1st-part-lc-rev0.json",
+      "title": "OK 1st Part Workstation Checklist (LC)",
+      "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+      "mode": "log-sheet",
+      "rev_no": "Rev00",
+      "family_id": "LC"
+    },
+    {
+      "form_id": "ok-1st-part-cu-line5",
+      "path": "templates/ok-1st-part-cu-line5-rev0.json",
+      "title": "OK 1st Part Workstation Checklist (CU — Line 5)",
+      "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+      "mode": "log-sheet",
+      "rev_no": "Rev00",
+      "family_id": "CU"
+    },
+    {
+      "form_id": "ok-1st-part-pdb-resi9-max9",
+      "path": "templates/ok-1st-part-pdb-resi9-max9-rev0.json",
+      "title": "OK 1st Part Workstation Checklist (PDB / Resi9 / MAX9)",
+      "doc_no": "THPLSTL-QA-FRM0-3434  Rev.0 (05/23)",
+      "mode": "log-sheet",
+      "rev_no": "Rev00",
+      "family_id": "PDB"
+    },
+    {
       "form_id": "resi9-aul-first-piece",
       "path": "templates/resi9-aul-first-piece-rev1.json",
       "title": "FIRST PIECE CHECK LIST: Resi9 (AUL)",
