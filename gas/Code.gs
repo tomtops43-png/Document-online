@@ -82,6 +82,14 @@ function handleRequest(e, method) {
       case 'doc.delete':      return jsonOut(actionDocDelete(params, user));
       case 'doc.update':      return jsonOut(actionDocUpdate(params, user));
 
+      // ---- Dashboard / Notification / User management ----
+      case 'stats.dashboard': return jsonOut(actionDashboardStats(params, user));
+      case 'notif.list':      return jsonOut(actionNotifList(params, user));
+      case 'notif.markRead':  return jsonOut(actionNotifMarkRead(params, user));
+      case 'user.list':       return jsonOut(actionUserList(params, user));
+      case 'user.create':     return jsonOut(actionUserCreate(params, user));
+      case 'user.update':     return jsonOut(actionUserUpdate(params, user));
+
       // ---- ระบบเดิม (form-driven) — ยังทำงานเหมือนเดิมระหว่าง migration ----
       case 'getRecords':   return jsonOut(actionGetRecords(params, user));
       case 'getRecord':    return jsonOut(actionGetRecord(params, user));
@@ -393,6 +401,16 @@ function actionCreateRecord(params, user) {
       Logger.log('Search Index Error: ' + e);
     }
 
+    // แจ้งเตือน role ผู้อนุมัติ step แรก + แจ้ง NOK แยก event (สีต่างกันในกระดิ่งแจ้งเตือน)
+    var firstRole = wf.length ? String(wf[0].role) : 'Leader';
+    var where = (params.line || '') + (params.station ? ' / Station ' + params.station : '');
+    pushNotification('approval', firstRole, '',
+      'เอกสารรอตรวจ: ' + recordId, where + ' โดย ' + user.name, 'records.html');
+    if (params.has_nok) {
+      pushNotification('nok', firstRole, '',
+        'พบ NOK: ' + recordId, where + ' — มีรายการตรวจไม่ผ่าน ต้องติดตาม Recovery', 'records.html');
+    }
+
     return { success: true, record_id: recordId };
   } finally {
     lock.releaseLock();
@@ -474,6 +492,16 @@ function actionApproveRecord(params, user) {
     r.status = (idx + 1 < wf.length) ? ('PENDING_' + String(wf[idx + 1].role).toUpperCase()) : 'COMPLETED';
     r.updated_at = now;
     writeRow(SHEET_RECORDS, r._rowIndex, found.header, r);
+
+    // แจ้งเตือน: จบครบทุก step → บอกผู้กรอก, ยังมี step ถัดไป → บอก role ถัดไป
+    if (r.status === 'COMPLETED') {
+      pushNotification('approved', '', String(r.operator_id),
+        'อนุมัติครบแล้ว: ' + r.record_id, 'เอกสารของคุณผ่านการอนุมัติทุกขั้นตอน', 'records.html');
+    } else {
+      pushNotification('approval', String(wf[idx + 1].role), '',
+        'เอกสารรอตรวจ: ' + r.record_id, (r.line || '') + ' — ผ่านขั้น ' + stepRole + ' แล้ว', 'records.html');
+    }
+
     return { success: true, status: r.status };
   } finally {
     lock.releaseLock();
@@ -505,6 +533,12 @@ function actionRejectRecord(params, user) {
     r.reject_reason = String(params.reason || '');
     r.updated_at = nowISO();
     writeRow(SHEET_RECORDS, r._rowIndex, found.header, r);
+
+    // แจ้งเตือนเจาะจงถึงผู้กรอก — ให้แก้แล้ว submit ใหม่
+    pushNotification('rejected', '', String(r.operator_id),
+      'ถูกตีกลับ: ' + r.record_id,
+      'เหตุผล: ' + (params.reason || '-') + ' — แก้ไขแล้ว Submit ใหม่ได้', 'records.html');
+
     return { success: true };
   } finally {
     lock.releaseLock();
@@ -1422,4 +1456,192 @@ function seedMaster() {
   bumpMasterVersion();
   Logger.log('seedMaster เสร็จ — เปิด ENC-MASTER ตรวจข้อมูล แล้วผูกเอกสารกับสถานีใน M_DocAssign');
   return getMasterSS().getUrl();
+}
+
+// ========================================================
+// Dashboard Stats — อ่านชีท Records ครั้งเดียว สรุป KPI + trend 7 วัน + activity
+// client เอา slim record ไป aggregate เอง (กรอง Line/Station ได้โดยไม่ยิง API ซ้ำ)
+// ========================================================
+function actionDashboardStats(params, user) {
+  var data = readAll(SHEET_RECORDS);
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var since = Utilities.formatDate(new Date(Date.now() - 6 * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+  var pending = 0, todayTotal = 0, todayNok = 0;
+  var week = [];   // slim record 7 วันล่าสุด — client กรอง/aggregate เอง
+  var recent = []; // activity ล่าสุด
+
+  for (var i = 0; i < data.rows.length; i++) {
+    var r = data.rows[i];
+    var status = String(r.status);
+    var date = normDate(r.date);
+    var isNok = String(r.has_nok) === 'true';
+    if (status.indexOf('PENDING_') === 0) pending++;
+    if (date === today && status !== 'REJECTED') {
+      todayTotal++;
+      if (isNok) todayNok++;
+    }
+    if (date >= since && date <= today && status !== 'REJECTED' && week.length < 2000) {
+      week.push({ date: date, line: String(r.line), station: String(r.station), nok: isNok });
+    }
+    recent.push({
+      record_id: String(r.record_id), form_id: String(r.form_id),
+      line: String(r.line), station: String(r.station), status: status,
+      has_nok: String(r.has_nok), operator_name: String(r.operator_name),
+      created_at: String(r.created_at)
+    });
+  }
+  recent.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
+  return {
+    success: true,
+    today: today, since: since,
+    pending: pending, today_total: todayTotal, today_nok: todayNok,
+    week: week,
+    recent: recent.slice(0, 12)
+  };
+}
+
+// ========================================================
+// Notification — event ถึง role หรือเจาะจง user (T_Notification ใน spreadsheet เดิม)
+// read state เก็บเป็นรายชื่อ employee_id ใน read_by (คั่น ,) — ทีมขนาดโรงงานพอไหว
+// ========================================================
+var NOTIF_HEADER = ['notif_id', 'ts', 'event_type', 'target_role', 'target_user', 'title', 'body', 'link', 'read_by'];
+
+function getNotifSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('T_Notification');
+  if (!sheet) {
+    sheet = ss.insertSheet('T_Notification');
+    sheet.getRange(1, 1, 1, NOTIF_HEADER.length).setValues([NOTIF_HEADER]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// เรียกจากจุด state change — ห้ามทำให้ action หลักล้ม
+function pushNotification(eventType, targetRole, targetUser, title, body, link) {
+  try {
+    getNotifSheet_().appendRow([
+      'N-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e4),
+      nowISO(), eventType, targetRole || '', targetUser || '',
+      String(title || '').slice(0, 200), String(body || '').slice(0, 400), link || '', ''
+    ]);
+  } catch (e) { Logger.log('Notification Error: ' + e); }
+}
+
+// แจ้งเตือนของฉัน: เจาะจงถึงฉัน (target_user) หรือถึง role ของฉัน — ล่าสุดก่อน สูงสุด 30
+function actionNotifList(params, user) {
+  var sheet = getNotifSheet_();
+  var values = sheet.getDataRange().getValues();
+  var out = [], unread = 0;
+  for (var i = values.length - 1; i >= 1 && out.length < 30; i--) {
+    var row = {};
+    for (var j = 0; j < NOTIF_HEADER.length; j++) row[NOTIF_HEADER[j]] = values[i][j];
+    var toMe = String(row.target_user) === String(user.employee_id);
+    var toMyRole = !row.target_user && (String(row.target_role) === String(user.role) || String(row.target_role) === '*');
+    if (!toMe && !toMyRole) continue;
+    var readBy = String(row.read_by || '').split(',');
+    var isRead = readBy.indexOf(String(user.employee_id)) >= 0;
+    if (!isRead) unread++;
+    out.push({
+      notif_id: String(row.notif_id),
+      ts: row.ts instanceof Date ? Utilities.formatDate(row.ts, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss") : String(row.ts),
+      event_type: String(row.event_type), personal: toMe,
+      title: String(row.title), body: String(row.body), link: String(row.link || ''),
+      read: isRead
+    });
+  }
+  return { success: true, notifications: out, unread: unread };
+}
+
+// ตั้งอ่านแล้วทั้งหมดของ user นี้ (เติม employee_id ลง read_by)
+function actionNotifMarkRead(params, user) {
+  var sheet = getNotifSheet_();
+  var values = sheet.getDataRange().getValues();
+  var me = String(user.employee_id);
+  for (var i = 1; i < values.length; i++) {
+    var targetUser = String(values[i][4]);
+    var targetRole = String(values[i][3]);
+    var toMe = targetUser === me;
+    var toMyRole = !targetUser && (targetRole === String(user.role) || targetRole === '*');
+    if (!toMe && !toMyRole) continue;
+    var readBy = String(values[i][8] || '');
+    if (readBy.split(',').indexOf(me) < 0) {
+      sheet.getRange(i + 1, 9).setValue(readBy ? readBy + ',' + me : me);
+    }
+  }
+  return { success: true };
+}
+
+// ========================================================
+// User Management — Admin (หรือสิทธิ์ user.manage) เท่านั้น
+// ========================================================
+function actionUserList(params, user) {
+  if (!can(user, 'user.manage', {})) return { success: false, error: 'สิทธิ์ไม่พอ (ต้องเป็น Admin)' };
+  var data = readAll(SHEET_USERS);
+  var out = data.rows.map(function (u) {
+    return {
+      employee_id: String(u.employee_id), name: String(u.name),
+      role: String(u.role), line: String(u.line || ''),
+      active: String(u.active).toLowerCase() === 'true' || u.active === true
+    };
+  });
+  return { success: true, users: out };
+}
+
+function actionUserCreate(params, user) {
+  if (!can(user, 'user.manage', {})) return { success: false, error: 'สิทธิ์ไม่พอ (ต้องเป็น Admin)' };
+  var empId = String(params.employee_id || '').trim();
+  var name = String(params.name || '').trim();
+  var pin = String(params.pin || '').trim();
+  var role = String(params.role || 'Operator').trim();
+  if (!empId || !name || !pin) return { success: false, error: 'กรอกไม่ครบ (รหัสพนักงาน/ชื่อ/PIN)' };
+  if (pin.length < 4) return { success: false, error: 'PIN ต้องยาวอย่างน้อย 4 หลัก' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var data = readAll(SHEET_USERS);
+    for (var i = 0; i < data.rows.length; i++) {
+      if (String(data.rows[i].employee_id) === empId) {
+        return { success: false, error: 'รหัสพนักงาน ' + empId + ' มีอยู่แล้ว' };
+      }
+    }
+    getSheet(SHEET_USERS).appendRow([empId, name, hashPin(pin), role, String(params.line || ''), '', '', 'true']);
+    auditLog(user, 'user.create', 'Users', empId, '', JSON.stringify({ name: name, role: role }));
+    return { success: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// แก้ไขผู้ใช้: ชื่อ/role/line/เปิด-ปิดบัญชี/reset PIN — ตาม field ที่ส่งมา
+function actionUserUpdate(params, user) {
+  if (!can(user, 'user.manage', {})) return { success: false, error: 'สิทธิ์ไม่พอ (ต้องเป็น Admin)' };
+  var empId = String(params.employee_id || '').trim();
+  if (!empId) return { success: false, error: 'ไม่ระบุรหัสพนักงาน' };
+
+  var data = readAll(SHEET_USERS);
+  for (var i = 0; i < data.rows.length; i++) {
+    var u = data.rows[i];
+    if (String(u.employee_id) !== empId) continue;
+    var before = JSON.stringify({ name: u.name, role: u.role, line: u.line, active: u.active });
+    if (params.name !== undefined) u.name = String(params.name);
+    if (params.role !== undefined) u.role = String(params.role);
+    if (params.line !== undefined) u.line = String(params.line);
+    if (params.active !== undefined) {
+      u.active = (params.active === true || params.active === 'true') ? 'true' : 'false';
+      if (u.active === 'false') { u.token = ''; u.token_expiry = ''; } // ปิดบัญชี = ตัด session ทันที
+    }
+    if (params.new_pin) {
+      if (String(params.new_pin).length < 4) return { success: false, error: 'PIN ใหม่ต้องยาวอย่างน้อย 4 หลัก' };
+      u.pin_hash = hashPin(String(params.new_pin));
+      u.token = ''; u.token_expiry = '';
+    }
+    writeRow(SHEET_USERS, u._rowIndex, data.header, u);
+    auditLog(user, 'user.update', 'Users', empId, before,
+      JSON.stringify({ name: u.name, role: u.role, line: u.line, active: u.active, pin_reset: !!params.new_pin }));
+    return { success: true };
+  }
+  return { success: false, error: 'ไม่พบผู้ใช้: ' + empId };
 }

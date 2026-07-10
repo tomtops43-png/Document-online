@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — ENC QMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<!-- Chart.js vendor ไว้ใน repo — ไม่พึ่ง CDN (เน็ตโรงงานไม่นิ่ง/บาง network block CDN) -->
+<script src="js/vendor/chart.umd.min.js"></script>
+</head>
+<body>
+
+<main class="container container-wide">
+
+  <!-- ===== KPI Cards ===== -->
+  <div class="kpi-grid">
+    <a class="kpi-card" href="dashboard.html">
+      <div class="kpi-icon">📄</div>
+      <div><div class="kpi-label">เอกสารทั้งหมด</div>
+        <div class="kpi-value" id="kpi-docs">—</div>
+        <div class="kpi-sub" id="kpi-docs-sub">ในทะเบียน Master</div></div>
+    </a>
+    <a class="kpi-card k-warn" href="records.html">
+      <div class="kpi-icon">⏳</div>
+      <div><div class="kpi-label">รออนุมัติ</div>
+        <div class="kpi-value" id="kpi-pending">—</div>
+        <div class="kpi-sub">ทุกขั้นตอนรวมกัน</div></div>
+    </a>
+    <a class="kpi-card k-ok" href="records.html">
+      <div class="kpi-icon">✅</div>
+      <div><div class="kpi-label">ตรวจวันนี้</div>
+        <div class="kpi-value" id="kpi-today">—</div>
+        <div class="kpi-sub" id="kpi-today-sub">รายการ</div></div>
+    </a>
+    <a class="kpi-card k-danger" href="records.html">
+      <div class="kpi-icon">⚠️</div>
+      <div><div class="kpi-label">แจ้งเตือน NOK วันนี้</div>
+        <div class="kpi-value" id="kpi-nok">—</div>
+        <div class="kpi-sub">รายการที่พบไม่ผ่าน</div></div>
+    </a>
+  </div>
+
+  <!-- ===== Charts ===== -->
+  <div class="chart-row">
+    <div class="chart-card">
+      <h3>สัดส่วน OK / NOK วันนี้</h3>
+      <div class="chart-sub" id="donut-sub">—</div>
+      <div class="chart-wrap">
+        <canvas id="donut-chart"></canvas>
+        <div class="donut-center"><b id="donut-pct">—</b><span>OK Rate</span></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>แนวโน้ม NOK ย้อนหลัง 7 วัน</h3>
+      <div class="chart-sub">จำนวนรายการตรวจ เทียบกับที่พบ NOK ต่อวัน</div>
+      <div class="chart-filters">
+        <select id="filter-line"><option value="">ทุกไลน์</option></select>
+        <select id="filter-station"><option value="">ทุก Station</option></select>
+      </div>
+      <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== Recent Activity ===== -->
+  <div class="chart-card">
+    <h3>ความเคลื่อนไหวล่าสุด</h3>
+    <div class="chart-sub">บันทึกการตรวจที่เพิ่งเกิดขึ้นในระบบ</div>
+    <div class="activity-list" id="activity-list">
+      <div class="notif-empty">กำลังโหลด...</div>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script src="js/shell.js"></script>
+<script>
+const user = Auth.requireLogin();
+AppShell.init('home');
+
+const BRAND = '#2563eb', OK_C = '#16a34a', NOK_C = '#dc2626', GRID = '#e5e7eb', FAINT = '#9ca3af';
+let weekData = [];      // slim records 7 วัน จาก server
+let trendChart = null, donutChart = null;
+
+const STATUS_TH = function (s) {
+  if (s === 'COMPLETED') return { t: 'อนุมัติครบแล้ว', cls: 'a-done', ic: '✅' };
+  if (s === 'REJECTED') return { t: 'ถูกตีกลับ', cls: 'a-nok', ic: '↩️' };
+  if (String(s).indexOf('PENDING_') === 0) return { t: 'รอ ' + s.substring(8), cls: '', ic: '⏳' };
+  return { t: s, cls: '', ic: '📋' };
+};
+
+(async function () {
+  // เอกสารทั้งหมดจาก Master cache (ไม่ต้องยิง API เพิ่ม)
+  try {
+    await Master.load();
+    const docs = (Master.data.M_Document || []);
+    document.getElementById('kpi-docs').textContent = docs.length;
+    const forms = docs.filter(function (d) { return (Master.docType(d.doctype_id) || {}).behavior === 'form'; }).length;
+    document.getElementById('kpi-docs-sub').textContent = forms + ' ฟอร์ม / ' + (docs.length - forms) + ' ไฟล์';
+    // filter ไลน์จาก master
+    const lineSel = document.getElementById('filter-line');
+    Master.lines().forEach(function (l) {
+      const o = document.createElement('option');
+      o.value = l.line_name; o.textContent = l.display_name;
+      lineSel.appendChild(o);
+    });
+  } catch (e) { /* master โหลดไม่ได้ — KPI เอกสารว่างไว้ */ }
+
+  // สถิติจาก Records
+  try {
+    const res = await API.post('stats.dashboard', {});
+    document.getElementById('kpi-pending').textContent = res.pending;
+    document.getElementById('kpi-today').textContent = res.today_total;
+    document.getElementById('kpi-nok').textContent = res.today_nok;
+    weekData = res.week || [];
+    renderDonut(res.today_total, res.today_nok);
+    renderTrend();
+    renderActivity(res.recent || []);
+  } catch (e) {
+    showToast('โหลดสถิติไม่สำเร็จ: ' + e.message, 'error');
+    document.getElementById('activity-list').innerHTML =
+      '<div class="notif-empty">โหลดข้อมูลไม่สำเร็จ — ตรวจว่า Deploy GAS เวอร์ชันล่าสุดแล้ว</div>';
+  }
+})();
+
+function renderDonut(total, nok) {
+  const ok = Math.max(0, total - nok);
+  const pct = total ? Math.round((ok / total) * 100) : 100;
+  document.getElementById('donut-pct').textContent = pct + '%';
+  document.getElementById('donut-sub').textContent =
+    total ? ('ตรวจ ' + total + ' รายการ — OK ' + ok + ' / NOK ' + nok) : 'วันนี้ยังไม่มีการตรวจ';
+  const ctx = document.getElementById('donut-chart');
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['OK', 'NOK'],
+      datasets: [{ data: total ? [ok, nok] : [1, 0],
+        backgroundColor: total ? [OK_C, NOK_C] : [GRID, GRID], borderWidth: 0 }]
+    },
+    options: {
+      cutout: '72%', maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Noto Sans Thai' } } } }
+    }
+  });
+}
+
+function renderTrend() {
+  const lineF = document.getElementById('filter-line').value;
+  const stF = document.getElementById('filter-station').value;
+  // 7 วันล่าสุด (รวมวันนี้)
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const totals = {}, noks = {};
+  days.forEach(function (d) { totals[d] = 0; noks[d] = 0; });
+  weekData.forEach(function (r) {
+    if (lineF && r.line !== lineF) return;
+    if (stF && String(r.station) !== stF) return;
+    if (totals[r.date] === undefined) return;
+    totals[r.date]++;
+    if (r.nok) noks[r.date]++;
+  });
+  const labels = days.map(function (d) { return d.slice(5).replace('-', '/'); });
+  const ctx = document.getElementById('trend-chart');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        { type: 'bar', label: 'ตรวจทั้งหมด', data: days.map(function (d) { return totals[d]; }),
+          backgroundColor: '#bfdbfe', borderRadius: 6, maxBarThickness: 34 },
+        { type: 'line', label: 'NOK', data: days.map(function (d) { return noks[d]; }),
+          borderColor: NOK_C, backgroundColor: NOK_C, tension: .35, pointRadius: 4, pointHoverRadius: 6 }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, color: FAINT }, grid: { color: GRID } },
+        x: { ticks: { color: FAINT }, grid: { display: false } }
+      },
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Noto Sans Thai' } } } }
+    }
+  });
+}
+
+// filter station ตามไลน์ที่เลือก (จากข้อมูลจริงใน weekData)
+document.getElementById('filter-line').addEventListener('change', function () {
+  const lineF = this.value;
+  const stSel = document.getElementById('filter-station');
+  const seen = {};
+  stSel.innerHTML = '<option value="">ทุก Station</option>';
+  weekData.forEach(function (r) {
+    if (lineF && r.line !== lineF) return;
+    if (r.station && !seen[r.station]) {
+      seen[r.station] = true;
+      const o = document.createElement('option');
+      o.value = r.station; o.textContent = 'Station ' + r.station;
+      stSel.appendChild(o);
+    }
+  });
+  renderTrend();
+});
+document.getElementById('filter-station').addEventListener('change', renderTrend);
+
+function renderActivity(recent) {
+  const el = document.getElementById('activity-list');
+  if (!recent.length) {
+    el.innerHTML = '<div class="notif-empty">ยังไม่มีบันทึกในระบบ</div>';
+    return;
+  }
+  el.innerHTML = recent.map(function (r) {
+    const st = STATUS_TH(r.status);
+    const isNok = r.has_nok === 'true';
+    const time = String(r.created_at || '').replace('T', ' ').slice(5, 16);
+    return '<div class="activity-item ' + (isNok ? 'a-nok' : st.cls) + '">' +
+      '<div class="activity-ic">' + (isNok ? '⚠️' : st.ic) + '</div>' +
+      '<div class="activity-main"><b>' + esc(r.record_id) + '</b> — ' + esc(st.t) +
+      (isNok ? ' <span class="nok-flag">NOK</span>' : '') +
+      '<div class="a-sub">' + esc(r.line) + (r.station ? ' / Station ' + esc(r.station) : '') +
+      ' โดย ' + esc(r.operator_name) + '</div></div>' +
+      '<div class="activity-time">' + esc(time) + '</div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>

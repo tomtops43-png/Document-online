@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>จัดการผู้ใช้งาน — ENC QMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<main class="container container-wide">
+
+  <div class="card">
+    <div class="section-heading">
+      <h2>👥 ผู้ใช้งานระบบ</h2>
+      <button type="button" class="btn-primary" style="min-height:44px;font-size:15px;padding:10px 18px" id="btn-add-user">＋ เพิ่มผู้ใช้ใหม่</button>
+    </div>
+    <p class="modal-hint" style="margin-top:-6px">
+      กำหนดสิทธิ์ตามตำแหน่ง (Role) — สิทธิ์ของแต่ละ Role มาจากชีท M_Permission ใน ENC-MASTER
+      ปิดสวิตช์ = ระงับบัญชีทันที (ผู้ใช้จะหลุดจากระบบและล็อกอินไม่ได้จนกว่าจะเปิดใหม่)</p>
+    <div class="table-scroll">
+      <table class="record-table">
+        <thead><tr>
+          <th>ผู้ใช้</th><th>ตำแหน่ง / สิทธิ์</th><th>ไลน์</th><th>สถานะ</th><th></th>
+        </tr></thead>
+        <tbody id="user-rows"><tr><td colspan="5" class="empty-hint">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- สรุปสิทธิ์ต่อ Role (อ่านจาก M_Permission — data-driven) -->
+  <div class="card">
+    <div class="section-heading"><h2>🔐 สิทธิ์ของแต่ละตำแหน่ง</h2></div>
+    <p class="modal-hint" style="margin-top:-6px">อ่านจากชีท M_Permission — แก้สิทธิ์ = แก้แถวในชีท ENC-MASTER แล้วกด "รีเฟรชข้อมูล Master"</p>
+    <div class="table-scroll">
+      <table class="record-table">
+        <thead><tr><th>ตำแหน่ง</th><th>ทำอะไรได้บ้าง</th></tr></thead>
+        <tbody id="perm-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- Modal: เพิ่ม/แก้ไขผู้ใช้ -->
+<div id="user-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="user-modal-title">เพิ่มผู้ใช้ใหม่</h3>
+      <button type="button" class="btn-small" onclick="closeUserModal()">✕</button>
+    </div>
+    <label class="field"><span>รหัสพนักงาน (Username) *</span>
+      <input type="text" id="u-empid" inputmode="numeric" placeholder="เช่น 10023"></label>
+    <label class="field"><span>ชื่อ-นามสกุล *</span>
+      <input type="text" id="u-name" placeholder="เช่น สมชาย ใจดี"></label>
+    <label class="field" id="u-pin-field"><span>PIN (รหัสผ่าน อย่างน้อย 4 หลัก) *</span>
+      <input type="password" id="u-pin" inputmode="numeric" placeholder="••••"></label>
+    <div class="filter-grid">
+      <label class="field"><span>ตำแหน่ง / สิทธิ์ *</span><select id="u-role"></select></label>
+      <label class="field"><span>ไลน์ประจำ (ถ้ามี)</span><select id="u-line"><option value="">— ไม่ระบุ —</option></select></label>
+    </div>
+    <div id="u-role-hint" class="modal-hint" style="margin-bottom:12px"></div>
+    <button type="button" class="btn-primary btn-block" id="btn-save-user">💾 บันทึกผู้ใช้</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script src="js/shell.js"></script>
+<script>
+const user = Auth.requireLogin();
+AppShell.init('users');
+if (user && user.role !== 'Admin') {
+  showToast('หน้านี้สำหรับ Admin เท่านั้น', 'error');
+  setTimeout(function () { location.href = 'home.html'; }, 1500);
+}
+
+let usersData = [];
+let editingUser = null; // null = โหมดเพิ่มใหม่
+
+// สีย่อ role หลักตรงกับ .role-badge ใน CSS — role อื่นๆ ใช้สีส้มกลางๆ
+const AVATAR_COLORS = ['#2563eb', '#7c3aed', '#0d9488', '#d97706', '#dc2626', '#16a34a'];
+function avatarColor(id) {
+  let h = 0;
+  String(id).split('').forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) % 997; });
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+(async function () {
+  Loading.show('กำลังโหลด...');
+  try {
+    await Master.load();
+    fillRoleSelect();
+    fillLineSelect();
+    renderPermTable();
+    await loadUsers();
+  } catch (err) {
+    showToast('โหลดไม่สำเร็จ: ' + err.message, 'error');
+    document.getElementById('user-rows').innerHTML =
+      '<tr><td colspan="5" class="empty-hint">' + esc(err.message) + '</td></tr>';
+  } finally {
+    Loading.hide();
+  }
+})();
+
+function fillRoleSelect() {
+  const el = document.getElementById('u-role');
+  const roles = (Master.data.M_Role || []).slice().sort(function (a, b) { return (a.sequence || 0) - (b.sequence || 0); });
+  el.innerHTML = roles.map(function (r) {
+    return '<option value="' + esc(r.role_id) + '">' + esc(r.display_name_th || r.role_name) + ' (' + esc(r.role_id) + ')</option>';
+  }).join('');
+  el.value = 'Operator';
+  el.addEventListener('change', updateRoleHint);
+  updateRoleHint();
+}
+function fillLineSelect() {
+  const el = document.getElementById('u-line');
+  Master.lines().forEach(function (l) {
+    const o = document.createElement('option');
+    o.value = l.line_name; o.textContent = l.display_name;
+    el.appendChild(o);
+  });
+}
+
+// สรุปสิทธิ์ของ role ที่เลือก (อ่าน M_Permission) — ช่วย Admin ตัดสินใจว่าให้ตำแหน่งไหน
+const ACTION_TH = {
+  '*': 'ทุกอย่าง (ผู้ดูแลระบบ)',
+  'record.create': 'กรอก/ส่งฟอร์มตรวจ',
+  'record.view': 'ดูบันทึกการตรวจ',
+  'record.approve.step': 'อนุมัติ/ตีกลับตามขั้นตอน',
+  'doc.view': 'เปิดดูเอกสาร',
+  'document.manage': 'ลงทะเบียน/แก้ไข/ลบเอกสาร',
+  'recovery.create': 'สร้าง Recovery Plan',
+  'recovery.close': 'ปิด Recovery Plan',
+  'user.manage': 'จัดการผู้ใช้งาน'
+};
+function permsOfRole(roleId) {
+  return (Master.data.M_Permission || []).filter(function (p) {
+    return String(p.role_id) === String(roleId);
+  }).map(function (p) {
+    let t = ACTION_TH[p.action] || p.action;
+    if (p.scope_line && p.scope_line !== '*') t += ' (เฉพาะ ' + p.scope_line + ')';
+    return t;
+  });
+}
+function updateRoleHint() {
+  const roleId = document.getElementById('u-role').value;
+  const perms = permsOfRole(roleId);
+  document.getElementById('u-role-hint').innerHTML = perms.length
+    ? '<b>สิทธิ์ของตำแหน่งนี้:</b> ' + perms.map(esc).join(' · ')
+    : 'ตำแหน่งนี้ยังไม่มีสิทธิ์ใน M_Permission — เพิ่มแถวในชีทก่อน ผู้ใช้จึงจะทำงานได้';
+}
+
+function renderPermTable() {
+  const tbody = document.getElementById('perm-rows');
+  const roles = (Master.data.M_Role || []).slice().sort(function (a, b) { return (a.sequence || 0) - (b.sequence || 0); });
+  tbody.innerHTML = roles.map(function (r) {
+    const perms = permsOfRole(r.role_id);
+    return '<tr><td><span class="role-badge" data-role="' + esc(r.role_id) + '">' + esc(r.display_name_th || r.role_id) + '</span></td>' +
+      '<td style="white-space:normal">' + (perms.length ? perms.map(esc).join(' · ') : '<span style="color:var(--text-faint)">ยังไม่กำหนด</span>') + '</td></tr>';
+  }).join('');
+}
+
+async function loadUsers() {
+  const res = await API.post('user.list', {});
+  usersData = res.users || [];
+  renderUsers();
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('user-rows');
+  if (!usersData.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-hint">ยังไม่มีผู้ใช้</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  usersData.forEach(function (u) {
+    const roleDef = (Master.data.M_Role || []).find(function (r) { return r.role_id === u.role; });
+    const initials = (u.name || '?').trim().slice(0, 1).toUpperCase();
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><div class="user-cell">' +
+      '<span class="avatar-sm" style="background:' + avatarColor(u.employee_id) + '">' + esc(initials) + '</span>' +
+      '<div><div class="u-name">' + esc(u.name) + '</div><div class="u-id">' + esc(u.employee_id) + '</div></div>' +
+      '</div></td>' +
+      '<td><span class="role-badge" data-role="' + esc(u.role) + '">' + esc(roleDef ? (roleDef.display_name_th || u.role) : u.role) + '</span></td>' +
+      '<td>' + esc(u.line || '-') + '</td>' +
+      '<td><button type="button" class="toggle' + (u.active ? ' on' : '') + '" title="' + (u.active ? 'ใช้งานอยู่ — กดเพื่อระงับ' : 'ถูกระงับ — กดเพื่อเปิดใช้') + '"></button></td>' +
+      '<td class="manage-actions">' +
+      '<button type="button" class="btn-small btn-edit-user">✏️ แก้ไข</button>' +
+      '<button type="button" class="btn-small btn-reset-pin">🔑 รีเซ็ต PIN</button></td>';
+
+    tr.querySelector('.toggle').addEventListener('click', function () { toggleActive(u, this); });
+    tr.querySelector('.btn-edit-user').addEventListener('click', function () { openUserModal(u); });
+    tr.querySelector('.btn-reset-pin').addEventListener('click', function () { resetPin(u); });
+    tbody.appendChild(tr);
+  });
+}
+
+async function toggleActive(u, btn) {
+  if (u.employee_id === user.employee_id) { showToast('ระงับบัญชีตัวเองไม่ได้', 'error'); return; }
+  const next = !u.active;
+  if (!next && !confirm('ระงับบัญชี "' + u.name + '" ใช่หรือไม่?\nผู้ใช้จะหลุดจากระบบทันที')) return;
+  btn.disabled = true;
+  try {
+    await API.post('user.update', { employee_id: u.employee_id, active: next });
+    u.active = next;
+    btn.classList.toggle('on', next);
+    showToast(next ? 'เปิดใช้บัญชีแล้ว' : 'ระงับบัญชีแล้ว', 'success');
+  } catch (err) {
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function resetPin(u) {
+  const pin = prompt('ตั้ง PIN ใหม่ให้ "' + u.name + '" (อย่างน้อย 4 หลัก):');
+  if (!pin) return;
+  if (pin.trim().length < 4) { showToast('PIN ต้องยาวอย่างน้อย 4 หลัก', 'error'); return; }
+  Loading.show('กำลังรีเซ็ต PIN...');
+  try {
+    await API.post('user.update', { employee_id: u.employee_id, new_pin: pin.trim() });
+    Loading.hide();
+    showToast('รีเซ็ต PIN แล้ว — ผู้ใช้ต้องล็อกอินใหม่', 'success');
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+// ---------- modal เพิ่ม/แก้ไข ----------
+document.getElementById('btn-add-user').addEventListener('click', function () { openUserModal(null); });
+
+function openUserModal(u) {
+  editingUser = u;
+  document.getElementById('user-modal-title').textContent = u ? 'แก้ไขผู้ใช้: ' + u.name : 'เพิ่มผู้ใช้ใหม่';
+  document.getElementById('u-empid').value = u ? u.employee_id : '';
+  document.getElementById('u-empid').disabled = !!u;
+  document.getElementById('u-name').value = u ? u.name : '';
+  document.getElementById('u-pin').value = '';
+  document.getElementById('u-pin-field').style.display = u ? 'none' : 'block';
+  document.getElementById('u-role').value = u ? u.role : 'Operator';
+  document.getElementById('u-line').value = u ? (u.line || '') : '';
+  updateRoleHint();
+  document.getElementById('user-modal').style.display = 'flex';
+}
+function closeUserModal() {
+  document.getElementById('user-modal').style.display = 'none';
+  editingUser = null;
+}
+document.getElementById('user-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeUserModal();
+});
+
+document.getElementById('btn-save-user').addEventListener('click', async function () {
+  const empId = document.getElementById('u-empid').value.trim();
+  const name = document.getElementById('u-name').value.trim();
+  const pin = document.getElementById('u-pin').value.trim();
+  const role = document.getElementById('u-role').value;
+  const line = document.getElementById('u-line').value;
+  if (!empId || !name) { showToast('กรอกรหัสพนักงานและชื่อให้ครบ', 'error'); return; }
+  if (!editingUser && pin.length < 4) { showToast('PIN ต้องยาวอย่างน้อย 4 หลัก', 'error'); return; }
+
+  Loading.show('กำลังบันทึก...');
+  try {
+    if (editingUser) {
+      await API.post('user.update', { employee_id: empId, name: name, role: role, line: line });
+    } else {
+      await API.post('user.create', { employee_id: empId, name: name, pin: pin, role: role, line: line });
+    }
+    Loading.hide();
+    showToast('บันทึกผู้ใช้สำเร็จ', 'success');
+    closeUserModal();
+    await loadUsers();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+</script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 <title>เอกสาร — Viewer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -23,8 +23,9 @@
     <div class="viewer-actions" id="doc-actions"></div>
   </section>
 
-  <section class="card" id="preview-card" style="display:none">
-    <iframe id="preview-frame" class="preview-frame" allow="autoplay"></iframe>
+  <!-- กรอบกระดาษ A4 ลอยบนพื้นเทา — ให้ความรู้สึก "ศูนย์เอกสาร" จริง -->
+  <section class="paper-stage" id="preview-card" style="display:none; margin-bottom:18px">
+    <div class="paper-a4"><iframe id="preview-frame" allow="autoplay"></iframe></div>
   </section>
 
   <section class="card">
