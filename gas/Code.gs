@@ -573,13 +573,13 @@ var MASTER_SHEET_DEFS = {
   M_Line: ['line_id', 'plant_id', 'line_name', 'display_name', 'sequence', 'status'],
   M_Station: ['station_id', 'line_id', 'station_no', 'station_name', 'sequence', 'status'],
   M_DocType: ['doctype_id', 'doctype_name', 'display_name_th', 'behavior', 'workflow_json', 'record_prefix', 'icon', 'sequence', 'status'],
-  M_Document: ['doc_id', 'doctype_id', 'family_id', 'line_id', 'doc_name', 'doc_no', 'current_rev_id', 'drive_folder_id', 'print_css', 'status'],
+  M_Document: ['doc_id', 'doctype_id', 'family_id', 'line_id', 'doc_name', 'doc_no', 'current_rev_id', 'drive_folder_id', 'print_css', 'status', 'series_tag'],
   M_DocAssign: ['assign_id', 'doc_id', 'station_id', 'status'],
   M_Revision: ['rev_id', 'doc_id', 'rev_no', 'content_ref', 'effective_date', 'approved_by', 'approved_date', 'reason', 'status', 'created_at'],
   M_Role: ['role_id', 'role_name', 'display_name_th', 'sequence', 'status'],
   M_Permission: ['perm_id', 'role_id', 'action', 'scope_line', 'scope_doctype'],
   M_ProductFamily: ['family_id', 'family_name', 'display_name', 'sequence', 'status'],
-  M_Model: ['model_id', 'family_id', 'model_name', 'status'],
+  M_Model: ['model_id', 'family_id', 'model_name', 'status', 'series_tag'],
   M_Shift: ['shift_id', 'shift_name', 'time_range', 'status']
 };
 
@@ -766,7 +766,8 @@ function actionDocRegister(params, user) {
       effective_date: String(params.effective_date || ''),
       approved_by: user.name,
       reason: String(params.reason || 'ลงทะเบียนครั้งแรก'),
-      station_ids: stationIds
+      station_ids: stationIds,
+      series_tag: String(params.series_tag || '')
     });
 
     auditLog(user, 'document.register', 'M_Document', docId, '', JSON.stringify({ rev: revNo, ref: contentRef }));
@@ -926,7 +927,7 @@ function actionDocUpdate(params, user) {
 
   var before = JSON.stringify(data[rowIdx - 1]);
   var fields = { doctype_id: params.doctype_id, family_id: params.family_id, line_id: params.line_id,
-    doc_name: params.doc_name, doc_no: params.doc_no };
+    doc_name: params.doc_name, doc_no: params.doc_no, series_tag: params.series_tag };
   Object.keys(fields).forEach(function (key) {
     if (fields[key] !== undefined && fields[key] !== null && col[key]) {
       sheet.getRange(rowIdx, col[key]).setValue(String(fields[key]));
@@ -1083,7 +1084,7 @@ function registerDocument(def) {
   }
   if (!found) {
     docSheet.appendRow([def.doc_id, def.doctype_id, def.family_id || '*', def.line_id || '*',
-      def.doc_name, def.doc_no || '', revId, def.drive_folder_id || '', def.print_css || '', 'ACTIVE']);
+      def.doc_name, def.doc_no || '', revId, def.drive_folder_id || '', def.print_css || '', 'ACTIVE', def.series_tag || '']);
   }
 
   // 3) M_DocAssign — ผูกกับสถานี (ข้ามคู่ที่มีอยู่แล้ว)
@@ -1242,12 +1243,12 @@ function seedMaster() {
     ['QA', 'QA', 'Quality Assurance', 5, 'ACTIVE'],
     ['PE', 'PE', 'Process Engineer', 6, 'ACTIVE'],
     ['DocControl', 'Document Control', 'ควบคุมเอกสาร', 7, 'ACTIVE'],
-    ['ProdManager', 'Production Manager', 'ผู้จัดการฝ่ายผลิต', 8, 'ACTIVE'],
+    ['ProdManager', 'Production Manager', 'ผู้จัดการฟ่ายผลิต', 8, 'ACTIVE'],
     ['SectionManager', 'Section Manager', 'ผู้จัดการส่วน', 9, 'ACTIVE'],
     ['FactoryManager', 'Factory Manager', 'ผู้จัดการโรงงาน', 10, 'ACTIVE']
   ]);
 
-  // ---- Permissions (เทียบเท่าพฤติกรรมระบบปัจจุบันเป๊ะ + สิทธิ์อ่านให้ role ใหม่) ----
+  // ---- Permissions (เทียบเท่าพฤติกรรมระบปจจุบันเป๊ะ + สิทธิ์อ่านให้ role ใหม่) ----
   seedIfEmpty('M_Permission', [
     ['P001', 'Admin', '*', '*', '*'],
     ['P010', 'Operator', 'record.create', '*', '*'],
