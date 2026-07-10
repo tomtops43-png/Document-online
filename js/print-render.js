@@ -173,19 +173,15 @@ const PrintRender = {
           pointHtml += '</div>';
         }
         if (item.answer_type === 'torque_value') {
+          // หน้างานจริงแค่ติ๊ก Acc/Rej เหมือนข้ออื่นๆ ไม่ได้พิมพ์ค่าที่วัดได้จริง — โชว์ spec ไว้อ้างอิงเฉยๆ
           const spec = item.torque_spec || {};
-          pointHtml += ' <span class="torque-spec-print">' + esc(spec.display || '') + '</span>' +
-            ' <span class="text-fill">ค่าที่วัดได้: <span class="fill-value">' +
-            esc(ans.torque_actual != null ? String(ans.torque_actual) : '') + '</span> ' + esc(spec.unit || 'N.m') + '</span>';
+          pointHtml += ' <span class="torque-spec-print">Spec: ' + esc(spec.display || (spec.min + '-' + spec.max + ' ' + (spec.unit || ''))) + '</span>';
         }
         if (item.note_th) pointHtml += '<div class="note-line">' + esc(item.note_th) + '</div>';
         html += '<td class="cell-point">' + pointHtml + '</td>';
 
-        // Decision Acc/Rej — torque: Acc ถ้าอยู่ในช่วง
-        let decision = ans.value;
-        if (item.answer_type === 'torque_value' && ans.torque_actual != null) {
-          decision = ans.out_of_spec ? 'REJ' : 'ACC';
-        }
+        // Decision Acc/Rej
+        const decision = ans.value;
         html += '<td class="cell-acc">Acc <span class="tickbox">' + (decision === 'ACC' ? '✓' : '&nbsp;') + '</span></td>';
         html += '<td class="cell-rej">Rej <span class="tickbox">' + (decision === 'REJ' ? '✓' : '&nbsp;') + '</span></td>';
         html += '<td class="cell-recorder">' + recorderCellHtml(ans.recorder) + '</td>';

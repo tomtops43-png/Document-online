@@ -460,9 +460,8 @@ function renderDetail(template, record, recovery) {
     sec.items.forEach(function (item) {
       const a = answers[item.item_id] || {};
       let valTxt = a.value || '';
-      if (item.answer_type === 'torque_value') valTxt = (a.torque_actual != null ? a.torque_actual : '') + (a.out_of_spec ? ' ⚠นอกspec' : '');
       if (a.way) valTxt += ' [' + a.way + ']';
-      const cls = (a.value === 'NOK' || a.value === 'REJ' || a.out_of_spec) ? 'val-nok' : 'val-ok';
+      const cls = (a.value === 'NOK' || a.value === 'REJ') ? 'val-nok' : 'val-ok';
       const recorderTxt = (typeof a.recorder === 'string' && a.recorder.indexOf('data:image') === 0)
         ? '<img src="' + a.recorder + '" style="max-height:26px;vertical-align:middle">'
         : (a.recorder || '');

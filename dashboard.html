@@ -51,13 +51,19 @@
     <div id="family-grid" class="big-choice-list"></div>
   </section>
 
-  <!-- ขั้น 4: เลือก Station (ข้ามถ้าเป็น First Piece — 1 ไฟล์ครอบคลุมทุก Station) -->
+  <!-- ขั้น 4: เลือกซีรีส์ (Series) — แสดงเฉพาะถ้ารุ่นหลักนี้มีมากกว่า 1 ซีรีส์ (เช่น LC แยก Classic/Visi Smart) -->
+  <section id="step-series" class="card" style="display:none">
+    <div class="section-heading"><h2 id="series-title">เลือกซีรีส์</h2></div>
+    <div id="series-grid" class="big-choice-list"></div>
+  </section>
+
+  <!-- ขั้น 5: เลือก Station (ข้ามถ้าเป็น First Piece — 1 ไฟล์ครอบคลุมทุก Station) -->
   <section id="step-station" class="card" style="display:none">
     <div class="section-heading"><h2 id="station-title">เลือก Station</h2></div>
     <div id="station-grid" class="big-choice-list station-grid"></div>
   </section>
 
-  <!-- ขั้น 5: Document Center -->
+  <!-- ขั้น 6: Document Center -->
   <section id="step-docs" style="display:none">
     <div class="card">
       <div class="section-heading">
@@ -91,15 +97,17 @@
 const user = Auth.requireLogin();
 AppShell.init('dashboard');
 
-// state การนำทาง: ?line=L4&cat=first-piece&family=NLC&station=L4-ST12
-// ลำดับ: ENC > ไลน์ > หมวดเอกสาร > รุ่นหลัก (Family — ข้ามถ้าหมวดนี้มีรุ่นเดียว) > Station (ข้ามถ้าเป็น First Piece) > เอกสาร
-let curLine = null, curCat = null, curFamily = null, curStation = null;
+// state การนำทาง: ?line=L4&cat=first-piece&family=NLC&series=Classic&station=L4-ST12
+// ลำดับ: ENC > ไลน์ > หมวดเอกสาร > รุ่นหลัก (Family — ข้ามถ้าหมวดนี้มีรุ่นเดียว) >
+//        ซีรีส์ (Series — ข้ามถ้ารุ่นหลักนี้มีซีรีส์เดียว) > Station (ข้ามถ้าเป็น First Piece) > เอกสาร
+let curLine = null, curCat = null, curFamily = null, curSeries = null, curStation = null;
 
-function nav(line, cat, family, station) {
+function nav(line, cat, family, series, station) {
   const p = new URLSearchParams();
   if (line) p.set('line', line);
   if (cat) p.set('cat', cat);
   if (family) p.set('family', family);
+  if (series) p.set('series', series);
   if (station) p.set('station', station);
   history.pushState({}, '', 'dashboard.html' + (p.toString() ? '?' + p.toString() : ''));
   render();
@@ -107,9 +115,10 @@ function nav(line, cat, family, station) {
 window.addEventListener('popstate', render);
 document.addEventListener('master-updated', render);
 
-// ปุ่มย้อนกลับ: ถอยขึ้นไปทีละขั้น (Station → รุ่นหลัก → หมวดเอกสาร → ไลน์ → ENC)
+// ปุ่มย้อนกลับ: ถอยขึ้นไปทีละขั้น (Station → ซีรีส์ → รุ่นหลัก → หมวดเอกสาร → ไลน์ → ENC)
 document.getElementById('btn-back').addEventListener('click', function () {
-  if (curStation) { nav(curLine, curCat, curFamily); return; }
+  if (curStation) { nav(curLine, curCat, curFamily, curSeries); return; }
+  if (curSeries) { nav(curLine, curCat, curFamily); return; }
   if (curFamily) { nav(curLine, curCat); return; }
   if (curCat) { nav(curLine); return; }
   if (curLine) { nav(); return; }
@@ -142,6 +151,30 @@ function familyMatch(d) {
   return d.family_id === curFamily;
 }
 
+// จัดเอกสารในรุ่นหลัก (family) นี้เป็นกลุ่มตามซีรีส์ย่อย (series_tag) — เช่น Family "LC" แยกเป็น Classic / Visi Smart
+// เอกสารที่ไม่ได้ระบุ series_tag จัดเข้ากลุ่ม "ไม่ระบุซีรีส์"
+function seriesBuckets(cat) {
+  const docs = docsInCategory(cat).filter(familyMatch);
+  const map = {};
+  const order = [];
+  docs.forEach(function (d) {
+    const tag = d.series_tag || '_NONE';
+    if (!map[tag]) { map[tag] = []; order.push(tag); }
+    map[tag].push(d);
+  });
+  const buckets = order.filter(function (t) { return t !== '_NONE'; }).sort().map(function (t) {
+    return { series_tag: t, label: t, docs: map[t] };
+  });
+  if (map['_NONE']) buckets.push({ series_tag: '_NONE', label: 'ไม่ระบุซีรีส์', docs: map['_NONE'] });
+  return buckets;
+}
+
+function seriesMatch(d) {
+  if (!curSeries) return true;
+  if (curSeries === '_NONE') return !d.series_tag;
+  return d.series_tag === curSeries;
+}
+
 function crumbs() {
   const el = document.getElementById('crumbs');
   let html = '<a href="#" onclick="nav();return false">ENC</a>';
@@ -163,9 +196,17 @@ function crumbs() {
     const buckets = familyBuckets(DOC_CATEGORIES.find(function (c) { return c.key === curCat; }) || {});
     const bucket = buckets.find(function (b) { return b.family_id === curFamily; });
     const famLabel = bucket ? bucket.label : curFamily;
-    html += ' › ' + (curStation
+    html += ' › ' + ((curSeries || curStation)
       ? '<a href="#" onclick="nav(\'' + curLine + '\',\'' + curCat + '\',\'' + curFamily + '\');return false">' + famLabel + '</a>'
       : '<b>' + famLabel + '</b>');
+  }
+  if (curSeries) {
+    const buckets = seriesBuckets(DOC_CATEGORIES.find(function (c) { return c.key === curCat; }) || {});
+    const bucket = buckets.find(function (b) { return b.series_tag === curSeries; });
+    const serLabel = bucket ? bucket.label : curSeries;
+    html += ' › ' + (curStation
+      ? '<a href="#" onclick="nav(\'' + curLine + '\',\'' + curCat + '\',\'' + curFamily + '\',\'' + curSeries + '\');return false">' + serLabel + '</a>'
+      : '<b>' + serLabel + '</b>');
   }
   if (curStation) {
     const s = Master.station(curStation);
@@ -179,6 +220,7 @@ async function render() {
   curLine = p.get('line');
   curCat = p.get('cat');
   curFamily = p.get('family');
+  curSeries = p.get('series');
   curStation = p.get('station');
   await Master.load();
   crumbs();
@@ -191,6 +233,7 @@ async function render() {
     const cat = DOC_CATEGORIES.find(function (c) { return c.key === curCat; }) || DOC_CATEGORIES[DOC_CATEGORIES.length - 1];
     const needsFamily = familyBuckets(cat).length >= 2;
     if (needsFamily && !curFamily) step = 'step-family';
+    else if (seriesBuckets(cat).length >= 2 && !curSeries) step = 'step-series';
     else if (curCat !== 'first-piece' && !curStation) step = 'step-station'; // First Piece: 1 ไฟล์ครอบคลุมทุก Station — ข้ามขั้นนี้
     else step = 'step-docs';
   }
@@ -198,13 +241,14 @@ async function render() {
   show(step);
   if (step === 'step-docs') renderDocs();
   else if (step === 'step-station') renderStations();
+  else if (step === 'step-series') renderSeries();
   else if (step === 'step-family') renderFamilies();
   else if (step === 'step-category') renderCategories();
   else renderLines();
 }
 
 function show(id) {
-  ['step-line', 'step-category', 'step-family', 'step-station', 'step-docs'].forEach(function (s) {
+  ['step-line', 'step-category', 'step-family', 'step-series', 'step-station', 'step-docs'].forEach(function (s) {
     document.getElementById(s).style.display = s === id ? 'block' : 'none';
   });
   document.getElementById('my-work').style.display = id === 'step-line' ? 'grid' : 'none';
@@ -300,7 +344,26 @@ function renderFamilies() {
   });
 }
 
-// ---------- ขั้น 4: Station (ข้ามถ้าเป็น First Piece) ----------
+// ---------- ขั้น 4: ซีรีส์ (Series) — แสดงเฉพาะถ้ารุ่นหลักนี้มีมากกว่า 1 ซีรีส์ ----------
+function renderSeries() {
+  const l = Master.line(curLine);
+  const cat = DOC_CATEGORIES.find(function (c) { return c.key === curCat; });
+  const famBucket = familyBuckets(cat).find(function (b) { return b.family_id === curFamily; });
+  document.getElementById('series-title').textContent =
+    'เลือกซีรีส์ — ' + (l ? l.display_name : curLine) + (cat ? ' / ' + cat.icon + ' ' + cat.label : '') +
+    (famBucket ? ' / ' + famBucket.label : '');
+  const el = document.getElementById('series-grid');
+  el.innerHTML = '';
+  seriesBuckets(cat).forEach(function (b) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-choice';
+    btn.innerHTML = '<b>' + b.label + '</b><br><small>' + b.docs.length + ' เอกสาร</small>';
+    btn.addEventListener('click', function () { nav(curLine, curCat, curFamily, b.series_tag); });
+    el.appendChild(btn);
+  });
+}
+
+// ---------- ขั้น 5: Station (ข้ามถ้าเป็น First Piece) ----------
 function renderStations() {
   const l = Master.line(curLine);
   const cat = DOC_CATEGORIES.find(function (c) { return c.key === curCat; });
@@ -311,18 +374,19 @@ function renderStations() {
   Master.stations(curLine).forEach(function (s) {
     const docs = Master.documentsForStation(s.station_id, curLine)
       .filter(cat ? cat.match : function () { return true; })
-      .filter(familyMatch);
+      .filter(familyMatch)
+      .filter(seriesMatch);
     const btn = document.createElement('button');
     btn.className = 'btn-choice btn-station';
     btn.innerHTML = '<span class="station-num">' + s.station_no + '</span>' +
       '<span class="station-name">Station ' + s.station_no + '</span>' +
       '<small>' + docs.length + ' เอกสาร</small>';
-    btn.addEventListener('click', function () { nav(curLine, curCat, curFamily, s.station_id); });
+    btn.addEventListener('click', function () { nav(curLine, curCat, curFamily, curSeries, s.station_id); });
     el.appendChild(btn);
   });
 }
 
-// ---------- ขั้น 5: Document Center ----------
+// ---------- ขั้น 6: Document Center ----------
 function renderDocs() {
   const l = Master.line(curLine);
   const s = curStation ? Master.station(curStation) : null;
@@ -334,12 +398,17 @@ function renderDocs() {
     const bucket = familyBuckets(cat).find(function (b) { return b.family_id === curFamily; });
     return bucket ? ' / ' + bucket.label : '';
   })();
+  const seriesLabel = (function () {
+    if (!curSeries) return '';
+    const bucket = seriesBuckets(cat).find(function (b) { return b.series_tag === curSeries; });
+    return bucket ? ' / ' + bucket.label : '';
+  })();
 
   document.getElementById('docs-title').textContent =
-    cat.icon + ' ' + (l ? l.display_name : '') + familyLabel + (s ? ' / Station ' + s.station_no : '') + ' — ' + cat.label;
+    cat.icon + ' ' + (l ? l.display_name : '') + familyLabel + seriesLabel + (s ? ' / Station ' + s.station_no : '') + ' — ' + cat.label;
 
   const allDocs = curStation ? Master.documentsForStation(curStation, curLine) : Master.documentsForLine(curLine);
-  const docs = allDocs.filter(cat.match).filter(familyMatch);
+  const docs = allDocs.filter(cat.match).filter(familyMatch).filter(seriesMatch);
   const el = document.getElementById('doc-list');
   document.getElementById('docs-count').textContent = docs.length + ' เอกสาร';
 

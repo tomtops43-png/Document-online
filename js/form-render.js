@@ -215,13 +215,14 @@ const FormRender = {
         '<button type="button" class="btn-na' + (ans.value === 'NA' ? ' selected' : '') + '" data-value="NA">N/A</button>' +
         '</div>';
     } else if (item.answer_type === 'torque_value') {
+      // หน้างานจริงส่วนใหญ่แค่ติ๊ก Acc/Rej เหมือนข้ออื่นๆ ไม่ได้พิมพ์ค่า Torque ที่วัดได้จริง —
+      // เก็บ spec ไว้เป็นข้อความอ้างอิงให้ผู้ตรวจดูเทียบเฉยๆ
       const spec = item.torque_spec || {};
-      html += '<div class="torque-row">' +
-        '<input type="number" step="0.01" inputmode="decimal" class="torque-input" data-role="torque" value="' + escAttr(ans.torque_actual != null ? String(ans.torque_actual) : '') + '" placeholder="ค่า Torque">' +
-        '<span class="torque-unit">' + esc(spec.unit || 'N.m') + '</span>' +
+      html += '<div class="answer-row" data-role="answer">' +
+        '<button type="button" class="btn-acc' + (ans.value === 'ACC' ? ' selected' : '') + '" data-value="ACC">Acc ✓</button>' +
+        '<button type="button" class="btn-rej' + (ans.value === 'REJ' ? ' selected' : '') + '" data-value="REJ">Rej ✗</button>' +
         '</div>' +
-        '<div class="torque-spec">Spec: ' + esc(spec.display || (spec.min + '-' + spec.max + ' ' + (spec.unit || ''))) + '</div>' +
-        '<div class="torque-warning" style="display:none">⚠ ค่าอยู่นอกช่วง Spec!</div>';
+        '<div class="torque-spec">Spec: ' + esc(spec.display || (spec.min + '-' + spec.max + ' ' + (spec.unit || ''))) + '</div>';
     } else if (item.answer_type === 'text') {
       html += '<input type="text" class="answer-text" data-role="answer-text" value="' + escAttr(ans.value || '') + '">';
     }
@@ -253,7 +254,6 @@ const FormRender = {
     el.innerHTML = html;
     this.bindItemEvents(el, item);
     if (item.photo) this.renderPhotoPreviews(el, item);
-    if (item.answer_type === 'torque_value') this.validateTorque(el, item);
     return el;
   },
 
@@ -299,16 +299,6 @@ const FormRender = {
       });
     }
 
-    // torque
-    const torqueInput = el.querySelector('[data-role="torque"]');
-    if (torqueInput) {
-      torqueInput.addEventListener('input', function () {
-        const ans = self.getAnswer(item.item_id);
-        ans.torque_actual = torqueInput.value === '' ? null : parseFloat(torqueInput.value);
-        self.validateTorque(el, item);
-      });
-    }
-
     // ช่องข้อความหลัก (answer_type: text)
     const answerText = el.querySelector('[data-role="answer-text"]');
     if (answerText) {
@@ -351,18 +341,6 @@ const FormRender = {
     }
   },
 
-  validateTorque(el, item) {
-    const spec = item.torque_spec || {};
-    const ans = this.getAnswer(item.item_id);
-    const warning = el.querySelector('.torque-warning');
-    const input = el.querySelector('[data-role="torque"]');
-    const v = ans.torque_actual;
-    const outOfSpec = v != null && !isNaN(v) && (v < spec.min || v > spec.max);
-    input.classList.toggle('out-of-spec', outOfSpec);
-    warning.style.display = outOfSpec ? 'block' : 'none';
-    ans.out_of_spec = outOfSpec;
-  },
-
   renderPhotoPreviews(el, item) {
     const box = el.querySelector('[data-role="photo-previews"]');
     const list = this.photos[item.item_id] || [];
@@ -397,13 +375,12 @@ const FormRender = {
 
   isItemAnswered(item) {
     const ans = this.answers[item.item_id] || {};
-    if (item.answer_type === 'torque_value') return ans.torque_actual != null && !isNaN(ans.torque_actual);
     if (item.answer_type === 'text') return !!(ans.value && String(ans.value).trim());
     if (item.photo && item.photo.required !== false) {
       const photos = this.photos[item.item_id] || [];
       if (!photos.length) return false;
     }
-    if (item.answer_type === 'acc_rej' || item.answer_type === 'ok_nok_na') return !!ans.value;
+    if (item.answer_type === 'acc_rej' || item.answer_type === 'ok_nok_na' || item.answer_type === 'torque_value') return !!ans.value;
     return true;
   },
 
