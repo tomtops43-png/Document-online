@@ -101,8 +101,24 @@ const Master = {
   },
 
   // รุ่นย่อยของ Family (สำหรับ dropdown "Product Model" ตอนกรอกฟอร์ม — กันพิมพ์ผิด)
-  models(familyId) {
-    return (this.data.M_Model || []).filter(function (m) { return String(m.family_id) === String(familyId); });
+  // seriesTag (ถ้ามี — เช่นเอกสารนี้เป็น "Classic" หรือ "Visi Smart" ใน family LC เดียวกัน) กรองซ้ำอีกชั้น:
+  // - ไม่ระบุ seriesTag (เอกสารไม่ได้ผูกซีรีส์ไว้) = โชว์ทุกรุ่นของ family เหมือนเดิม
+  // - รุ่น (M_Model) ที่ไม่ได้ระบุ series_tag ของตัวเอง = ใช้ได้กับทุกซีรีส์ ไม่ถูกกรองออก
+  models(familyId, seriesTag) {
+    return (this.data.M_Model || []).filter(function (m) {
+      if (String(m.family_id) !== String(familyId)) return false;
+      if (seriesTag && m.series_tag && String(m.series_tag) !== String(seriesTag)) return false;
+      return true;
+    });
+  },
+
+  // ค่าซีรีส์ย่อยทั้งหมดที่เคยตั้งไว้ใน M_Model ของ family นี้ (ใช้ทำ datalist กันพิมพ์ผิดตอนตั้งเอกสาร)
+  seriesTagsForFamily(familyId) {
+    const set = {};
+    (this.data.M_Model || []).forEach(function (m) {
+      if (String(m.family_id) === String(familyId) && m.series_tag) set[m.series_tag] = true;
+    });
+    return Object.keys(set).sort();
   },
 
   document(docId) {
