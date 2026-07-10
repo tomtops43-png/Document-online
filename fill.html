@@ -164,10 +164,16 @@ function canvasIsBlank(canvas) {
     Loading.hide();
   }
 
-  const sigCanvas = document.getElementById('signature-canvas');
-  const sigClearBtn = document.getElementById('btn-clear-sig');
-  if (sigCanvas && sigClearBtn) {
-    initSignaturePad(sigCanvas, sigClearBtn);
+  // ฟอร์มที่เซ็น Recorder แยกท้าย section ของแต่ละ Station แล้ว ไม่ต้องมีช่องเซ็นรวมท้ายฟอร์มซ้ำอีก
+  if (FormRender.stationSections && FormRender.stationSections.length) {
+    const sigCard = document.querySelector('.signature-card');
+    if (sigCard) sigCard.style.display = 'none';
+  } else {
+    const sigCanvas = document.getElementById('signature-canvas');
+    const sigClearBtn = document.getElementById('btn-clear-sig');
+    if (sigCanvas && sigClearBtn) {
+      initSignaturePad(sigCanvas, sigClearBtn);
+    }
   }
 
   document.getElementById('btn-submit').addEventListener('click', function () {

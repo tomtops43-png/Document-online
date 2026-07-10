@@ -274,6 +274,17 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 }
 .text-field input[readonly] { background: var(--canvas-alt); color: var(--text-soft); }
 
+.station-sig-block { margin: 16px 0 4px; padding-top: 14px; border-top: 1.5px dashed var(--border); }
+.station-sig-label { font-size: 13px; color: var(--text-faint); font-weight: 600; margin-bottom: 6px; }
+.station-sig-pad-wrap {
+  position: relative; height: 100px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: #fbfcfd;
+}
+.station-sig-canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.station-sig-clear {
+  position: absolute; right: 6px; bottom: 6px; z-index: 2; font-size: 11px; padding: 3px 9px; min-height: 26px;
+}
+
 .check-group { margin: 8px 0; }
 .check-field { font-size: 16px; margin-right: 16px; }
 .check-field input { width: 22px; height: 22px; vertical-align: middle; }

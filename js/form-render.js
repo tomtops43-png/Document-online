@@ -88,22 +88,77 @@ const FormRender = {
   },
 
   // ---------- render ทุก section ----------
+  // แต่ละ section = 1 Station — ถ้ามีข้อที่ต้องมี Recorder ให้เซ็นชื่อครั้งเดียวท้าย section นั้น
+  // (ไม่ใช่เซ็นทีละข้อ และไม่ใช่เซ็นครั้งเดียวรวมทั้งเอกสารที่มีหลาย Station)
   renderSections() {
     const container = document.getElementById('form-sections');
     container.innerHTML = '';
-    this.template.sections.forEach(function (section) {
+    this.stationSections = [];
+    this.template.sections.forEach(function (section, idx) {
       const secEl = document.createElement('div');
       secEl.className = 'section-card';
       secEl.innerHTML = '<div class="section-title">' + esc(section.title) + '</div>';
       section.items.forEach(function (item) {
         secEl.appendChild(FormRender.renderItem(item));
       });
+      const recorderItemIds = section.items.filter(function (i) { return i.recorder; }).map(function (i) { return i.item_id; });
+      if (recorderItemIds.length) {
+        const key = 'sec' + idx;
+        FormRender.stationSections.push({ key: key, title: section.title, itemIds: recorderItemIds });
+        secEl.appendChild(FormRender.buildStationSignatureBlock(key, section.title));
+      }
       container.appendChild(secEl);
     });
+    // ต้อง init signature pad หลังจาก element ถูกแนบเข้า DOM แล้วเท่านั้น (ต้องใช้ offsetWidth จริง)
+    this.stationSections.forEach(function (s) { FormRender.initStationSignature(s); });
     document.getElementById('form-sections').addEventListener('input', function () {
       FormRender.saveDraft();
       FormRender.updateProgress();
     });
+  },
+
+  buildStationSignatureBlock(key, title) {
+    const wrap = document.createElement('div');
+    wrap.className = 'station-sig-block';
+    wrap.dataset.stationKey = key;
+    wrap.innerHTML = '<div class="station-sig-label">ลงชื่อผู้บันทึก (Recorder) — เซ็นครั้งเดียวสำหรับ ' + esc(title) + ' *</div>' +
+      '<div class="station-sig-pad-wrap"><canvas class="station-sig-canvas" data-role="station-sig-canvas"></canvas>' +
+      '<button type="button" class="btn-small station-sig-clear" data-role="station-sig-clear">ล้าง</button></div>';
+    return wrap;
+  },
+
+  initStationSignature(s) {
+    const wrap = document.querySelector('[data-station-key="' + s.key + '"]');
+    if (!wrap) return;
+    const canvas = wrap.querySelector('[data-role="station-sig-canvas"]');
+    const clearBtn = wrap.querySelector('[data-role="station-sig-clear"]');
+    if (!canvas || typeof initSignaturePad !== 'function') return;
+
+    initSignaturePad(canvas, clearBtn);
+
+    const self = this;
+    const firstAns = this.getAnswer(s.itemIds[0]);
+    if (firstAns.recorder) {
+      const img = new Image();
+      img.onload = function () { canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); };
+      img.src = firstAns.recorder;
+    }
+
+    function applyToStation(dataUrl) {
+      s.itemIds.forEach(function (id) { self.getAnswer(id).recorder = dataUrl; });
+      self.saveDraft();
+      self.updateProgress();
+    }
+
+    function captureSignature() {
+      if (typeof canvasIsBlank === 'function' && canvasIsBlank(canvas)) return;
+      const cropped = typeof cropCanvas === 'function' ? cropCanvas(canvas) : canvas;
+      applyToStation(cropped.toDataURL('image/png'));
+    }
+    canvas.addEventListener('mouseup', captureSignature);
+    canvas.addEventListener('touchend', captureSignature);
+
+    clearBtn.addEventListener('click', function () { applyToStation(''); });
   },
 
   // ---------- render 1 item ----------
@@ -385,6 +440,10 @@ const FormRender = {
         if (!hasRecovery) errors.push('ข้อ ' + (item.no || item.text_th) + ' ตอบ NOK ต้องกรอก Recovery Plan');
       }
     });
+    (this.stationSections || []).forEach(function (s) {
+      const ans = self.getAnswer(s.itemIds[0]);
+      if (!ans.recorder) errors.push('กรุณาเซ็นชื่อผู้บันทึก (Recorder) ให้ ' + s.title);
+    });
     return errors;
   },
 
@@ -409,10 +468,12 @@ const FormRender = {
       return;
     }
 
+    // ฟอร์มที่มี Recorder ต่อ Station (เซ็นแล้วในแต่ละ section ตอนกรอก) ไม่ต้องเซ็นซ้ำที่ปุ่มเซ็นรวมท้ายฟอร์มอีก
+    const usesStationSignatures = this.stationSections && this.stationSections.length > 0;
     const canvas = document.getElementById('signature-canvas');
-    if (canvas) {
-      const isBlank = typeof canvasIsBlank !== 'undefined' 
-        ? canvasIsBlank(canvas) 
+    if (!usesStationSignatures && canvas) {
+      const isBlank = typeof canvasIsBlank !== 'undefined'
+        ? canvasIsBlank(canvas)
         : (canvas.toDataURL() === document.createElement('canvas').toDataURL());
       if (isBlank) {
         showToast('กรุณาเซ็นชื่อผู้ตรวจสอบก่อนส่ง', 'error');
@@ -420,12 +481,6 @@ const FormRender = {
       }
       this.answers._operator_sign = cropCanvas(canvas).toDataURL('image/png');
     }
-
-    // เซ็นครั้งเดียวต่อ Station — ใช้ลายเซ็นเดียวกันนี้เป็น Recorder ของทุกข้อในสถานีนี้ (ไม่ต้องเซ็นซ้ำทีละข้อ)
-    const self = this;
-    this.allItems().forEach(function (item) {
-      if (item.recorder) self.getAnswer(item.item_id).recorder = self.answers._operator_sign;
-    });
 
     const t = this.template;
     const ctx = this.context;
