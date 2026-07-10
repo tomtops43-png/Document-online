@@ -36,13 +36,19 @@
     <div id="line-list" class="big-choice-list"></div>
   </section>
 
-  <!-- ขั้น 2: เลือก Station -->
+  <!-- ขั้น 2: เลือกหมวดเอกสาร (First Piece / OK 1st Part / ...) -->
+  <section id="step-category" class="card" style="display:none">
+    <div class="section-heading"><h2 id="category-title">เลือกหมวดเอกสาร</h2></div>
+    <div id="category-grid" class="big-choice-list"></div>
+  </section>
+
+  <!-- ขั้น 3: เลือก Station (ข้ามถ้าเป็น First Piece — 1 ไฟล์ครอบคลุมทุก Station) -->
   <section id="step-station" class="card" style="display:none">
     <div class="section-heading"><h2 id="station-title">เลือก Station</h2></div>
     <div id="station-grid" class="big-choice-list station-grid"></div>
   </section>
 
-  <!-- ขั้น 3: Document Center ของ Station -->
+  <!-- ขั้น 4: Document Center -->
   <section id="step-docs" style="display:none">
     <div class="card">
       <div class="section-heading">
@@ -76,12 +82,14 @@
 const user = Auth.requireLogin();
 AppShell.init('dashboard');
 
-// state การนำทาง: ?line=L4&station=L4-ST12
-let curLine = null, curStation = null;
+// state การนำทาง: ?line=L4&cat=first-piece&station=L4-ST12
+// ลำดับ: ENC > ไลน์ > หมวดเอกสาร (First Piece / OK 1st Part / ...) > Station (ข้ามถ้าเป็น First Piece) > เอกสาร
+let curLine = null, curCat = null, curStation = null;
 
-function nav(line, station) {
+function nav(line, cat, station) {
   const p = new URLSearchParams();
   if (line) p.set('line', line);
+  if (cat) p.set('cat', cat);
   if (station) p.set('station', station);
   history.pushState({}, '', 'dashboard.html' + (p.toString() ? '?' + p.toString() : ''));
   render();
@@ -94,7 +102,17 @@ function crumbs() {
   let html = '<a href="#" onclick="nav();return false">ENC</a>';
   if (curLine) {
     const l = Master.line(curLine);
-    html += ' › <a href="#" onclick="nav(\'' + curLine + '\');return false">' + (l ? l.display_name : curLine) + '</a>';
+    const lineLabel = l ? l.display_name : curLine;
+    html += ' › ' + (curCat
+      ? '<a href="#" onclick="nav(\'' + curLine + '\');return false">' + lineLabel + '</a>'
+      : '<b>' + lineLabel + '</b>');
+  }
+  if (curCat) {
+    const cat = DOC_CATEGORIES.find(function (c) { return c.key === curCat; });
+    const catLabel = (cat ? cat.icon + ' ' + cat.label : curCat);
+    html += ' › ' + (curStation
+      ? '<a href="#" onclick="nav(\'' + curLine + '\',\'' + curCat + '\');return false">' + catLabel + '</a>'
+      : '<b>' + catLabel + '</b>');
   }
   if (curStation) {
     const s = Master.station(curStation);
@@ -106,17 +124,26 @@ function crumbs() {
 async function render() {
   const p = new URLSearchParams(location.search);
   curLine = p.get('line');
+  curCat = p.get('cat');
   curStation = p.get('station');
   await Master.load();
   crumbs();
-  show(curStation ? 'step-docs' : (curLine ? 'step-station' : 'step-line'));
-  if (curStation) renderDocs();
-  else if (curLine) renderStations();
+
+  let step;
+  if (!curLine) step = 'step-line';
+  else if (!curCat) step = 'step-category';
+  else if (curCat !== 'first-piece' && !curStation) step = 'step-station'; // First Piece: 1 ไฟล์ครอบคลุมทุก Station — ข้ามขั้นนี้
+  else step = 'step-docs';
+
+  show(step);
+  if (step === 'step-docs') renderDocs();
+  else if (step === 'step-station') renderStations();
+  else if (step === 'step-category') renderCategories();
   else renderLines();
 }
 
 function show(id) {
-  ['step-line', 'step-station', 'step-docs'].forEach(function (s) {
+  ['step-line', 'step-category', 'step-station', 'step-docs'].forEach(function (s) {
     document.getElementById(s).style.display = s === id ? 'block' : 'none';
   });
   document.getElementById('my-work').style.display = id === 'step-line' ? 'grid' : 'none';
@@ -168,68 +195,80 @@ async function renderMyWork() {
   } catch (e) { /* เงียบ — dashboard ต้องเปิดได้แม้ API ล่ม */ }
 }
 
-// ---------- ขั้น 2: Station ----------
-function renderStations() {
+// ---------- ขั้น 2: หมวดเอกสาร ----------
+function renderCategories() {
   const l = Master.line(curLine);
-  document.getElementById('station-title').textContent = 'เลือก Station — ' + (l ? l.display_name : curLine);
-  const el = document.getElementById('station-grid');
+  document.getElementById('category-title').textContent = 'เลือกหมวดเอกสาร — ' + (l ? l.display_name : curLine);
+  const el = document.getElementById('category-grid');
   el.innerHTML = '';
-  Master.stations(curLine).forEach(function (s) {
-    const nDocs = Master.documentsForStation(s.station_id, curLine).length;
-    const btn = document.createElement('button');
-    btn.className = 'btn-choice btn-station';
-    btn.innerHTML = '<span class="station-num">' + s.station_no + '</span><br><small>' + nDocs + ' เอกสาร</small>';
-    btn.addEventListener('click', function () { nav(curLine, s.station_id); });
-    el.appendChild(btn);
-  });
-}
 
-// ---------- ขั้น 3: Document Center ----------
-function renderDocs() {
-  const s = Master.station(curStation);
-  const l = Master.line(curLine);
-  document.getElementById('docs-title').textContent =
-    '📂 ' + (l ? l.display_name : '') + ' / Station ' + (s ? s.station_no : '');
-  const docs = Master.documentsForStation(curStation, curLine);
-  const el = document.getElementById('doc-list');
-  document.getElementById('docs-count').textContent = docs.length + ' เอกสาร';
-
-  if (!docs.length) {
-    el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารผูกกับ Station นี้ — Admin เพิ่มได้ที่ชีท M_Document / M_DocAssign ใน ENC-MASTER</div>';
-    return;
-  }
-
-  el.innerHTML = '';
-  // จัดเป็น "โฟลเดอร์" ใหญ่ก่อน (First Piece / OK 1st Part / แบบฟอร์มอื่นๆ / Master / แผนแก้ไข)
-  // แล้วค่อยแบ่งกลุ่มย่อยตาม DocType ในแต่ละโฟลเดอร์ (เรียงตาม sequence ของ type)
+  const docs = Master.documentsForLine(curLine);
   const assigned = new Set();
   DOC_CATEGORIES.forEach(function (cat) {
-    const inCat = docs.filter(function (d) {
+    const n = docs.filter(function (d) {
       if (assigned.has(d.doc_id)) return false;
       if (!cat.match(d)) return false;
       assigned.add(d.doc_id);
       return true;
-    });
-    if (!inCat.length) return;
+    }).length;
+    if (!n) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn-choice btn-doc-category';
+    btn.innerHTML = '<span class="cat-icon-lg">' + cat.icon + '</span><b>' + cat.label + '</b><br><small>' + n + ' เอกสาร</small>';
+    btn.addEventListener('click', function () { nav(curLine, cat.key); });
+    el.appendChild(btn);
+  });
 
-    const byType = {};
-    inCat.forEach(function (d) { (byType[d.doctype_id] = byType[d.doctype_id] || []).push(d); });
+  if (!el.children.length) {
+    el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารในไลน์นี้ — Admin เพิ่มได้ที่หน้าจัดการเอกสาร Master</div>';
+  }
+}
 
-    const group = document.createElement('div');
-    group.className = 'doc-category-group';
-    group.innerHTML =
-      '<div class="doc-category-heading">' +
-      '<span class="cat-icon">' + cat.icon + '</span>' +
-      '<h3>' + cat.label + '</h3>' +
-      '<span class="count-pill">' + inCat.length + '</span></div>';
-    const body = document.createElement('div');
-    Master.docTypes().forEach(function (t) {
-      const list = byType[t.doctype_id];
-      if (!list) return;
-      list.forEach(function (d) { body.appendChild(docCard(d, t)); });
-    });
-    group.appendChild(body);
-    el.appendChild(group);
+// ---------- ขั้น 3: Station (ข้ามถ้าเป็น First Piece) ----------
+function renderStations() {
+  const l = Master.line(curLine);
+  const cat = DOC_CATEGORIES.find(function (c) { return c.key === curCat; });
+  document.getElementById('station-title').textContent =
+    'เลือก Station — ' + (l ? l.display_name : curLine) + (cat ? ' / ' + cat.icon + ' ' + cat.label : '');
+  const el = document.getElementById('station-grid');
+  el.innerHTML = '';
+  Master.stations(curLine).forEach(function (s) {
+    const docs = Master.documentsForStation(s.station_id, curLine).filter(cat ? cat.match : function () { return true; });
+    const btn = document.createElement('button');
+    btn.className = 'btn-choice btn-station';
+    btn.innerHTML = '<span class="station-num">' + s.station_no + '</span><br><small>' + docs.length + ' เอกสาร</small>';
+    btn.addEventListener('click', function () { nav(curLine, curCat, s.station_id); });
+    el.appendChild(btn);
+  });
+}
+
+// ---------- ขั้น 4: Document Center ----------
+function renderDocs() {
+  const l = Master.line(curLine);
+  const s = curStation ? Master.station(curStation) : null;
+  const cat = DOC_CATEGORIES.find(function (c) { return c.key === curCat; }) ||
+    { label: 'เอกสาร', icon: '📂', match: function () { return true; } };
+
+  document.getElementById('docs-title').textContent =
+    cat.icon + ' ' + (l ? l.display_name : '') + (s ? ' / Station ' + s.station_no : '') + ' — ' + cat.label;
+
+  const allDocs = curStation ? Master.documentsForStation(curStation, curLine) : Master.documentsForLine(curLine);
+  const docs = allDocs.filter(cat.match);
+  const el = document.getElementById('doc-list');
+  document.getElementById('docs-count').textContent = docs.length + ' เอกสาร';
+
+  if (!docs.length) {
+    el.innerHTML = '<div class="empty-hint">ยังไม่มีเอกสารในหมวดนี้ — Admin เพิ่มได้ที่หน้าจัดการเอกสาร Master</div>';
+    return;
+  }
+
+  el.innerHTML = '';
+  const byType = {};
+  docs.forEach(function (d) { (byType[d.doctype_id] = byType[d.doctype_id] || []).push(d); });
+  Master.docTypes().forEach(function (t) {
+    const list = byType[t.doctype_id];
+    if (!list) return;
+    list.forEach(function (d) { el.appendChild(docCard(d, t)); });
   });
 }
 
@@ -302,7 +341,9 @@ async function openHeaderModal(d) {
   document.getElementById('header-modal-title').textContent = d.doc_name;
   const fieldsEl = document.getElementById('header-modal-fields');
   const today = new Date().toISOString().slice(0, 10);
-  let html = '<div class="selected-station">Station: <b>' + stationNo() + '</b> | ' + (Master.line(curLine) || {}).display_name + '</div>';
+  let html = '<div class="selected-station">' +
+    (curStation ? 'Station: <b>' + stationNo() + '</b> | ' : '') +
+    (Master.line(curLine) || {}).display_name + '</div>';
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';

@@ -137,6 +137,34 @@ const Master = {
     });
   },
 
+  // เอกสารทั้งหมดของไลน์ (รวมทุก Station) — ใช้กับหมวดที่ไม่ต้องเลือก Station เช่น First Piece
+  // (1 ชุด = 1 ไฟล์ = ครอบคลุมทุก Station ของไลน์นั้น) รวมผลจากทุก Station แล้วตัดซ้ำด้วย doc_id
+  documentsForLine(lineId) {
+    const stations = this.stations(lineId);
+    const self = this;
+    const seen = {};
+    const out = [];
+    stations.forEach(function (s) {
+      self.documentsForStation(s.station_id, lineId).forEach(function (d) {
+        if (!seen[d.doc_id]) { seen[d.doc_id] = true; out.push(d); }
+      });
+    });
+    if (!stations.length) {
+      // เผื่อไลน์ยังไม่มี Station seed แต่มีเอกสาร scope ทั้งไลน์ผูกไว้แล้ว
+      (this.data.M_Document || []).forEach(function (d) {
+        if (seen[d.doc_id]) return;
+        if (String(d.line_id) === '*' || String(d.line_id) === String(lineId)) {
+          seen[d.doc_id] = true;
+          out.push(Object.assign({}, d, {
+            doctype: self.docType(d.doctype_id),
+            current_rev: self.currentRevision(d.doc_id)
+          }));
+        }
+      });
+    }
+    return out;
+  },
+
   // ---------- หา template path จาก form_id (สำหรับ print record เก่า/ใหม่) ----------
   // 1) ลองจาก CONFIG.FORMS (ระบบเดิม)  2) ลองจาก map ที่เคย resolve แล้ว
   // 3) ไล่ fetch template ของ revision CURRENT ทุกตัวจนเจอ form_id ที่ตรง (cache ผลไว้)
