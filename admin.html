@@ -39,6 +39,10 @@
       <label class="field"><span>ประเภทเอกสาร *</span><select id="f-doctype"></select></label>
       <label class="field"><span>รุ่นหลัก (Family)</span><select id="f-family"></select></label>
     </div>
+    <label class="field"><span>ซีรีส์ย่อยใน Family นี้ (ถ้ามี — เช่น Family "LC" แยกเป็น Classic / Visi Smart)</span>
+      <input type="text" id="f-series" list="f-series-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของ Family นี้">
+      <datalist id="f-series-list"></datalist>
+    </label>
     <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="f-name"></label>
     <div class="filter-grid">
       <label class="field"><span>เลขที่เอกสารควบคุม</span><input type="text" id="f-docno"></label>
@@ -65,6 +69,10 @@
       <label class="field"><span>รุ่นหลัก (Family)</span><select id="n-family"></select></label>
       <label class="field"><span>เลข Revision *</span><input type="text" id="n-rev" value="Rev01"></label>
     </div>
+    <label class="field"><span>ซีรีส์ย่อยใน Family นี้ (ถ้ามี — เช่น Family "LC" แยกเป็น Classic / Visi Smart)</span>
+      <input type="text" id="n-series" list="n-series-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของ Family นี้">
+      <datalist id="n-series-list"></datalist>
+    </label>
     <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="n-name" placeholder="เช่น WI ประกอบ Busbar"></label>
     <div class="filter-grid">
       <label class="field"><span>เลขที่เอกสารควบคุม (ถ้ามีในเอกสาร)</span><input type="text" id="n-docno" placeholder="เช่น WI-L4-012"></label>
@@ -134,7 +142,7 @@
     <div class="table-scroll">
       <table class="record-table">
         <thead><tr>
-          <th>เอกสาร</th><th>ไลน์</th><th>ประเภท</th><th>เลขที่เอกสาร</th><th>Revision ปัจจุบัน</th><th></th>
+          <th>เอกสาร</th><th>ไลน์</th><th>ประเภท</th><th>ซีรีส์</th><th>เลขที่เอกสาร</th><th>Revision ปัจจุบัน</th><th></th>
         </tr></thead>
         <tbody id="manage-rows"></tbody>
       </table>
@@ -152,6 +160,10 @@
       <label class="field"><span>ไลน์ *</span><select id="e-line"></select></label>
       <label class="field"><span>ประเภทเอกสาร *</span><select id="e-doctype"></select></label>
       <label class="field"><span>รุ่นหลัก (Family)</span><select id="e-family"></select></label>
+      <label class="field"><span>ซีรีส์ย่อยใน Family นี้ (ถ้ามี)</span>
+        <input type="text" id="e-series" list="e-series-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของ Family นี้">
+        <datalist id="e-series-list"></datalist>
+      </label>
       <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="e-name"></label>
       <label class="field"><span>เลขที่เอกสารควบคุม</span><input type="text" id="e-docno"></label>
       <button type="button" class="btn-primary btn-block" id="btn-save-edit">💾 บันทึกการแก้ไข</button>
@@ -230,6 +242,10 @@ let manifestTemplates = [];
     });
     document.getElementById('a-doc').addEventListener('change', markAssigned);
     document.getElementById('m-line-filter').addEventListener('change', function () { renderManageList(); });
+    document.getElementById('f-family').addEventListener('change', function () { fillSeriesDatalist('f-series-list', this.value); });
+    document.getElementById('n-family').addEventListener('change', function () { fillSeriesDatalist('n-series-list', this.value); });
+    fillSeriesDatalist('f-series-list', document.getElementById('f-family').value);
+    fillSeriesDatalist('n-series-list', document.getElementById('n-family').value);
     document.getElementById('n-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('r-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('f-eff').value = new Date().toISOString().slice(0, 10);
@@ -310,6 +326,7 @@ document.getElementById('btn-register-form').addEventListener('click', async fun
     family_id: document.getElementById('f-family').value,
     doc_name: name,
     doc_no: document.getElementById('f-docno').value.trim(),
+    series_tag: document.getElementById('f-series').value.trim(),
     rev_no: t.rev_no,
     effective_date: document.getElementById('f-eff').value,
     reason: document.getElementById('f-reason').value.trim(),
@@ -345,6 +362,11 @@ function fillFamilySelect(id) {
   const el = document.getElementById(id);
   el.innerHTML = '<option value="*">ทุกรุ่น (*)</option>' +
     Master.families().map(function (f) { return '<option value="' + f.family_id + '">' + f.display_name + '</option>'; }).join('');
+}
+function fillSeriesDatalist(id, familyId) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = Master.seriesTagsForFamily(familyId).map(function (s) { return '<option value="' + s + '">'; }).join('');
 }
 function fillDocSelect(id) {
   const el = document.getElementById(id);
@@ -385,6 +407,7 @@ document.getElementById('btn-register').addEventListener('click', async function
     family_id: document.getElementById('n-family').value,
     doc_name: name,
     doc_no: document.getElementById('n-docno').value.trim(),
+    series_tag: document.getElementById('n-series').value.trim(),
     rev_no: document.getElementById('n-rev').value.trim() || 'Rev01',
     effective_date: document.getElementById('n-eff').value,
     reason: document.getElementById('n-reason').value.trim(),
@@ -410,6 +433,7 @@ document.getElementById('btn-register').addEventListener('click', async function
     showToast('ลงทะเบียนสำเร็จ: ' + res.doc_id, 'success');
     document.getElementById('n-name').value = '';
     document.getElementById('n-docno').value = '';
+    document.getElementById('n-series').value = '';
     document.getElementById('n-file').value = '';
     document.getElementById('n-drive').value = '';
     await Master.load(); fillDocSelect('r-doc'); fillDocSelect('a-doc');
@@ -501,7 +525,7 @@ function renderManageList() {
   }).slice().sort(function (a, b) { return String(a.doc_name).localeCompare(String(b.doc_name)); });
 
   if (!docs.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-hint">ไม่มีเอกสาร</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-hint">ไม่มีเอกสาร</td></tr>';
     return;
   }
 
@@ -516,6 +540,7 @@ function renderManageList() {
       '<td><b>' + d.doc_name + '</b></td>' +
       '<td>' + lineLabel + '</td>' +
       '<td>' + (t ? t.icon + ' ' + t.display_name_th : d.doctype_id) + '</td>' +
+      '<td>' + (d.series_tag || '-') + '</td>' +
       '<td>' + (d.doc_no || '-') + '</td>' +
       '<td>' + (cur ? cur.rev_no : 'ยังไม่มี') + '</td>' +
       '<td class="manage-actions">' +
@@ -544,8 +569,11 @@ function openEditModal(d) {
   document.getElementById('e-family').value = d.family_id || '*';
   document.getElementById('e-name').value = d.doc_name;
   document.getElementById('e-docno').value = d.doc_no || '';
+  document.getElementById('e-series').value = d.series_tag || '';
+  fillSeriesDatalist('e-series-list', document.getElementById('e-family').value);
   document.getElementById('edit-modal').style.display = 'flex';
 }
+document.getElementById('e-family').addEventListener('change', function () { fillSeriesDatalist('e-series-list', this.value); });
 function closeEditModal() {
   document.getElementById('edit-modal').style.display = 'none';
   editingDoc = null;
@@ -563,7 +591,8 @@ document.getElementById('btn-save-edit').addEventListener('click', async functio
     doctype_id: document.getElementById('e-doctype').value,
     family_id: document.getElementById('e-family').value,
     doc_name: name,
-    doc_no: document.getElementById('e-docno').value.trim()
+    doc_no: document.getElementById('e-docno').value.trim(),
+    series_tag: document.getElementById('e-series').value.trim()
   };
   Loading.show('กำลังบันทึก...');
   try {
