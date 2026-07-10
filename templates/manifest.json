@@ -1,6 +1,15 @@
 {
   "templates": [
     {
+      "form_id": "cu-beauty-first-piece",
+      "path": "templates/cu-beauty-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: Consumer Unit (CU Beauty / CU Beauty Split bus)",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01",
+      "family_id": "CU"
+    },
+    {
       "form_id": "cu-line5-first-piece",
       "path": "templates/cu-line5-first-piece-rev1.json",
       "title": "FIRST PIECE CHECK LIST: Consumer Unit (CU Classic+ / CU Split bus) — Line 5",
