@@ -199,22 +199,48 @@ function renderDocs() {
     return;
   }
 
-  // จัดกลุ่มตาม DocType (เรียงตาม sequence ของ type)
-  const byType = {};
-  docs.forEach(function (d) {
-    const tid = d.doctype_id;
-    (byType[tid] = byType[tid] || []).push(d);
-  });
-
   el.innerHTML = '';
-  Master.docTypes().forEach(function (t) {
-    const group = byType[t.doctype_id];
-    if (!group) return;
-    group.forEach(function (d) {
-      el.appendChild(docCard(d, t));
+  // จัดเป็น "โฟลเดอร์" ใหญ่ก่อน (First Piece / OK 1st Part / แบบฟอร์มอื่นๆ / Master / แผนแก้ไข)
+  // แล้วค่อยแบ่งกลุ่มย่อยตาม DocType ในแต่ละโฟลเดอร์ (เรียงตาม sequence ของ type)
+  const assigned = new Set();
+  DOC_CATEGORIES.forEach(function (cat) {
+    const inCat = docs.filter(function (d) {
+      if (assigned.has(d.doc_id)) return false;
+      if (!cat.match(d)) return false;
+      assigned.add(d.doc_id);
+      return true;
     });
+    if (!inCat.length) return;
+
+    const byType = {};
+    inCat.forEach(function (d) { (byType[d.doctype_id] = byType[d.doctype_id] || []).push(d); });
+
+    const group = document.createElement('div');
+    group.className = 'doc-category-group';
+    group.innerHTML =
+      '<div class="doc-category-heading">' +
+      '<span class="cat-icon">' + cat.icon + '</span>' +
+      '<h3>' + cat.label + '</h3>' +
+      '<span class="count-pill">' + inCat.length + '</span></div>';
+    const body = document.createElement('div');
+    Master.docTypes().forEach(function (t) {
+      const list = byType[t.doctype_id];
+      if (!list) return;
+      list.forEach(function (d) { body.appendChild(docCard(d, t)); });
+    });
+    group.appendChild(body);
+    el.appendChild(group);
   });
 }
+
+const DOC_CATEGORIES = [
+  { key: 'first-piece', label: 'First Piece', icon: '🔍', match: function (d) { return d.doctype_id === 'first-piece'; } },
+  { key: 'ok-1st-part', label: 'OK 1st Part', icon: '✅', match: function (d) { return d.doctype_id === 'ok-1st-part'; } },
+  { key: 'other-form', label: 'แบบฟอร์มอื่นๆ', icon: '📋', match: function (d) { return d.doctype && d.doctype.behavior === 'form'; } },
+  { key: 'master', label: 'Master / เอกสารอ้างอิง', icon: '📚', match: function (d) { return d.doctype && d.doctype.behavior === 'file'; } },
+  { key: 'recovery', label: 'แผนแก้ไข', icon: '🔧', match: function (d) { return d.doctype && d.doctype.behavior === 'recovery'; } },
+  { key: 'other', label: 'อื่นๆ', icon: '📄', match: function () { return true; } }
+];
 
 const BEHAVIOR_LABEL = { form: 'กรอก/ตรวจสอบ', file: 'เอกสารอ้างอิง', recovery: 'แผนแก้ไข' };
 

@@ -447,6 +447,22 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .doc-card[data-behavior="file"] .doc-behavior-tag { background: var(--beh-file-bg); color: var(--beh-file); }
 .doc-card[data-behavior="recovery"] .doc-behavior-tag { background: var(--beh-recovery-bg); color: var(--beh-recovery); }
 
+.doc-category-group { margin-bottom: 28px; }
+.doc-category-group:last-child { margin-bottom: 0; }
+.doc-category-heading {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--border);
+}
+.doc-category-heading .cat-icon {
+  font-size: 20px; width: 36px; height: 36px; min-width: 36px; text-align: center; line-height: 36px;
+  border-radius: 10px; background: var(--canvas-alt);
+}
+.doc-category-heading h3 { margin: 0; font-size: 16.5px; font-weight: 800; color: var(--ink-800); }
+.doc-category-heading .count-pill {
+  background: var(--canvas-alt); color: var(--text-soft); font-weight: 700; font-size: 12.5px;
+  padding: 3px 10px; border-radius: 999px; margin-left: auto;
+}
+
 .doc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .doc-actions .btn-primary, .doc-actions .btn-secondary { min-height: 46px; font-size: 15px; padding: 10px 16px; }
 @media (max-width: 640px) {
