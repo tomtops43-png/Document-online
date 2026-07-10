@@ -428,10 +428,15 @@ async function openHeaderModal(d) {
   let html = '<div class="selected-station">' +
     (curStation ? 'Station: <b>' + stationNo() + '</b> | ' : '') +
     (Master.line(curLine) || {}).display_name + '</div>';
+  const modelOptions = pendingDoc.family_id && pendingDoc.family_id !== '*' ? Master.models(pendingDoc.family_id) : [];
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
-    if (f.type === 'select') {
+    if (f.key === 'product_model' && modelOptions.length) {
+      // มีรุ่นย่อยของ Family นี้ในชีท M_Model แล้ว — เปลี่ยนเป็น dropdown กันพิมพ์ผิด
+      html += '<select data-hk="' + f.key + '"><option value="">— เลือกรุ่น —</option>' +
+        modelOptions.map(function (m) { return '<option>' + m.model_name + '</option>'; }).join('') + '</select>';
+    } else if (f.type === 'select') {
       html += '<select data-hk="' + f.key + '"><option value="">— เลือก —</option>' +
         f.options.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
     } else if (f.type === 'date') {

@@ -100,6 +100,11 @@ const Master = {
     return this._sorted(this.data.M_ProductFamily, 'sequence');
   },
 
+  // รุ่นย่อยของ Family (สำหรับ dropdown "Product Model" ตอนกรอกฟอร์ม — กันพิมพ์ผิด)
+  models(familyId) {
+    return (this.data.M_Model || []).filter(function (m) { return String(m.family_id) === String(familyId); });
+  },
+
   document(docId) {
     return (this.data.M_Document || []).find(function (d) { return String(d.doc_id) === String(docId); });
   },
