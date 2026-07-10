@@ -22,6 +22,7 @@
     <button type="button" class="tab" id="tab-new" onclick="switchTab('new')">➕ เพิ่มเอกสารไฟล์ใหม่</button>
     <button type="button" class="tab" id="tab-rev" onclick="switchTab('rev')">🔄 เพิ่ม Revision</button>
     <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔Station</button>
+    <button type="button" class="tab" id="tab-manage" onclick="switchTab('manage')">🗑 จัดการ/ลบเอกสาร</button>
   </div>
 
   <!-- ===== ลงทะเบียนฟอร์ม (จาก template ที่ Claude แปลงและ push ไว้แล้ว) ===== -->
@@ -124,6 +125,22 @@
     <button type="button" class="btn-primary btn-block" id="btn-save-assign">✔ บันทึกการผูก</button>
   </section>
 
+  <!-- ===== จัดการ/ลบเอกสารที่ลงทะเบียนไว้แล้ว ===== -->
+  <section id="pane-manage" class="card" style="display:none">
+    <h2>จัดการเอกสารที่ลงทะเบียนไว้ (แก้ผิด / เลิกใช้แล้ว)</h2>
+    <p class="modal-hint">กด "ลบ" แล้วเอกสารจะหายจากทุกหน้าทันที (Document Center, ค้นหา, ผูก Station ฯลฯ)
+      แต่ข้อมูลเดิมยังอยู่ในชีท ENC-MASTER — กู้คืนได้เองโดยเปิดชีท M_Document แล้วแก้ค่า status ของแถวนั้นกลับเป็น ACTIVE</p>
+    <label class="field"><span>กรองตามไลน์</span><select id="m-line-filter"><option value="">— ทั้งหมด —</option></select></label>
+    <div class="table-scroll">
+      <table class="record-table">
+        <thead><tr>
+          <th>เอกสาร</th><th>ไลน์</th><th>ประเภท</th><th>เลขที่เอกสาร</th><th>Revision ปัจจุบัน</th><th></th>
+        </tr></thead>
+        <tbody id="manage-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- คำแนะนำเอกสารฟอร์ม -->
   <section class="card">
     <h2>📋 เอกสารประเภทฟอร์ม (First Piece / Check Sheet จาก Excel)</h2>
@@ -154,10 +171,11 @@ if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
 let upMode = { new: 'file', rev: 'file' };
 
 function switchTab(t) {
-  ['formreg', 'new', 'rev', 'assign'].forEach(function (x) {
+  ['formreg', 'new', 'rev', 'assign', 'manage'].forEach(function (x) {
     document.getElementById('tab-' + x).classList.toggle('active', x === t);
     document.getElementById('pane-' + x).style.display = x === t ? 'block' : 'none';
   });
+  if (t === 'manage') renderManageList();
 }
 function setUpMode(pane, mode) {
   upMode[pane] = mode;
@@ -176,6 +194,7 @@ let manifestTemplates = [];
   try {
     await Master.load();
     fillLineSelect('n-line'); fillLineSelect('a-line'); fillLineSelect('f-line');
+    fillLineSelect('m-line-filter', true);
     fillDocTypeSelect('n-doctype');
     fillFormDocTypeSelect('f-doctype');
     fillFamilySelect('n-family'); fillFamilySelect('f-family');
@@ -193,6 +212,7 @@ let manifestTemplates = [];
       renderStationChecks('f-stations', this.value);
     });
     document.getElementById('a-doc').addEventListener('change', markAssigned);
+    document.getElementById('m-line-filter').addEventListener('change', function () { renderManageList(); });
     document.getElementById('n-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('r-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('f-eff').value = new Date().toISOString().slice(0, 10);
@@ -215,9 +235,14 @@ function fillFormDocTypeSelect(id) {
 async function loadManifest() {
   const res = await fetch('templates/manifest.json', { cache: 'no-cache' });
   const data = await res.json();
-  // ซ่อนฟอร์มที่ผูก revision เข้า Master แล้ว (content_ref ตรงกับ path ใน manifest)
+  // ซ่อนฟอร์มที่ผูก revision เข้า Master แล้ว — เฉพาะเอกสารที่ยัง active อยู่เท่านั้น
+  // (ถ้าเอกสารถูกลบไปแล้วผ่านแท็บ "จัดการ/ลบเอกสาร" ต้องให้ฟอร์มนี้กลับมาลงทะเบียนใหม่ได้)
+  const activeDocIds = {};
+  (Master.data.M_Document || []).forEach(function (d) { activeDocIds[d.doc_id] = true; });
   const registeredPaths = {};
-  (Master.data.M_Revision || []).forEach(function (r) { registeredPaths[r.content_ref] = true; });
+  (Master.data.M_Revision || []).forEach(function (r) {
+    if (activeDocIds[r.doc_id]) registeredPaths[r.content_ref] = true;
+  });
   manifestTemplates = data.templates.filter(function (t) { return !registeredPaths[t.path]; });
 
   const sel = document.getElementById('f-template');
@@ -287,9 +312,9 @@ document.getElementById('btn-register-form').addEventListener('click', async fun
   }
 });
 
-function fillLineSelect(id) {
+function fillLineSelect(id, withAll) {
   const el = document.getElementById(id);
-  el.innerHTML = Master.lines().map(function (l) {
+  el.innerHTML = (withAll ? '<option value="">— ทั้งหมด —</option>' : '') + Master.lines().map(function (l) {
     return '<option value="' + l.line_id + '">' + l.display_name + '</option>';
   }).join('');
 }
@@ -449,6 +474,56 @@ document.getElementById('btn-save-assign').addEventListener('click', async funct
     showToast('ไม่สำเร็จ: ' + err.message, 'error');
   }
 });
+
+// ---------- จัดการ/ลบเอกสาร ----------
+function renderManageList() {
+  const lineFilter = document.getElementById('m-line-filter').value;
+  const tbody = document.getElementById('manage-rows');
+  const docs = (Master.data.M_Document || []).filter(function (d) {
+    return !lineFilter || String(d.line_id) === lineFilter || String(d.line_id) === '*';
+  }).slice().sort(function (a, b) { return String(a.doc_name).localeCompare(String(b.doc_name)); });
+
+  if (!docs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-hint">ไม่มีเอกสาร</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  docs.forEach(function (d) {
+    const t = Master.docType(d.doctype_id);
+    const l = Master.line(d.line_id);
+    const cur = Master.currentRevision(d.doc_id);
+    const lineLabel = d.line_id === '*' ? 'ทุกไลน์ (*)' : (l ? l.display_name : d.line_id);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><b>' + d.doc_name + '</b></td>' +
+      '<td>' + lineLabel + '</td>' +
+      '<td>' + (t ? t.icon + ' ' + t.display_name_th : d.doctype_id) + '</td>' +
+      '<td>' + (d.doc_no || '-') + '</td>' +
+      '<td>' + (cur ? cur.rev_no : 'ยังไม่มี') + '</td>' +
+      '<td><button type="button" class="btn-small btn-delete-doc">🗑 ลบ</button></td>';
+    tr.querySelector('.btn-delete-doc').addEventListener('click', function () { deleteDoc(d); });
+    tbody.appendChild(tr);
+  });
+}
+
+async function deleteDoc(d) {
+  if (!confirm('ลบเอกสาร "' + d.doc_name + '" ใช่หรือไม่?\nเอกสารจะหายจากทุกหน้าทันที (กู้คืนได้เองที่ชีท ENC-MASTER)')) return;
+  Loading.show('กำลังลบ...');
+  try {
+    await API.post('doc.delete', { doc_id: d.doc_id });
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('ลบเอกสารสำเร็จ', 'success');
+    renderManageList();
+    fillDocSelect('r-doc'); fillDocSelect('a-doc');
+    await loadManifest();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
 </script>
 </body>
 </html>

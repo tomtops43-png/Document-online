@@ -73,6 +73,7 @@ function handleRequest(e, method) {
       case 'doc.register':    return jsonOut(actionDocRegister(params, user));
       case 'doc.addRevision': return jsonOut(actionDocAddRevision(params, user));
       case 'doc.assign':      return jsonOut(actionDocAssign(params, user));
+      case 'doc.delete':      return jsonOut(actionDocDelete(params, user));
 
       // ---- ระบบเดิม (form-driven) — ยังทำงานเหมือนเดิมระหว่าง migration ----
       case 'getRecords':   return jsonOut(actionGetRecords(params, user));
@@ -858,6 +859,43 @@ function actionDocAssign(params, user) {
   }
   bumpMasterVersion();
   auditLog(user, params.remove ? 'doc.unassign' : 'doc.assign', 'M_DocAssign', docId + '@' + stationId, '', '');
+  return { success: true };
+}
+
+// ========================================================
+// Admin: ลบเอกสาร (soft-delete — ตั้ง status=DELETED เพื่อให้หายจากทุกหน้าทันที
+// ข้อมูลเดิมยังอยู่ในชีท ENC-MASTER กู้คืนได้เองโดยแก้ status กลับเป็น ACTIVE)
+// ========================================================
+function actionDocDelete(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ' };
+  }
+  var docId = String(params.doc_id || '');
+  if (!docId) return { success: false, error: 'ต้องระบุ doc_id' };
+
+  var ss = getMasterSS();
+  var sheet = ss.getSheetByName('M_Document');
+  var data = sheet.getDataRange().getValues();
+  var header = data[0];
+  var statusCol = header.indexOf('status') + 1;
+  var rowIdx = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === docId) { rowIdx = i + 1; break; }
+  }
+  if (rowIdx < 0) return { success: false, error: 'ไม่พบเอกสารนี้: ' + docId };
+  sheet.getRange(rowIdx, statusCol).setValue('DELETED');
+
+  // ปิดการผูก Station เดิมของเอกสารนี้ด้วย (เก็บประวัติไว้ แค่ไม่ให้ active)
+  var assignSheet = ss.getSheetByName('M_DocAssign');
+  var aData = assignSheet.getDataRange().getValues();
+  for (var j = 1; j < aData.length; j++) {
+    if (String(aData[j][1]) === docId && String(aData[j][3]).toUpperCase() !== 'INACTIVE') {
+      assignSheet.getRange(j + 1, 4).setValue('INACTIVE');
+    }
+  }
+
+  bumpMasterVersion();
+  auditLog(user, 'doc.delete', 'M_Document', docId, 'ACTIVE', 'DELETED');
   return { success: true };
 }
 
