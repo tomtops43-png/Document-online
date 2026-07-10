@@ -74,6 +74,7 @@ function handleRequest(e, method) {
       case 'doc.addRevision': return jsonOut(actionDocAddRevision(params, user));
       case 'doc.assign':      return jsonOut(actionDocAssign(params, user));
       case 'doc.delete':      return jsonOut(actionDocDelete(params, user));
+      case 'doc.update':      return jsonOut(actionDocUpdate(params, user));
 
       // ---- ระบบเดิม (form-driven) — ยังทำงานเหมือนเดิมระหว่าง migration ----
       case 'getRecords':   return jsonOut(actionGetRecords(params, user));
@@ -896,6 +897,44 @@ function actionDocDelete(params, user) {
 
   bumpMasterVersion();
   auditLog(user, 'doc.delete', 'M_Document', docId, 'ACTIVE', 'DELETED');
+  return { success: true };
+}
+
+// ========================================================
+// Admin: แก้ไขข้อมูลเอกสารที่ลงทะเบียนผิด (ไลน์/ประเภท/รุ่นหลัก/ชื่อ/เลขที่เอกสาร)
+// ไม่แตะ revision/content_ref — ใช้แท็บ "เพิ่ม Revision" แยกถ้าต้องการเปลี่ยนไฟล์
+// ========================================================
+function actionDocUpdate(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ' };
+  }
+  var docId = String(params.doc_id || '');
+  if (!docId) return { success: false, error: 'ต้องระบุ doc_id' };
+
+  var ss = getMasterSS();
+  var sheet = ss.getSheetByName('M_Document');
+  var data = sheet.getDataRange().getValues();
+  var header = data[0];
+  var col = {};
+  header.forEach(function (h, i) { col[h] = i + 1; });
+
+  var rowIdx = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === docId) { rowIdx = i + 1; break; }
+  }
+  if (rowIdx < 0) return { success: false, error: 'ไม่พบเอกสารนี้: ' + docId };
+
+  var before = JSON.stringify(data[rowIdx - 1]);
+  var fields = { doctype_id: params.doctype_id, family_id: params.family_id, line_id: params.line_id,
+    doc_name: params.doc_name, doc_no: params.doc_no };
+  Object.keys(fields).forEach(function (key) {
+    if (fields[key] !== undefined && fields[key] !== null && col[key]) {
+      sheet.getRange(rowIdx, col[key]).setValue(String(fields[key]));
+    }
+  });
+
+  bumpMasterVersion();
+  auditLog(user, 'doc.update', 'M_Document', docId, before, JSON.stringify(fields));
   return { success: true };
 }
 

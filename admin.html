@@ -141,6 +141,23 @@
     </div>
   </section>
 
+  <!-- Modal: แก้ไขข้อมูลเอกสาร -->
+  <div id="edit-modal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>แก้ไขข้อมูลเอกสาร</h3>
+        <button type="button" class="btn-small" onclick="closeEditModal()">✕</button>
+      </div>
+      <p class="modal-hint">แก้ได้เฉพาะข้อมูลของเอกสาร — ถ้าต้องการเปลี่ยนไฟล์/เนื้อหา ใช้แท็บ "เพิ่ม Revision" แยกต่างหาก</p>
+      <label class="field"><span>ไลน์ *</span><select id="e-line"></select></label>
+      <label class="field"><span>ประเภทเอกสาร *</span><select id="e-doctype"></select></label>
+      <label class="field"><span>รุ่นหลัก (Family)</span><select id="e-family"></select></label>
+      <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="e-name"></label>
+      <label class="field"><span>เลขที่เอกสารควบคุม</span><input type="text" id="e-docno"></label>
+      <button type="button" class="btn-primary btn-block" id="btn-save-edit">💾 บันทึกการแก้ไข</button>
+    </div>
+  </div>
+
   <!-- คำแนะนำเอกสารฟอร์ม -->
   <section class="card">
     <h2>📋 เอกสารประเภทฟอร์ม (First Piece / Check Sheet จาก Excel)</h2>
@@ -501,11 +518,68 @@ function renderManageList() {
       '<td>' + (t ? t.icon + ' ' + t.display_name_th : d.doctype_id) + '</td>' +
       '<td>' + (d.doc_no || '-') + '</td>' +
       '<td>' + (cur ? cur.rev_no : 'ยังไม่มี') + '</td>' +
-      '<td><button type="button" class="btn-small btn-delete-doc">🗑 ลบ</button></td>';
+      '<td class="manage-actions">' +
+      '<button type="button" class="btn-small btn-edit-doc">✏️ แก้ไข</button>' +
+      '<button type="button" class="btn-small btn-delete-doc">🗑 ลบ</button></td>';
+    tr.querySelector('.btn-edit-doc').addEventListener('click', function () { openEditModal(d); });
     tr.querySelector('.btn-delete-doc').addEventListener('click', function () { deleteDoc(d); });
     tbody.appendChild(tr);
   });
 }
+
+function fillDocTypeSelectAll(id) {
+  const el = document.getElementById(id);
+  el.innerHTML = Master.docTypes()
+    .map(function (t) { return '<option value="' + t.doctype_id + '">' + t.icon + ' ' + t.display_name_th + '</option>'; }).join('');
+}
+
+let editingDoc = null;
+function openEditModal(d) {
+  editingDoc = d;
+  fillLineSelect('e-line');
+  fillDocTypeSelectAll('e-doctype');
+  fillFamilySelect('e-family');
+  document.getElementById('e-line').value = d.line_id === '*' ? Master.lines()[0].line_id : d.line_id;
+  document.getElementById('e-doctype').value = d.doctype_id;
+  document.getElementById('e-family').value = d.family_id || '*';
+  document.getElementById('e-name').value = d.doc_name;
+  document.getElementById('e-docno').value = d.doc_no || '';
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+  editingDoc = null;
+}
+document.getElementById('edit-modal').addEventListener('click', function (e) {
+  if (e.target === this) closeEditModal();
+});
+document.getElementById('btn-save-edit').addEventListener('click', async function () {
+  if (!editingDoc) return;
+  const name = document.getElementById('e-name').value.trim();
+  if (!name) { showToast('กรุณากรอกชื่อเอกสาร', 'error'); return; }
+  const payload = {
+    doc_id: editingDoc.doc_id,
+    line_id: document.getElementById('e-line').value,
+    doctype_id: document.getElementById('e-doctype').value,
+    family_id: document.getElementById('e-family').value,
+    doc_name: name,
+    doc_no: document.getElementById('e-docno').value.trim()
+  };
+  Loading.show('กำลังบันทึก...');
+  try {
+    await API.post('doc.update', payload);
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('บันทึกการแก้ไขสำเร็จ', 'success');
+    closeEditModal();
+    renderManageList();
+    fillDocSelect('r-doc'); fillDocSelect('a-doc');
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
 
 async function deleteDoc(d) {
   if (!confirm('ลบเอกสาร "' + d.doc_name + '" ใช่หรือไม่?\nเอกสารจะหายจากทุกหน้าทันที (กู้คืนได้เองที่ชีท ENC-MASTER)')) return;
