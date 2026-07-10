@@ -1142,8 +1142,33 @@ function setupMasterSheets() {
   // ลบชีท default "Sheet1" ถ้ายังว่าง
   var s1 = ss.getSheetByName('Sheet1');
   if (s1 && s1.getLastRow() <= 1 && ss.getSheets().length > 1) ss.deleteSheet(s1);
+
+  setupModelSheetValidation(ss);
+
   Logger.log('ชีท Master ครบแล้ว — รัน seedMaster() ต่อ');
   return ss.getUrl();
+}
+
+// ป้องกันพิมพ์ผิดตอนกรอกชีท M_Model ด้วยมือ:
+// - family_id (คอลัมน์ B) ต้องเป็นค่าที่มีอยู่จริงใน M_ProductFamily คอลัมน์ A เท่านั้น (dropdown)
+// - status (คอลัมน์ D) จำกัดเป็น ACTIVE/INACTIVE
+// รันซ้ำได้ปลอดภัย — แค่ตั้งกฎ validation ใหม่ทับของเดิม ไม่แตะข้อมูล
+function setupModelSheetValidation(ss) {
+  var famSheet = ss.getSheetByName('M_ProductFamily');
+  var modelSheet = ss.getSheetByName('M_Model');
+  if (!famSheet || !modelSheet) return;
+
+  var famRange = famSheet.getRange('A2:A500'); // family_id — เผื่อแถวว่างล่วงหน้าไว้เพิ่มรุ่นหลักใหม่ได้เลย
+  var famRule = SpreadsheetApp.newDataValidation()
+    .requireValueInRange(famRange, true).setAllowInvalid(false)
+    .setHelpText('เลือก family_id จากชีท M_ProductFamily เท่านั้น — ป้องกันพิมพ์ผิดจนเชื่อมรุ่นหลักไม่ติด')
+    .build();
+  modelSheet.getRange('B2:B2000').setDataValidation(famRule);
+
+  var statusRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['ACTIVE', 'INACTIVE'], true).setAllowInvalid(false)
+    .build();
+  modelSheet.getRange('D2:D2000').setDataValidation(statusRule);
 }
 
 // seed ข้อมูลตั้งต้น: ENC + Line1/4/5 + 37 สถานี + DocType + Role + Permission
