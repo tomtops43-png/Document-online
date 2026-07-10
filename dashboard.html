@@ -428,7 +428,8 @@ async function openHeaderModal(d) {
   let html = '<div class="selected-station">' +
     (curStation ? 'Station: <b>' + stationNo() + '</b> | ' : '') +
     (Master.line(curLine) || {}).display_name + '</div>';
-  const modelOptions = pendingDoc.family_id && pendingDoc.family_id !== '*' ? Master.models(pendingDoc.family_id) : [];
+  const modelOptions = pendingDoc.family_id && pendingDoc.family_id !== '*'
+    ? Master.models(pendingDoc.family_id, pendingDoc.series_tag) : [];
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
