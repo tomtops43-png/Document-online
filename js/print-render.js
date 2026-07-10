@@ -14,6 +14,13 @@ if (typeof esc === 'undefined') {
     return esc(s).replace(/"/g, '&quot;');
   };
 }
+// ans.recorder อาจเป็นลายเซ็น (data URL รูป) หรือชื่อ (ข้อความ — จากบันทึกเก่าก่อนเปลี่ยนเป็นลายเซ็น)
+function recorderCellHtml(recorder) {
+  if (typeof recorder === 'string' && recorder.indexOf('data:image') === 0) {
+    return '<img src="' + recorder + '" class="sig-img-inline" alt="signature">';
+  }
+  return esc(recorder || '');
+}
 
 const PrintRender = {
 
@@ -181,7 +188,7 @@ const PrintRender = {
         }
         html += '<td class="cell-acc">Acc <span class="tickbox">' + (decision === 'ACC' ? '✓' : '&nbsp;') + '</span></td>';
         html += '<td class="cell-rej">Rej <span class="tickbox">' + (decision === 'REJ' ? '✓' : '&nbsp;') + '</span></td>';
-        html += '<td class="cell-recorder">' + esc(ans.recorder || '') + '</td>';
+        html += '<td class="cell-recorder">' + recorderCellHtml(ans.recorder) + '</td>';
         html += '<td class="cell-time">' + esc(ans.time || '') + '</td>';
         html += '</tr>';
       });
@@ -195,7 +202,7 @@ const PrintRender = {
       html += '<div class="photo-section">' +
         '<div class="photo-section-head">' + esc(box.station_label) +
         ' <span class="ps-role">Production Operator</span>' +
-        ' <span class="ps-name">Name: ' + esc(ans.recorder || '') + '</span></div>' +
+        ' <span class="ps-name">Recorder: ' + recorderCellHtml(ans.recorder) + '</span></div>' +
         '<div class="photo-frame">';
       if (list.length) {
         list.forEach(function (p) {
