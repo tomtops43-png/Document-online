@@ -65,6 +65,7 @@
 
 * { box-sizing: border-box; }
 
+html { overflow-x: hidden; }
 body {
   margin: 0;
   font-family: 'Noto Sans Thai', 'Sarabun', system-ui, sans-serif;
@@ -73,6 +74,8 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   letter-spacing: .01em;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 h1, h2, h3, .form-title, .app-title, .brand-text { font-family: 'Prompt', 'Noto Sans Thai', sans-serif; }
 
@@ -353,10 +356,12 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 }
 
 /* ================= records.html ================= */
-.tab-bar { display: flex; gap: 8px; margin-bottom: 0; }
+/* overflow-x:auto กันไม่ให้แท็บเยอะๆ (เช่นหน้า Admin 5 แท็บ) ดันทั้งหน้าล้นขวาบนจอแคบ — เลื่อนดูในตัวเองแทน */
+.tab-bar { display: flex; gap: 8px; margin-bottom: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tab {
   font-family: inherit; font-size: 16px; font-weight: 700; padding: 12px 22px; min-height: 48px;
   border: none; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--canvas-alt); color: var(--text-soft); cursor: pointer;
+  flex: 0 0 auto; white-space: nowrap;
 }
 .tab.active { background: var(--surface); color: var(--ink-800); box-shadow: 0 -2px 8px rgba(15,35,60,.06); }
 .badge-count { color: var(--warn); font-weight: 800; }
@@ -564,7 +569,11 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
   display: flex; align-items: center; gap: 14px;
   padding: 0 22px; min-height: 60px;
 }
-.topbar-title { font-family: 'Prompt', 'Noto Sans Thai', sans-serif; font-weight: 700; font-size: 18px; color: var(--ink-900); flex: 1; display: flex; align-items: center; gap: 10px; }
+.topbar-title {
+  font-family: 'Prompt', 'Noto Sans Thai', sans-serif; font-weight: 700; font-size: 18px; color: var(--ink-900);
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .topbar-title .crumb-sep { color: var(--text-faint); font-weight: 400; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 
@@ -738,3 +747,41 @@ a.kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
 /* หน้าใน shell ใช้ topbar แล้ว — ซ่อนแบนเนอร์ .app-bar เดิม (กินพื้นที่โดยไม่จำเป็น) */
 body.has-shell .app-bar { display: none; }
+
+/* ================= Mobile: Sidebar เป็น off-canvas drawer (<=640px) ================= */
+/* Tablet (641-900px) ยังใช้ icon-rail ถาวรเหมือนเดิม — โผล่แฮมเบอร์เกอร์เฉพาะจอแคบ */
+.topbar-menu-btn {
+  display: none; align-items: center; justify-content: center; width: 38px; height: 38px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+  font-size: 18px; cursor: pointer; flex-shrink: 0; color: var(--ink-800);
+}
+.sidebar-backdrop {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 39;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 640px) {
+  body.has-shell { padding-left: 0; }
+  .topbar-menu-btn { display: flex; }
+  .app-topbar { padding: 0 14px; gap: 10px; }
+  .topbar-title { font-size: 16px; }
+
+  .app-sidebar {
+    width: 264px; transform: translateX(-100%); transition: transform .22s ease;
+    box-shadow: var(--shadow-lift);
+  }
+  .app-sidebar.mobile-open { transform: translateX(0); }
+
+  /* คืนค่า label/ชื่อ ที่ถูกซ่อนไว้ตอนโหมด icon-rail (900px) กลับมาแสดงใน drawer เต็มความกว้าง */
+  .sidebar-brand .brand-text { display: inline; }
+  .sidebar-link { justify-content: flex-start; padding: 11px 12px; }
+  .sidebar-link .icon { width: 22px; }
+  .sidebar-link .label { display: inline; }
+  .sidebar-section-label { display: block; }
+  .sidebar-user .who { display: block; }
+  .sidebar-refresh span.label, .sidebar-logout span.label { display: inline; }
+
+  .notif-drawer { width: 100vw; }
+  .section-heading { flex-direction: column; align-items: flex-start; gap: 10px; }
+}

@@ -64,17 +64,29 @@ const AppShell = {
 
     document.body.insertBefore(nav, document.body.firstChild);
 
-    // ---------- Topbar (ชื่อหน้า + กระดิ่งแจ้งเตือน) ----------
+    // ---------- Topbar (แฮมเบอร์เกอร์ (มือถือ) + ชื่อหน้า + กระดิ่งแจ้งเตือน) ----------
     const topbar = document.createElement('header');
     topbar.className = 'app-topbar';
     const title = pageTitle || this.PAGE_TITLES[activeKey] || 'ENC QMS';
     topbar.innerHTML =
+      '<button type="button" class="topbar-menu-btn" id="sidebar-menu-btn" aria-label="เมนู">☰</button>' +
       '<div class="topbar-title">' + esc(title) + '</div>' +
       '<div class="topbar-actions">' +
       '<button type="button" class="notif-bell" id="notif-bell" title="การแจ้งเตือน">🔔' +
       '<span class="notif-dot" id="notif-dot"></span></button>' +
       '</div>';
     document.body.insertBefore(topbar, nav.nextSibling);
+
+    // ---------- Sidebar เป็น off-canvas drawer บนมือถือ (<=640px) ----------
+    // จอ tablet/desktop ยังเป็น icon-rail ถาวรเหมือนเดิม — ปุ่มแฮมเบอร์เกอร์โผล่เฉพาะจอแคบผ่าน CSS
+    const sidebarBackdrop = document.createElement('div');
+    sidebarBackdrop.className = 'sidebar-backdrop';
+    sidebarBackdrop.id = 'sidebar-backdrop';
+    document.body.appendChild(sidebarBackdrop);
+
+    document.getElementById('sidebar-menu-btn').addEventListener('click', () => this.toggleSidebar(true));
+    sidebarBackdrop.addEventListener('click', () => this.toggleSidebar(false));
+    nav.querySelectorAll('a.sidebar-link').forEach((a) => a.addEventListener('click', () => this.toggleSidebar(false)));
 
     // ---------- Notification Drawer ----------
     const backdrop = document.createElement('div');
@@ -96,6 +108,11 @@ const AppShell = {
 
     // โหลดจำนวนแจ้งเตือนแบบเงียบๆ (ไม่ block หน้า)
     this.loadNotifications(true);
+  },
+
+  toggleSidebar(open) {
+    document.querySelector('.app-sidebar').classList.toggle('mobile-open', open);
+    document.getElementById('sidebar-backdrop').classList.toggle('open', open);
   },
 
   _renderLink(item, activeKey) {
