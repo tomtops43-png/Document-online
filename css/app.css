@@ -272,15 +272,6 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
   width: 100%; min-height: 46px; font-family: inherit; font-size: 16px;
   padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
 }
-.rt-sig-field { flex: 1.4; min-width: 220px; }
-.rt-sig-pad-wrap {
-  position: relative; height: 84px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-  background: #fbfcfd;
-}
-.rt-sig-canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
-.rt-sig-clear {
-  position: absolute; right: 6px; bottom: 6px; z-index: 2; font-size: 11px; padding: 3px 9px; min-height: 26px;
-}
 .text-field input[readonly] { background: var(--canvas-alt); color: var(--text-soft); }
 
 .check-group { margin: 8px 0; }

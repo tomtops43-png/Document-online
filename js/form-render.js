@@ -100,56 +100,9 @@ const FormRender = {
       });
       container.appendChild(secEl);
     });
-    // ต้อง init signature pad ของ Recorder หลังจาก element ถูกแนบเข้า DOM แล้วเท่านั้น
-    // (ต้องใช้ offsetWidth จริงตอนตั้งค่าความละเอียด canvas)
-    this.allItems().forEach(function (item) { FormRender.initItemSignature(item); });
     document.getElementById('form-sections').addEventListener('input', function () {
       FormRender.saveDraft();
       FormRender.updateProgress();
-    });
-  },
-
-  // ---------- ลายเซ็น Recorder ต่อ item: เซ็นเสร็จ → บันทึกลายเซ็น + เวลาอัตโนมัติ ----------
-  initItemSignature(item) {
-    if (!item.recorder) return;
-    const el = document.querySelector('[data-item-id="' + item.item_id + '"]');
-    if (!el) return;
-    const canvas = el.querySelector('[data-role="recorder-canvas"]');
-    const clearBtn = el.querySelector('[data-role="recorder-clear"]');
-    if (!canvas || typeof initSignaturePad !== 'function') return;
-
-    initSignaturePad(canvas, clearBtn);
-
-    const self = this;
-    const ans = this.getAnswer(item.item_id);
-    if (ans.recorder) {
-      const img = new Image();
-      img.onload = function () { canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); };
-      img.src = ans.recorder;
-    }
-
-    function captureSignature() {
-      if (typeof canvasIsBlank === 'function' && canvasIsBlank(canvas)) return;
-      const cropped = typeof cropCanvas === 'function' ? cropCanvas(canvas) : canvas;
-      ans.recorder = cropped.toDataURL('image/png');
-      if (!ans.time) {
-        ans.time = new Date().toTimeString().slice(0, 5);
-        const timeInput = el.querySelector('[data-role="time"]');
-        if (timeInput) timeInput.value = ans.time;
-      }
-      self.saveDraft();
-      self.updateProgress();
-    }
-    canvas.addEventListener('mouseup', captureSignature);
-    canvas.addEventListener('touchend', captureSignature);
-
-    clearBtn.addEventListener('click', function () {
-      ans.recorder = '';
-      ans.time = '';
-      const timeInput = el.querySelector('[data-role="time"]');
-      if (timeInput) timeInput.value = '';
-      self.saveDraft();
-      self.updateProgress();
     });
   },
 
@@ -237,18 +190,9 @@ const FormRender = {
         '</div>';
     }
 
-    // Recorder (ลายเซ็น) + Time (บันทึกอัตโนมัติทันทีที่เซ็นเสร็จ — ไม่ให้กรอกเอง)
-    if (item.recorder || item.time) {
-      html += '<div class="rt-row">';
-      if (item.recorder) {
-        html += '<div class="text-field rt-sig-field"><span>Recorder (เซ็นชื่อ)</span>' +
-          '<div class="rt-sig-pad-wrap"><canvas class="rt-sig-canvas" data-role="recorder-canvas"></canvas>' +
-          '<button type="button" class="btn-small rt-sig-clear" data-role="recorder-clear">ล้าง</button></div></div>';
-      }
-      if (item.time) {
-        html += '<label class="text-field"><span>Time</span><input type="text" data-role="time" value="' + escAttr(ans.time || '') + '" readonly placeholder="เซ็นแล้วบันทึกอัตโนมัติ"></label>';
-      }
-      html += '</div>';
+    // Time (บันทึกอัตโนมัติตอนตอบ Acc/Rej — Recorder เซ็นครั้งเดียวท้ายฟอร์มต่อ Station ไม่ต้องเซ็นซ้ำทีละข้อ)
+    if (item.time) {
+      html += '<div class="rt-row"><label class="text-field"><span>Time</span><input type="text" data-role="time" value="' + escAttr(ans.time || '') + '" readonly placeholder="บันทึกอัตโนมัติเมื่อตอบ"></label></div>';
     }
 
     el.innerHTML = html;
@@ -476,6 +420,12 @@ const FormRender = {
       }
       this.answers._operator_sign = cropCanvas(canvas).toDataURL('image/png');
     }
+
+    // เซ็นครั้งเดียวต่อ Station — ใช้ลายเซ็นเดียวกันนี้เป็น Recorder ของทุกข้อในสถานีนี้ (ไม่ต้องเซ็นซ้ำทีละข้อ)
+    const self = this;
+    this.allItems().forEach(function (item) {
+      if (item.recorder) self.getAnswer(item.item_id).recorder = self.answers._operator_sign;
+    });
 
     const t = this.template;
     const ctx = this.context;
