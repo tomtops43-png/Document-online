@@ -221,7 +221,9 @@ function cropCanvas(canvas) {
     document.getElementById('f-form').appendChild(opt);
   });
 
-  if (user && (user.role === 'Leader' || user.role === 'QI' || user.role === 'Admin')) {
+  // แสดงแท็บ "รออนุมัติ" ให้ทุก role ที่ไม่ใช่ Operator (role ผู้อนุมัติใน workflow เห็นคิวของตัวเองได้)
+  // — คิวจริงกรองตาม PENDING_<ROLE> อยู่แล้ว role ที่ไม่มีในสาย workflow จะเห็นคิวว่าง (ไม่กระทบสิทธิ์)
+  if (user && user.role !== 'Operator') {
     document.getElementById('tab-approve').style.display = 'inline-block';
     refreshApproveCount();
   }
@@ -304,10 +306,13 @@ function switchTab(tab) {
   if (tab === 'approve') loadApproveQueue();
 }
 
+// สถานะที่รออนุมัติจาก role ของผู้ใช้ — generic: role อะไรก็ได้ที่ workflow กำหนด (PENDING_<ROLE>)
 function myPendingStatus() {
-  if (user.role === 'QI') return 'PENDING_QI';
-  if (user.role === 'Leader') return 'PENDING_LEADER';
-  return ''; // Admin เห็นทั้งหมด
+  if (user.role === 'Admin') return ''; // Admin เห็นทั้งหมด
+  return 'PENDING_' + String(user.role).toUpperCase();
+}
+function isPendingStatus(s) {
+  return String(s || '').indexOf('PENDING_') === 0;
 }
 
 async function refreshApproveCount() {
@@ -315,9 +320,7 @@ async function refreshApproveCount() {
     const res = await API.get('getRecords', { status: myPendingStatus() });
     let records = res.records || [];
     if (user.role === 'Admin') {
-      records = records.filter(function (r) {
-        return r.status === 'PENDING_LEADER' || r.status === 'PENDING_QI';
-      });
+      records = records.filter(function (r) { return isPendingStatus(r.status); });
     }
     const n = records.length;
     document.getElementById('approve-count').textContent = n ? '(' + n + ')' : '';
@@ -351,9 +354,7 @@ async function loadApproveQueue() {
     const res = await API.get('getRecords', { status: myPendingStatus() });
     let records = res.records || [];
     if (user.role === 'Admin') {
-      records = records.filter(function (r) {
-        return r.status === 'PENDING_LEADER' || r.status === 'PENDING_QI';
-      });
+      records = records.filter(function (r) { return isPendingStatus(r.status); });
     }
     renderRows(records);
   } catch (err) {
@@ -489,10 +490,9 @@ function renderDetail(template, record, recovery) {
 
   document.getElementById('detail-body').innerHTML = html;
 
-  // แสดงปุ่มอนุมัติเมื่อ record รอที่ role ของเรา
-  const canApprove =
-    (record.status === 'PENDING_LEADER' && (user.role === 'Leader' || user.role === 'Admin')) ||
-    (record.status === 'PENDING_QI' && (user.role === 'QI' || user.role === 'Admin'));
+  // แสดงปุ่มอนุมัติเมื่อ record รอที่ role ของเรา (generic: PENDING_<ROLE> ตรงกับ role ของผู้ใช้ หรือ Admin)
+  const canApprove = isPendingStatus(record.status) &&
+    (user.role === 'Admin' || record.status === 'PENDING_' + String(user.role).toUpperCase());
   document.getElementById('approve-bar').style.display = canApprove ? 'block' : 'none';
 }
 

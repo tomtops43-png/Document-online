@@ -548,6 +548,7 @@ document.getElementById('btn-start-fill').addEventListener('click', function () 
     form_id: pendingTemplate.form_id,
     template_file: pendingDoc.current_rev.content_ref,
     doc_id: pendingDoc.doc_id,
+    doctype_id: pendingDoc.doctype_id,
     station: pendingTemplate.mode === 'log-sheet' ? stationNo() : null,
     header: header
   }));

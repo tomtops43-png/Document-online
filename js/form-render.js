@@ -11,12 +11,17 @@ const FormRender = {
   recovery: [],     // [{item_id, problem, countermeasure}]
   draftKey: '',
 
+  clientUuid: '',
+
   // ---------- เริ่มต้น ----------
   async init(template, context) {
     this.template = template;
     this.context = context;
     this.draftKey = CONFIG.LS_DRAFT_PREFIX + template.form_id + '_' + (context.station || 'single');
     this.restoreDraft();
+    // idempotency key: สร้างครั้งเดียวต่อการกรอก 1 ชุด เก็บใน draft — submit ซ้ำ (เน็ตหลุด) ใช้ค่าเดิม
+    // server เห็น uuid ซ้ำ = คืน record เดิม ไม่สร้างซ้ำ
+    if (!this.clientUuid) this.clientUuid = genClientUuid();
     this.renderHeader();
     this.renderSections();
     this.updateProgress();
@@ -30,6 +35,7 @@ const FormRender = {
         answers: this.answers,
         photos: this.photos,
         recovery: this.recovery,
+        client_uuid: this.clientUuid,
         saved_at: new Date().toISOString()
       }));
     } catch (e) {
@@ -39,6 +45,7 @@ const FormRender = {
           header: this.context.header,
           answers: this.answers,
           recovery: this.recovery,
+          client_uuid: this.clientUuid,
           saved_at: new Date().toISOString()
         }));
       } catch (e2) { /* เก็บไม่ได้จริงๆ */ }
@@ -58,6 +65,7 @@ const FormRender = {
         this.answers = draft.answers || {};
         this.photos = draft.photos || {};
         this.recovery = draft.recovery || [];
+        this.clientUuid = draft.client_uuid || '';
         showToast('กู้คืนข้อมูลที่กรอกค้างไว้แล้ว', 'info');
       } else {
         localStorage.removeItem(this.draftKey);
@@ -490,11 +498,13 @@ const FormRender = {
     }
     Loading.show('กำลังบันทึกข้อมูล...');
     try {
-      // 1) สร้าง record
+      // 1) สร้าง record — client_uuid กัน record ซ้ำเมื่อ submit ซ้ำ, doctype_id ใช้เดิน workflow ฝั่ง server
       const res = await API.post('createRecord', {
         form_id: t.form_id,
         template_rev: t.template_rev,
         mode: t.mode,
+        doctype_id: ctx.doctype_id || '',
+        client_uuid: this.clientUuid,
         line: ctx.header.line || (t.lines && t.lines[0]) || '',
         station: ctx.station || '',
         product_model: ctx.header.product_model || '',
@@ -537,6 +547,14 @@ const FormRender = {
 };
 
 // ---------- helpers ----------
+// สร้าง UUID สำหรับ idempotency (ใช้ crypto ถ้ามี, ไม่มีก็ fallback สุ่มเอง)
+function genClientUuid() {
+  try {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  } catch (e) { /* fallback ด้านล่าง */ }
+  return 'cu-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+}
+
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

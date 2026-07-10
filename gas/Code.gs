@@ -25,8 +25,14 @@ var RECORDS_HEADER = [
   'operator_id', 'operator_name', 'operator_ts',
   'leader_id', 'leader_name', 'leader_ts',
   'qi_id', 'qi_name', 'qi_ts',
-  'created_at', 'updated_at'
+  'created_at', 'updated_at',
+  // เพิ่มใหม่ (ต่อท้าย — ปลอดภัยกับข้อมูลเดิม): doctype_id ใช้อ่าน workflow แบบ data-driven,
+  // client_uuid เป็น idempotency key กัน record ซ้ำเมื่อเน็ตหลุดแล้ว submit ซ้ำ
+  'doctype_id', 'client_uuid'
 ];
+
+// จำนวนแถวสูงสุดที่ getRecords คืนกลับ (กัน payload บวม/ช้าเมื่อ record โตหลักหมื่น)
+var MAX_RECORDS_RETURN = 1000;
 var RECOVERY_HEADER = [
   'record_id', 'item_id', 'problem', 'countermeasure',
   'operator_sign', 'operator_ts', 'leader_sign', 'leader_ts', 'decision'
@@ -241,7 +247,10 @@ function actionGetRecords(params, user) {
   }
   // ใหม่สุดก่อน
   out.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
-  return { success: true, records: out };
+  // จำกัดจำนวนแถวที่คืน — กัน payload บวม/ช้าเมื่อ record โต (แนะนำให้ filter ด้วย date range)
+  var truncated = out.length > MAX_RECORDS_RETURN;
+  if (truncated) out = out.slice(0, MAX_RECORDS_RETURN);
+  return { success: true, records: out, truncated: truncated, total_matched: truncated ? undefined : out.length };
 }
 
 function findRecordRow(recordId) {
@@ -316,13 +325,30 @@ function actionCreateRecord(params, user) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
+    // idempotency: ถ้า client ส่ง client_uuid มาแล้วมี record นั้นอยู่แล้ว (submit ซ้ำเพราะเน็ตหลุด)
+    // → คืน record_id เดิม ไม่สร้างซ้ำ
+    var clientUuid = String(params.client_uuid || '').trim();
+    if (clientUuid) {
+      var existing = readAll(SHEET_RECORDS);
+      for (var e = 0; e < existing.rows.length; e++) {
+        if (String(existing.rows[e].client_uuid) === clientUuid) {
+          return { success: true, record_id: String(existing.rows[e].record_id), duplicate: true };
+        }
+      }
+    }
+
     var now = nowISO();
     var recordId = generateRecordId(params.line, params.date);
+    var doctypeId = String(params.doctype_id || '');
+    var mode = params.mode || 'single-record';
+    // สถานะเริ่มต้นอ่านจาก workflow (data-driven) — ปกติได้ PENDING_LEADER เหมือนเดิม
+    var wf = resolveWorkflow({ doctype_id: doctypeId, mode: mode });
+    var initStatus = wf.length ? ('PENDING_' + String(wf[0].role).toUpperCase()) : 'PENDING_LEADER';
     var record = {
       record_id: recordId,
       form_id: params.form_id,
       template_rev: params.template_rev || '',
-      mode: params.mode || 'single-record',
+      mode: mode,
       line: params.line || '',
       station: params.station || '',
       product_model: params.product_model || '',
@@ -330,7 +356,7 @@ function actionCreateRecord(params, user) {
       shift: params.shift || '',
       answers_json: JSON.stringify(params.answers || {}),
       photos_json: JSON.stringify({}),
-      status: 'PENDING_LEADER',
+      status: initStatus,
       has_nok: params.has_nok ? 'true' : 'false',
       reject_reason: '',
       operator_id: user.employee_id,
@@ -339,7 +365,9 @@ function actionCreateRecord(params, user) {
       leader_id: '', leader_name: '', leader_ts: '',
       qi_id: '', qi_name: '', qi_ts: '',
       created_at: now,
-      updated_at: now
+      updated_at: now,
+      doctype_id: doctypeId,
+      client_uuid: clientUuid
     };
     var row = RECORDS_HEADER.map(function (h) { return record[h] !== undefined ? record[h] : ''; });
     getSheet(SHEET_RECORDS).appendRow(row);
@@ -371,10 +399,41 @@ function actionCreateRecord(params, user) {
   }
 }
 
-// Leader อนุมัติ → PENDING_QI (single-record) หรือ COMPLETED (log-sheet)
-// QI อนุมัติ → COMPLETED
+// อ่านลำดับการอนุมัติของ record จาก M_DocType.workflow_json (data-driven)
+// เพิ่ม step ใหม่ (เช่น QA ก่อน QI) = แก้ workflow_json ในชีท ไม่ต้องแก้โค้ด
+// record เก่าที่ไม่มี doctype_id → fallback ตาม mode (พฤติกรรมเดิมเป๊ะ)
+function resolveWorkflow(record) {
+  var doctypeId = String(record.doctype_id || '');
+  if (doctypeId) {
+    var dts = readMaster('M_DocType');
+    for (var i = 0; i < dts.length; i++) {
+      if (String(dts[i].doctype_id) === doctypeId && dts[i].workflow_json) {
+        try {
+          var wf = JSON.parse(dts[i].workflow_json);
+          if (wf && wf.length) return wf;
+        } catch (e) { /* workflow_json เสีย — ใช้ fallback */ }
+      }
+    }
+  }
+  // fallback: log-sheet = Leader ขั้นเดียว, single-record = Leader → QI
+  return (String(record.mode) === 'log-sheet')
+    ? [{ step: 1, role: 'Leader', label: 'หัวหน้างานยืนยัน' }]
+    : [{ step: 1, role: 'Leader', label: 'หัวหน้างานยืนยัน' }, { step: 2, role: 'QI', label: 'QI อนุมัติ' }];
+}
+
+// หา index ของ step ที่ค้างอยู่จากสถานะ PENDING_<ROLE>
+function pendingStepIndex(wf, status) {
+  var s = String(status || '');
+  if (s.indexOf('PENDING_') !== 0) return -1;
+  var role = s.substring('PENDING_'.length).toUpperCase();
+  for (var i = 0; i < wf.length; i++) {
+    if (String(wf[i].role).toUpperCase() === role) return i;
+  }
+  return -1;
+}
+
+// อนุมัติ 1 step ตาม workflow — สิทธิ์เช็คจาก M_Permission (can) ไม่ใช่ if(role==...) ตายตัว
 function actionApproveRecord(params, user) {
-  requireRole(user, ['Leader', 'QI']);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -382,41 +441,37 @@ function actionApproveRecord(params, user) {
     if (!found) return { success: false, error: 'ไม่พบบันทึก' };
     var r = found.row;
     var now = nowISO();
-
-    if (String(r.status) === 'PENDING_LEADER') {
-      if (user.role !== 'Leader' && user.role !== 'Admin') {
-        return { success: false, error: 'ขั้นนี้ต้องให้ Leader อนุมัติ' };
-      }
-      r.leader_id = user.employee_id;
-      r.leader_name = user.name;
-      r.leader_ts = now;
-      if (params.signature) {
-        try {
-          var answers = JSON.parse(r.answers_json || '{}');
-          answers._leader_sign = String(params.signature);
-          r.answers_json = JSON.stringify(answers);
-        } catch (e) {}
-      }
-      // log-sheet มี 2 ระดับ: Leader อนุมัติ = จบ
-      r.status = (String(r.mode) === 'log-sheet') ? 'COMPLETED' : 'PENDING_QI';
-    } else if (String(r.status) === 'PENDING_QI') {
-      if (user.role !== 'QI' && user.role !== 'Admin') {
-        return { success: false, error: 'ขั้นนี้ต้องให้ QI อนุมัติ' };
-      }
-      r.qi_id = user.employee_id;
-      r.qi_name = user.name;
-      r.qi_ts = now;
-      if (params.signature) {
-        try {
-          var answers = JSON.parse(r.answers_json || '{}');
-          answers._qi_sign = String(params.signature);
-          r.answers_json = JSON.stringify(answers);
-        } catch (e) {}
-      }
-      r.status = 'COMPLETED';
-    } else {
-      return { success: false, error: 'สถานะปัจจุบัน (' + r.status + ') อนุมัติไม่ได้' };
+    var status = String(r.status);
+    if (status.indexOf('PENDING_') !== 0) {
+      return { success: false, error: 'สถานะปัจจุบัน (' + status + ') อนุมัติไม่ได้' };
     }
+
+    var wf = resolveWorkflow(r);
+    var idx = pendingStepIndex(wf, status);
+    if (idx < 0) idx = 0; // status role ไม่อยู่ใน workflow (ถูกแก้ทีหลัง) — ให้เริ่มที่ step แรก
+    var stepRole = String(wf[idx].role);
+
+    // สิทธิ์: ต้องเป็น role ของ step นี้ (หรือ Admin) และมีสิทธิ์ record.approve.step (จาก M_Permission)
+    var isRightRole = (user.role === stepRole) || (user.role === 'Admin');
+    var hasPerm = can(user, 'record.approve.step', { line_id: r.line, doctype_id: r.doctype_id });
+    if (!isRightRole || !hasPerm) {
+      return { success: false, error: 'ขั้นนี้ต้องให้ ' + stepRole + ' อนุมัติ' };
+    }
+
+    var answers = {};
+    try { answers = JSON.parse(r.answers_json || '{}'); } catch (e) { answers = {}; }
+    var roleKey = stepRole.toLowerCase();
+    // เก็บลง column เฉพาะ Leader/QI (backward compat กับหน้าจอ/พิมพ์เดิม)
+    if (roleKey === 'leader') { r.leader_id = user.employee_id; r.leader_name = user.name; r.leader_ts = now; }
+    else if (roleKey === 'qi') { r.qi_id = user.employee_id; r.qi_name = user.name; r.qi_ts = now; }
+    if (params.signature) answers['_' + roleKey + '_sign'] = String(params.signature);
+    // ประวัติอนุมัติแบบ generic (รองรับ role ใหม่ + เตรียมย้ายเป็น T_Approval ในอนาคต)
+    answers._approvals = answers._approvals || [];
+    answers._approvals.push({ step: wf[idx].step || (idx + 1), role: stepRole, user_id: user.employee_id, user_name: user.name, ts: now });
+    r.answers_json = JSON.stringify(answers);
+
+    // ไป step ถัดไป หรือจบ
+    r.status = (idx + 1 < wf.length) ? ('PENDING_' + String(wf[idx + 1].role).toUpperCase()) : 'COMPLETED';
     r.updated_at = now;
     writeRow(SHEET_RECORDS, r._rowIndex, found.header, r);
     return { success: true, status: r.status };
@@ -426,15 +481,25 @@ function actionApproveRecord(params, user) {
 }
 
 function actionRejectRecord(params, user) {
-  requireRole(user, ['Leader', 'QI']);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     var found = findRecordRow(params.record_id);
     if (!found) return { success: false, error: 'ไม่พบบันทึก' };
     var r = found.row;
-    if (String(r.status) !== 'PENDING_LEADER' && String(r.status) !== 'PENDING_QI') {
-      return { success: false, error: 'สถานะปัจจุบัน (' + r.status + ') ตีกลับไม่ได้' };
+    var status = String(r.status);
+    if (status.indexOf('PENDING_') !== 0) {
+      return { success: false, error: 'สถานะปัจจุบัน (' + status + ') ตีกลับไม่ได้' };
+    }
+    // ตีกลับได้เฉพาะผู้ที่อนุมัติ step ปัจจุบันได้ (role ของ step นี้ หรือ Admin) + มีสิทธิ์
+    var wf = resolveWorkflow(r);
+    var idx = pendingStepIndex(wf, status);
+    if (idx < 0) idx = 0;
+    var stepRole = String(wf[idx].role);
+    var isRightRole = (user.role === stepRole) || (user.role === 'Admin');
+    var hasPerm = can(user, 'record.approve.step', { line_id: r.line, doctype_id: r.doctype_id });
+    if (!isRightRole || !hasPerm) {
+      return { success: false, error: 'ขั้นนี้ต้องให้ ' + stepRole + ' เป็นผู้ตรวจ' };
     }
     r.status = 'REJECTED';
     r.reject_reason = String(params.reason || '');
