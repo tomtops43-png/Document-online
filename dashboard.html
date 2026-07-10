@@ -307,9 +307,6 @@ function docCard(d, t) {
 
   if (t.behavior === 'form') {
     buttons = '<button type="button" class="btn-primary" data-act="fill">✏️ กรอก</button>';
-    if (curStation) {
-      buttons += '<a class="btn-secondary" href="records.html?station=' + encodeURIComponent(stationNo()) + '&form_id=' + encodeURIComponent(d.doc_id) + '">📋 ประวัติ</a>';
-    }
   } else if (t.behavior === 'file') {
     buttons = '<a class="btn-primary" href="viewer.html?doc_id=' + encodeURIComponent(d.doc_id) + '">📖 เปิดดู</a>';
   } else if (t.behavior === 'recovery') {
