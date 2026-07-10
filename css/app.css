@@ -365,16 +365,19 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .btn-reject { background: linear-gradient(135deg, #ef4444, var(--danger)); }
 
 /* ================= Document Center (dashboard/viewer) ================= */
-.nav-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.nav-row { display: flex; align-items: center; gap: 14px; margin: 6px 0 18px; flex-wrap: wrap; }
 .btn-nav-back {
-  display: none; align-items: center; gap: 8px; flex-shrink: 0;
-  min-height: 52px; padding: 12px 20px 12px 16px; font-size: 16.5px; font-weight: 800;
-  color: #fff; background: linear-gradient(135deg, var(--ink-800), var(--ink-900));
+  display: none; align-items: center; gap: 9px; flex-shrink: 0;
+  min-height: 56px; padding: 14px 26px 14px 20px; font-size: 17px; font-weight: 800;
+  color: #fff; background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
   border: none; border-radius: 999px; cursor: pointer; font-family: inherit;
-  box-shadow: var(--shadow-sm); transition: box-shadow .15s, transform .08s;
+  box-shadow: 0 3px 10px rgba(43, 125, 233, .35); transition: box-shadow .15s, transform .08s;
 }
-.btn-nav-back .back-arrow { font-size: 18px; }
-.btn-nav-back:active { transform: translateY(1px); box-shadow: none; }
+.btn-nav-back .back-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.22); font-size: 14px;
+}
+.btn-nav-back:active { transform: translateY(1px); box-shadow: 0 1px 4px rgba(43, 125, 233, .35); }
 
 .crumbs {
   font-size: 14.5px; display: flex; align-items: center; gap: 6px;
