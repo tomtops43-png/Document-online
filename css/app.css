@@ -114,14 +114,14 @@ body.has-shell { padding-left: var(--sidebar-w); }
 .sidebar-user .who .name { color: #fff; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-user .who .role { color: rgba(255,255,255,.5); font-size: 12px; }
 @media (max-width: 900px) { .sidebar-user .who { display: none; } }
-.sidebar-logout {
+.sidebar-refresh, .sidebar-logout {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
   padding: 10px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.05); color: rgba(255,255,255,.85); font-family: inherit; font-size: 14px;
-  font-weight: 700; cursor: pointer;
+  font-weight: 700; cursor: pointer; margin-bottom: 8px;
 }
-.sidebar-logout:hover { background: rgba(255,255,255,.12); }
-@media (max-width: 900px) { .sidebar-logout span.label { display: none; } }
+.sidebar-refresh:hover, .sidebar-logout:hover { background: rgba(255,255,255,.12); }
+@media (max-width: 900px) { .sidebar-refresh span.label, .sidebar-logout span.label { display: none; } }
 
 /* ================= App Bar ================= */
 .app-bar {

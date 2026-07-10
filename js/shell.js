@@ -47,6 +47,8 @@ const AppShell = {
       '<div class="who"><div class="name">' + esc(user ? user.name : '') + '</div>' +
       '<div class="role">' + esc(user ? user.role : '') + '</div></div>' +
       '</div>' +
+      '<button type="button" class="sidebar-refresh" onclick="AppShell.refreshMaster()" title="ใช้เมื่อแก้ข้อมูลในชีท ENC-MASTER โดยตรงแล้วหน้าเว็บยังไม่อัปเดตตาม">' +
+      '🔄 <span class="label">รีเฟรชข้อมูล Master</span></button>' +
       '<button type="button" class="sidebar-logout" onclick="Auth.logoutAndRedirect()">⏻ <span class="label">ออกจากระบบ</span></button>' +
       '</div>';
 
@@ -57,6 +59,14 @@ const AppShell = {
     const cls = 'sidebar-link' + (item.key === activeKey ? ' active' : '');
     return '<a class="' + cls + '" href="' + item.href + '">' +
       '<span class="icon">' + item.icon + '</span><span class="label">' + esc(item.label) + '</span></a>';
+  },
+
+  // ล้าง cache ของ Master Data ในเครื่อง แล้วโหลดหน้าใหม่ — ใช้เมื่อแก้ข้อมูลในชีท ENC-MASTER
+  // ตรงๆ (ไม่ผ่าน action ของแอป) เพราะกรณีนั้น master_version จะไม่ถูก bump อัตโนมัติ
+  // หน้าเว็บจึงยังเห็นข้อมูลเก่าจาก cache ต่อไปเรื่อยๆ จนกว่าจะล้าง cache เอง
+  refreshMaster() {
+    try { localStorage.removeItem(typeof Master !== 'undefined' ? Master.LS_KEY : 'fp_master_cache'); } catch (e) { /* ข้าม */ }
+    location.reload();
   }
 };
 
