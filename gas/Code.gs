@@ -1157,6 +1157,7 @@ function setupMasterSheets() {
 function setupModelSheetValidation(ss) {
   var famSheet = ss.getSheetByName('M_ProductFamily');
   var modelSheet = ss.getSheetByName('M_Model');
+  var docSheet = ss.getSheetByName('M_Document');
   if (!famSheet || !modelSheet) return;
 
   var famRange = famSheet.getRange('A2:A500'); // family_id — เผื่อแถวว่างล่วงหน้าไว้เพิ่มรุ่นหลักใหม่ได้เลย
@@ -1170,6 +1171,24 @@ function setupModelSheetValidation(ss) {
     .requireValueInList(['ACTIVE', 'INACTIVE'], true).setAllowInvalid(false)
     .build();
   modelSheet.getRange('D2:D2000').setDataValidation(statusRule);
+
+  // ---- M_Document: กันพิมพ์ผิดตอนแก้ family_id / series_tag ตรงในชีทเลย (bulk edit แทนแก้ทีละเอกสารในหน้าเว็บ) ----
+  if (docSheet) {
+    // family_id (คอลัมน์ C) — เหมือน M_Model แต่ M_Document อนุญาต '*' (ทุกรุ่นหลัก) และเว้นว่างได้ด้วย จึงไม่บังคับปฏิเสธค่านอกลิสต์
+    var docFamRule = SpreadsheetApp.newDataValidation()
+      .requireValueInRange(famRange, true).setAllowInvalid(true)
+      .setHelpText('เลือก family_id จาก M_ProductFamily หรือพิมพ์ * เองถ้าใช้ได้ทุกรุ่นหลัก')
+      .build();
+    docSheet.getRange('C2:C2000').setDataValidation(docFamRule);
+
+    // series_tag (คอลัมน์ K) — อ้างอิงค่าที่เคยตั้งไว้ใน M_Model คอลัมน์ E (ซ้ำกันได้ ไม่เป็นไร) เว้นว่างได้ (= ใช้ได้ทุกซีรีส์)
+    var modelSeriesRange = modelSheet.getRange('E2:E2000');
+    var docSeriesRule = SpreadsheetApp.newDataValidation()
+      .requireValueInRange(modelSeriesRange, true).setAllowInvalid(true)
+      .setHelpText('เลือกซีรีส์ที่เคยตั้งไว้ใน M_Model เท่านั้น — เว้นว่างได้ถ้าเอกสารนี้ใช้ได้ทุกซีรีส์ของรุ่นหลัก')
+      .build();
+    docSheet.getRange('K2:K2000').setDataValidation(docSeriesRule);
+  }
 }
 
 // seed ข้อมูลตั้งต้น: ENC + Line1/4/5 + 37 สถานี + DocType + Role + Permission
