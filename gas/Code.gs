@@ -573,13 +573,13 @@ var MASTER_SHEET_DEFS = {
   M_Line: ['line_id', 'plant_id', 'line_name', 'display_name', 'sequence', 'status'],
   M_Station: ['station_id', 'line_id', 'station_no', 'station_name', 'sequence', 'status'],
   M_DocType: ['doctype_id', 'doctype_name', 'display_name_th', 'behavior', 'workflow_json', 'record_prefix', 'icon', 'sequence', 'status'],
-  M_Document: ['doc_id', 'doctype_id', 'family_id', 'line_id', 'doc_name', 'doc_no', 'current_rev_id', 'drive_folder_id', 'print_css', 'status', 'series_tag'],
+  M_Document: ['doc_id', 'doctype_id', 'family_id', 'line_id', 'doc_name', 'doc_no', 'current_rev_id', 'drive_folder_id', 'print_css', 'status', 'series_tag', 'model_group'],
   M_DocAssign: ['assign_id', 'doc_id', 'station_id', 'status'],
   M_Revision: ['rev_id', 'doc_id', 'rev_no', 'content_ref', 'effective_date', 'approved_by', 'approved_date', 'reason', 'status', 'created_at'],
   M_Role: ['role_id', 'role_name', 'display_name_th', 'sequence', 'status'],
   M_Permission: ['perm_id', 'role_id', 'action', 'scope_line', 'scope_doctype'],
   M_ProductFamily: ['family_id', 'family_name', 'display_name', 'sequence', 'status'],
-  M_Model: ['model_id', 'family_id', 'model_name', 'status', 'series_tag'],
+  M_Model: ['model_id', 'family_id', 'model_name', 'status', 'series_tag', 'model_group'],
   M_Shift: ['shift_id', 'shift_name', 'time_range', 'status']
 };
 
@@ -767,7 +767,8 @@ function actionDocRegister(params, user) {
       approved_by: user.name,
       reason: String(params.reason || 'ลงทะเบียนครั้งแรก'),
       station_ids: stationIds,
-      series_tag: String(params.series_tag || '')
+      series_tag: String(params.series_tag || ''),
+      model_group: String(params.model_group || '')
     });
 
     auditLog(user, 'document.register', 'M_Document', docId, '', JSON.stringify({ rev: revNo, ref: contentRef }));
@@ -927,7 +928,7 @@ function actionDocUpdate(params, user) {
 
   var before = JSON.stringify(data[rowIdx - 1]);
   var fields = { doctype_id: params.doctype_id, family_id: params.family_id, line_id: params.line_id,
-    doc_name: params.doc_name, doc_no: params.doc_no, series_tag: params.series_tag };
+    doc_name: params.doc_name, doc_no: params.doc_no, series_tag: params.series_tag, model_group: params.model_group };
   Object.keys(fields).forEach(function (key) {
     if (fields[key] !== undefined && fields[key] !== null && col[key]) {
       sheet.getRange(rowIdx, col[key]).setValue(String(fields[key]));
@@ -1084,7 +1085,7 @@ function registerDocument(def) {
   }
   if (!found) {
     docSheet.appendRow([def.doc_id, def.doctype_id, def.family_id || '*', def.line_id || '*',
-      def.doc_name, def.doc_no || '', revId, def.drive_folder_id || '', def.print_css || '', 'ACTIVE', def.series_tag || '']);
+      def.doc_name, def.doc_no || '', revId, def.drive_folder_id || '', def.print_css || '', 'ACTIVE', def.series_tag || '', def.model_group || '']);
   }
 
   // 3) M_DocAssign — ผูกกับสถานี (ข้ามคู่ที่มีอยู่แล้ว)
@@ -1188,6 +1189,15 @@ function setupModelSheetValidation(ss) {
       .setHelpText('เลือกซีรีส์ที่เคยตั้งไว้ใน M_Model เท่านั้น — เว้นว่างได้ถ้าเอกสารนี้ใช้ได้ทุกซีรีส์ของรุ่นหลัก')
       .build();
     docSheet.getRange('K2:K2000').setDataValidation(docSeriesRule);
+
+    // model_group (คอลัมน์ L) — แยกย่อยกว่า series_tag อีกชั้น (เช่น series="Visi Smart" แต่แยกเอกสารเป็นรุ่น EZ / L)
+    // อ้างอิงค่าที่เคยตั้งไว้ใน M_Model คอลัมน์ F เว้นว่างได้ (= ไม่แยกกลุ่มรุ่นย่อย)
+    var modelGroupRange = modelSheet.getRange('F2:F2000');
+    var docModelGroupRule = SpreadsheetApp.newDataValidation()
+      .requireValueInRange(modelGroupRange, true).setAllowInvalid(true)
+      .setHelpText('เลือกกลุ่มรุ่นย่อยที่เคยตั้งไว้ใน M_Model เท่านั้น — เว้นว่างได้ถ้าเอกสารนี้ไม่ต้องแยกกลุ่มรุ่น')
+      .build();
+    docSheet.getRange('L2:L2000').setDataValidation(docModelGroupRule);
   }
 }
 

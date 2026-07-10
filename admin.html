@@ -43,6 +43,10 @@
       <input type="text" id="f-series" list="f-series-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของ Family นี้">
       <datalist id="f-series-list"></datalist>
     </label>
+    <label class="field"><span>กลุ่มรุ่นย่อยในเอกสารนี้ (ถ้ามี — เช่น แยกเอกสารเป็นรุ่น EZ / L)</span>
+      <input type="text" id="f-model-group" list="f-model-group-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของซีรีส์นี้">
+      <datalist id="f-model-group-list"></datalist>
+    </label>
     <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="f-name"></label>
     <div class="filter-grid">
       <label class="field"><span>เลขที่เอกสารควบคุม</span><input type="text" id="f-docno"></label>
@@ -72,6 +76,10 @@
     <label class="field"><span>ซีรีส์ย่อยใน Family นี้ (ถ้ามี — เช่น Family "LC" แยกเป็น Classic / Visi Smart)</span>
       <input type="text" id="n-series" list="n-series-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของ Family นี้">
       <datalist id="n-series-list"></datalist>
+    </label>
+    <label class="field"><span>กลุ่มรุ่นย่อยในเอกสารนี้ (ถ้ามี — เช่น แยกเอกสารเป็นรุ่น EZ / L)</span>
+      <input type="text" id="n-model-group" list="n-model-group-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของซีรีส์นี้">
+      <datalist id="n-model-group-list"></datalist>
     </label>
     <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="n-name" placeholder="เช่น WI ประกอบ Busbar"></label>
     <div class="filter-grid">
@@ -142,7 +150,7 @@
     <div class="table-scroll">
       <table class="record-table">
         <thead><tr>
-          <th>เอกสาร</th><th>ไลน์</th><th>ประเภท</th><th>ซีรีส์</th><th>เลขที่เอกสาร</th><th>Revision ปัจจุบัน</th><th></th>
+          <th>เอกสาร</th><th>ไลน์</th><th>ประเภท</th><th>ซีรีส์</th><th>กลุ่มรุ่น</th><th>เลขที่เอกสาร</th><th>Revision ปัจจุบัน</th><th></th>
         </tr></thead>
         <tbody id="manage-rows"></tbody>
       </table>
@@ -163,6 +171,10 @@
       <label class="field"><span>ซีรีส์ย่อยใน Family นี้ (ถ้ามี)</span>
         <input type="text" id="e-series" list="e-series-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของ Family นี้">
         <datalist id="e-series-list"></datalist>
+      </label>
+      <label class="field"><span>กลุ่มรุ่นย่อยในเอกสารนี้ (ถ้ามี)</span>
+        <input type="text" id="e-model-group" list="e-model-group-list" placeholder="ไม่ระบุ = ใช้รุ่นทั้งหมดของซีรีส์นี้">
+        <datalist id="e-model-group-list"></datalist>
       </label>
       <label class="field"><span>ชื่อเอกสาร *</span><input type="text" id="e-name"></label>
       <label class="field"><span>เลขที่เอกสารควบคุม</span><input type="text" id="e-docno"></label>
@@ -242,10 +254,18 @@ let manifestTemplates = [];
     });
     document.getElementById('a-doc').addEventListener('change', markAssigned);
     document.getElementById('m-line-filter').addEventListener('change', function () { renderManageList(); });
-    document.getElementById('f-family').addEventListener('change', function () { fillSeriesDatalist('f-series-list', this.value); });
-    document.getElementById('n-family').addEventListener('change', function () { fillSeriesDatalist('n-series-list', this.value); });
+    document.getElementById('f-family').addEventListener('change', function () {
+      fillSeriesDatalist('f-series-list', this.value);
+      fillModelGroupDatalist('f-model-group-list', this.value);
+    });
+    document.getElementById('n-family').addEventListener('change', function () {
+      fillSeriesDatalist('n-series-list', this.value);
+      fillModelGroupDatalist('n-model-group-list', this.value);
+    });
     fillSeriesDatalist('f-series-list', document.getElementById('f-family').value);
     fillSeriesDatalist('n-series-list', document.getElementById('n-family').value);
+    fillModelGroupDatalist('f-model-group-list', document.getElementById('f-family').value);
+    fillModelGroupDatalist('n-model-group-list', document.getElementById('n-family').value);
     document.getElementById('n-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('r-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('f-eff').value = new Date().toISOString().slice(0, 10);
@@ -327,6 +347,7 @@ document.getElementById('btn-register-form').addEventListener('click', async fun
     doc_name: name,
     doc_no: document.getElementById('f-docno').value.trim(),
     series_tag: document.getElementById('f-series').value.trim(),
+    model_group: document.getElementById('f-model-group').value.trim(),
     rev_no: t.rev_no,
     effective_date: document.getElementById('f-eff').value,
     reason: document.getElementById('f-reason').value.trim(),
@@ -368,6 +389,11 @@ function fillSeriesDatalist(id, familyId) {
   if (!el) return;
   el.innerHTML = Master.seriesTagsForFamily(familyId).map(function (s) { return '<option value="' + s + '">'; }).join('');
 }
+function fillModelGroupDatalist(id, familyId) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = Master.modelGroupsForFamily(familyId).map(function (s) { return '<option value="' + s + '">'; }).join('');
+}
 function fillDocSelect(id) {
   const el = document.getElementById(id);
   const docs = (Master.data.M_Document || []);
@@ -408,6 +434,7 @@ document.getElementById('btn-register').addEventListener('click', async function
     doc_name: name,
     doc_no: document.getElementById('n-docno').value.trim(),
     series_tag: document.getElementById('n-series').value.trim(),
+    model_group: document.getElementById('n-model-group').value.trim(),
     rev_no: document.getElementById('n-rev').value.trim() || 'Rev01',
     effective_date: document.getElementById('n-eff').value,
     reason: document.getElementById('n-reason').value.trim(),
@@ -434,6 +461,7 @@ document.getElementById('btn-register').addEventListener('click', async function
     document.getElementById('n-name').value = '';
     document.getElementById('n-docno').value = '';
     document.getElementById('n-series').value = '';
+    document.getElementById('n-model-group').value = '';
     document.getElementById('n-file').value = '';
     document.getElementById('n-drive').value = '';
     await Master.load(); fillDocSelect('r-doc'); fillDocSelect('a-doc');
@@ -525,7 +553,7 @@ function renderManageList() {
   }).slice().sort(function (a, b) { return String(a.doc_name).localeCompare(String(b.doc_name)); });
 
   if (!docs.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-hint">ไม่มีเอกสาร</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-hint">ไม่มีเอกสาร</td></tr>';
     return;
   }
 
@@ -541,6 +569,7 @@ function renderManageList() {
       '<td>' + lineLabel + '</td>' +
       '<td>' + (t ? t.icon + ' ' + t.display_name_th : d.doctype_id) + '</td>' +
       '<td>' + (d.series_tag || '-') + '</td>' +
+      '<td>' + (d.model_group || '-') + '</td>' +
       '<td>' + (d.doc_no || '-') + '</td>' +
       '<td>' + (cur ? cur.rev_no : 'ยังไม่มี') + '</td>' +
       '<td class="manage-actions">' +
@@ -570,10 +599,15 @@ function openEditModal(d) {
   document.getElementById('e-name').value = d.doc_name;
   document.getElementById('e-docno').value = d.doc_no || '';
   document.getElementById('e-series').value = d.series_tag || '';
+  document.getElementById('e-model-group').value = d.model_group || '';
   fillSeriesDatalist('e-series-list', document.getElementById('e-family').value);
+  fillModelGroupDatalist('e-model-group-list', document.getElementById('e-family').value);
   document.getElementById('edit-modal').style.display = 'flex';
 }
-document.getElementById('e-family').addEventListener('change', function () { fillSeriesDatalist('e-series-list', this.value); });
+document.getElementById('e-family').addEventListener('change', function () {
+  fillSeriesDatalist('e-series-list', this.value);
+  fillModelGroupDatalist('e-model-group-list', this.value);
+});
 function closeEditModal() {
   document.getElementById('edit-modal').style.display = 'none';
   editingDoc = null;
@@ -592,7 +626,8 @@ document.getElementById('btn-save-edit').addEventListener('click', async functio
     family_id: document.getElementById('e-family').value,
     doc_name: name,
     doc_no: document.getElementById('e-docno').value.trim(),
-    series_tag: document.getElementById('e-series').value.trim()
+    series_tag: document.getElementById('e-series').value.trim(),
+    model_group: document.getElementById('e-model-group').value.trim()
   };
   Loading.show('กำลังบันทึก...');
   try {

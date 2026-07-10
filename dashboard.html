@@ -498,7 +498,7 @@ async function openHeaderModal(d) {
     (curStation ? 'Station: <b>' + stationNo() + '</b> | ' : '') +
     (Master.line(curLine) || {}).display_name + '</div>';
   const modelOptions = pendingDoc.family_id && pendingDoc.family_id !== '*'
-    ? Master.models(pendingDoc.family_id, pendingDoc.series_tag) : [];
+    ? Master.models(pendingDoc.family_id, pendingDoc.series_tag, pendingDoc.model_group) : [];
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
