@@ -17,8 +17,11 @@
 
 <main class="container container-wide">
 
-  <!-- breadcrumb -->
-  <div class="crumbs" id="crumbs"></div>
+  <!-- ปุ่มย้อนกลับ + breadcrumb -->
+  <div class="nav-row">
+    <button type="button" id="btn-back" class="btn-nav-back"><span class="back-arrow">◀</span> ย้อนกลับ</button>
+    <div class="crumbs" id="crumbs"></div>
+  </div>
 
   <!-- Hero: ภาพรวมโรงงาน (แสดงเฉพาะขั้นเลือกไลน์) -->
   <div id="dash-hero" class="dash-hero" style="display:none">
@@ -97,6 +100,13 @@ function nav(line, cat, station) {
 window.addEventListener('popstate', render);
 document.addEventListener('master-updated', render);
 
+// ปุ่มย้อนกลับ: ถอยขึ้นไปทีละขั้น (Station → หมวดเอกสาร → ไลน์ → ENC)
+document.getElementById('btn-back').addEventListener('click', function () {
+  if (curStation) { nav(curLine, curCat); return; }
+  if (curCat) { nav(curLine); return; }
+  if (curLine) { nav(); return; }
+});
+
 function crumbs() {
   const el = document.getElementById('crumbs');
   let html = '<a href="#" onclick="nav();return false">ENC</a>';
@@ -128,6 +138,7 @@ async function render() {
   curStation = p.get('station');
   await Master.load();
   crumbs();
+  document.getElementById('btn-back').style.display = curLine ? 'inline-flex' : 'none';
 
   let step;
   if (!curLine) step = 'step-line';
@@ -236,7 +247,9 @@ function renderStations() {
     const docs = Master.documentsForStation(s.station_id, curLine).filter(cat ? cat.match : function () { return true; });
     const btn = document.createElement('button');
     btn.className = 'btn-choice btn-station';
-    btn.innerHTML = '<span class="station-num">' + s.station_no + '</span><br><small>' + docs.length + ' เอกสาร</small>';
+    btn.innerHTML = '<span class="station-num">' + s.station_no + '</span>' +
+      '<span class="station-name">Station ' + s.station_no + '</span>' +
+      '<small>' + docs.length + ' เอกสาร</small>';
     btn.addEventListener('click', function () { nav(curLine, curCat, s.station_id); });
     el.appendChild(btn);
   });

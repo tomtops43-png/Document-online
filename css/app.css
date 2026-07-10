@@ -211,8 +211,6 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .btn-choice b { font-size: 19px; color: var(--ink-800); }
 .btn-choice small { font-weight: 400; color: var(--text-faint); font-size: 14px; }
 
-#station-list { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-.btn-station { text-align: center; min-height: 68px; align-items: center; justify-content: center; }
 .selected-station { font-size: 18px; margin-bottom: 12px; color: var(--text-soft); }
 .selected-station b { color: var(--ink-800); }
 .nav-links { margin-top: 18px; }
@@ -367,8 +365,19 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .btn-reject { background: linear-gradient(135deg, #ef4444, var(--danger)); }
 
 /* ================= Document Center (dashboard/viewer) ================= */
+.nav-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.btn-nav-back {
+  display: none; align-items: center; gap: 8px; flex-shrink: 0;
+  min-height: 52px; padding: 12px 20px 12px 16px; font-size: 16.5px; font-weight: 800;
+  color: #fff; background: linear-gradient(135deg, var(--ink-800), var(--ink-900));
+  border: none; border-radius: 999px; cursor: pointer; font-family: inherit;
+  box-shadow: var(--shadow-sm); transition: box-shadow .15s, transform .08s;
+}
+.btn-nav-back .back-arrow { font-size: 18px; }
+.btn-nav-back:active { transform: translateY(1px); box-shadow: none; }
+
 .crumbs {
-  font-size: 15px; margin-bottom: 16px; display: flex; align-items: center; gap: 6px;
+  font-size: 14.5px; display: flex; align-items: center; gap: 6px;
   color: var(--text-faint); flex-wrap: wrap;
 }
 .crumbs a { color: var(--brand-600); text-decoration: none; font-weight: 700; }
@@ -417,12 +426,18 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
   border-radius: 16px; background: var(--brand-100); margin-bottom: 6px;
 }
 
-.station-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.station-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; }
+.btn-station {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 128px; padding: 20px 14px;
+}
 .btn-station .station-num {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 50%; background: var(--brand-100); color: var(--brand-600);
-  font-weight: 800; font-size: 15px; margin-bottom: 4px;
+  width: 54px; height: 54px; border-radius: 50%; background: var(--brand-100); color: var(--brand-600);
+  font-weight: 800; font-size: 22px;
 }
+.btn-station .station-name { font-size: 17.5px; font-weight: 800; color: var(--ink-800); }
+.btn-station small { font-size: 14px; }
 
 /* ---- Document Card: สีตาม behavior (form/file/recovery) ---- */
 .doc-card {
