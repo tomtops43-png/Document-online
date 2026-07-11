@@ -17,6 +17,7 @@ const FormRender = {
   async init(template, context) {
     this.template = template;
     this.context = context;
+    this.excludedItemIds = this.getExcludedItemIds();
     this.draftKey = CONFIG.LS_DRAFT_PREFIX + template.form_id + '_' + (context.station || 'single');
     this.restoreDraft();
     // idempotency key: สร้างครั้งเดียวต่อการกรอก 1 ชุด เก็บใน draft — submit ซ้ำ (เน็ตหลุด) ใช้ค่าเดิม
@@ -95,6 +96,20 @@ const FormRender = {
     el.innerHTML = html;
   },
 
+  // ---------- item ที่ Station ที่เลือกไม่ต้องตรวจ (ตาม Master Excel ต้นแบบ — คอลัมน์ N/A ต่อ Station) ----------
+  getExcludedItemIds() {
+    const excl = this.template && this.template.station_item_exclusions;
+    if (!excl) return [];
+    const station = String(this.context.station || '');
+    return excl[station] || [];
+  },
+
+  sectionItems(section) {
+    const excluded = this.excludedItemIds || [];
+    if (!excluded.length) return section.items;
+    return section.items.filter(function (i) { return excluded.indexOf(i.item_id) === -1; });
+  },
+
   // ---------- render ทุก section ----------
   // แต่ละ section = 1 Station — ถ้ามีข้อที่ต้องมี Recorder ให้เซ็นชื่อครั้งเดียวท้าย section นั้น
   // (ไม่ใช่เซ็นทีละข้อ และไม่ใช่เซ็นครั้งเดียวรวมทั้งเอกสารที่มีหลาย Station)
@@ -103,13 +118,14 @@ const FormRender = {
     container.innerHTML = '';
     this.stationSections = [];
     this.template.sections.forEach(function (section, idx) {
+      const items = FormRender.sectionItems(section);
       const secEl = document.createElement('div');
       secEl.className = 'section-card';
       secEl.innerHTML = '<div class="section-title">' + esc(section.title) + '</div>';
-      section.items.forEach(function (item) {
+      items.forEach(function (item) {
         secEl.appendChild(FormRender.renderItem(item));
       });
-      const recorderItemIds = section.items.filter(function (i) { return i.recorder; }).map(function (i) { return i.item_id; });
+      const recorderItemIds = items.filter(function (i) { return i.recorder; }).map(function (i) { return i.item_id; });
       if (recorderItemIds.length) {
         const key = 'sec' + idx;
         FormRender.stationSections.push({ key: key, title: section.title, itemIds: recorderItemIds });
@@ -376,7 +392,8 @@ const FormRender = {
   // ---------- progress ----------
   allItems() {
     const items = [];
-    this.template.sections.forEach(function (s) { s.items.forEach(function (i) { items.push(i); }); });
+    const self = this;
+    this.template.sections.forEach(function (s) { self.sectionItems(s).forEach(function (i) { items.push(i); }); });
     return items;
   },
 

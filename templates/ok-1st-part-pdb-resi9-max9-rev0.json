@@ -14,6 +14,12 @@
     3,
     4
   ],
+  "station_item_exclusions": {
+    "1": ["chk2", "chk7", "chk8", "chk9"],
+    "2": ["chk2", "chk7", "chk8", "chk9"],
+    "3": ["chk2", "chk7", "chk8", "chk9"],
+    "4": ["chk2", "chk7", "chk8", "chk9"]
+  },
   "header_fields": [
     {
       "key": "product_model",

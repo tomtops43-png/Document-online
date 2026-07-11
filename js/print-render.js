@@ -236,7 +236,8 @@ const PrintRender = {
   // ====================================================
   renderLogSheet(template, station, date, records, recoveryRows) {
     const root = document.getElementById('print-root');
-    const items = template.sections[0].items;
+    const excl = (template.station_item_exclusions && template.station_item_exclusions[String(station || '')]) || [];
+    const items = template.sections[0].items.filter(function (i) { return excl.indexOf(i.item_id) === -1; });
     const mainItems = items.filter(function (i) { return i.no !== 'LP'; });
     const lpItem = items.find(function (i) { return i.no === 'LP'; });
     const TOTAL_ROWS = 18; // จำนวนแถว entry ต่อแผ่น (แถวว่างพิมพ์เป็นช่องเปล่า)

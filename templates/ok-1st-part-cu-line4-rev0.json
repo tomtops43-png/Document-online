@@ -28,6 +28,26 @@
     20,
     "21-22"
   ],
+  "station_item_exclusions": {
+    "2": ["chk2", "chk7", "chk8", "chk9"],
+    "3": ["chk2", "chk7", "chk8", "chk9"],
+    "4": ["chk2", "chk7", "chk8", "chk9"],
+    "5": ["chk2", "chk7", "chk8", "chk9"],
+    "6": ["chk2", "chk7", "chk8", "chk9"],
+    "7": ["chk7", "chk8", "chk9"],
+    "8": ["chk7", "chk8", "chk9"],
+    "10": [],
+    "11": [],
+    "13": ["chk2", "chk7", "chk8", "chk9"],
+    "14": [],
+    "15": ["chk2", "chk7", "chk8", "chk9"],
+    "16": ["chk2", "chk7", "chk8", "chk9"],
+    "17": [],
+    "18": ["chk2", "chk7", "chk8", "chk9"],
+    "19": [],
+    "20": ["chk2", "chk7", "chk8", "chk9"],
+    "21-22": ["chk2", "chk7", "chk8", "chk9"]
+  },
   "header_fields": [
     {
       "key": "product_model",
