@@ -10,6 +10,24 @@
       "family_id": "CU"
     },
     {
+      "form_id": "cu-beauty-line4-first-piece",
+      "path": "templates/cu-beauty-line4-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: CU Beauty — Line 4",
+      "doc_no": "JRTLQR860-04/1",
+      "mode": "single-record",
+      "rev_no": "Rev01",
+      "family_id": "CU"
+    },
+    {
+      "form_id": "cu-classic-splitbus-line4-first-piece",
+      "path": "templates/cu-classic-splitbus-line4-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: CU Consumer Unit (CU Classic+ / CU Split bus) — Line 4",
+      "doc_no": "JRTLQR860-04/1",
+      "mode": "single-record",
+      "rev_no": "Rev01",
+      "family_id": "CU"
+    },
+    {
       "form_id": "cu-line5-first-piece",
       "path": "templates/cu-line5-first-piece-rev1.json",
       "title": "FIRST PIECE CHECK LIST: Consumer Unit (CU Classic+ / CU Split bus) — Line 5",

@@ -1,0 +1,367 @@
+{
+  "form_id": "cu-beauty-line4-first-piece",
+  "template_rev": "rev1",
+  "doc_no": "JRTLQR860-04/1",
+  "title_th": "FIRST PIECE CHECK LIST: CU Beauty — Line 4",
+  "mode": "single-record",
+  "lines": ["Line4"],
+  "print_css": "css/print-nms.css",
+  "header_fields": [
+    {"key": "product_model", "label": "Product Model", "type": "text", "required": true},
+    {"key": "date", "label": "Date", "type": "date", "required": true},
+    {"key": "line", "label": "Line", "type": "text", "default": "4", "required": true},
+    {"key": "shift", "label": "Shift", "type": "select", "options": ["A", "B"], "required": true}
+  ],
+  "sections": [
+    {
+      "section_id": "st1",
+      "title": "Station: 1",
+      "items": [
+        {
+          "item_id": "st1-1",
+          "text_th": "1. Verify accuracy Box",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st2",
+      "title": "Station: 2",
+      "items": [
+        {
+          "item_id": "st2-1",
+          "text_th": "1. Verify accuracy Rating Label and Wiring Diagram Label for Load Center",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {"key": "label_model", "label": "Model Label"},
+              {"key": "date_code", "label": "Date Code"}
+            ]
+          },
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st3",
+      "title": "Station: 3",
+      "items": [
+        {
+          "item_id": "st3-1",
+          "text_th": "1. Verify accuracy Ground Terminal",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st3-2",
+          "text_th": "2. Verify accuracy of Base correct according to the model and amount produced",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st4",
+      "title": "Station: 4",
+      "items": [
+        {
+          "item_id": "st4-1",
+          "text_th": "1. Verify accuracy of Neutral Label",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st4-2",
+          "text_th": "2. Verify accuracy of Interior Way Label",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st5",
+      "title": "Station: 5",
+      "items": [
+        {
+          "item_id": "st5-1",
+          "text_th": "1. Verify accuracy of Base add on",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st5-2",
+          "text_th": "2. Verify accuracy of Main Busbar",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st5-3",
+          "text_th": "3. Verify accuracy of Neutral Busbar",
+          "note_th": "ต้นฉบับระบุชื่อซ้ำกับข้อ 2 (\"Main Busbar\") — ตั้งชื่อแยกให้ชัดเจนเป็น Neutral Busbar",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st6",
+      "title": "Station: 6",
+      "items": [
+        {
+          "item_id": "st6-1",
+          "text_th": "1. Verify Neutral Terminal and screw",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st6-2",
+          "text_th": "2. Verify accuracy of IP Cover correct according to the model and amount produced",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st6-3",
+          "text_th": "3. Verify accuracy of IP Lock correct according to the model and amount produced",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st6-4",
+          "text_th": "4. Verify Neutral cable and Live cable",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st8",
+      "title": "Station: 8",
+      "items": [
+        {
+          "item_id": "st8-1",
+          "text_th": "1. Verify accuracy of Nut",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["Nut M8-32", "Nut M5"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st8-2",
+          "text_th": "2. Verify accuracy of Ground Label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st9",
+      "title": "Station: 9",
+      "items": [
+        {
+          "item_id": "st9-1",
+          "text_th": "1. Verify accuracy of Filler Plate according to the model and amount produced",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st10",
+      "title": "Station: 10",
+      "items": [
+        {
+          "item_id": "st10-1",
+          "text_th": "1. Version Verify",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st11",
+      "title": "Station: 11",
+      "items": [
+        {
+          "item_id": "st11-1",
+          "text_th": "1. Version Dielectric",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st14",
+      "title": "Station: 14",
+      "items": [
+        {
+          "item_id": "st14-1",
+          "text_th": "1. Version and GTP Verify",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st15",
+      "title": "Station: 15",
+      "items": [
+        {
+          "item_id": "st15-1",
+          "text_th": "1. Verify accuracy of Cover",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-2",
+          "text_th": "2. Verify accuracy position of On-Off Lable (where On is at the top)",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-3",
+          "text_th": "3. Verify accuracy of Way Label",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st15-4",
+          "text_th": "4. Verify accuracy of Hing",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st16",
+      "title": "Station: 16",
+      "items": [
+        {
+          "item_id": "st16-1",
+          "text_th": "1. Verify accuracy of circuit breaker (beauty)",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["40A", "63A"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st16-2",
+          "text_th": "2. Verify accuracy of circuit breaker (split)",
+          "answer_type": "acc_rej",
+          "options_extra": {"way_select": ["40A", "63A"]},
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st16-3",
+          "text_th": "3. Verify accuracy of Cover Screw",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st17",
+      "title": "Station: 17",
+      "items": [
+        {
+          "item_id": "st17-1",
+          "text_th": "1. Verify Continuity",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st18",
+      "title": "Station: 18",
+      "items": [
+        {
+          "item_id": "st18-1",
+          "text_th": "1. Verify accuracy and logo integrity Schneider and Square D",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st18-2",
+          "text_th": "2. Verify accuracy of TIS&IEC Label 1PH (Export no stick)",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st18-3",
+          "text_th": "3. Verify open-close Dolly Cover after assembly",
+          "note_th": "(confirm Dolly not move)",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st18-4",
+          "text_th": "4. Verify polybag",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st19",
+      "title": "Station: 19",
+      "items": [
+        {
+          "item_id": "st19-1",
+          "text_th": "1. Version Verify",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st20",
+      "title": "Station: 20",
+      "items": [
+        {
+          "item_id": "st20-1",
+          "text_th": "1. Verify accuracy of Carton",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    },
+    {
+      "section_id": "st21",
+      "title": "Station: 21",
+      "items": [
+        {
+          "item_id": "st21-1",
+          "text_th": "1. Verify accuracy of Schneider Label",
+          "answer_type": "acc_rej",
+          "photo": false, "critical": false, "recorder": true, "time": true
+        },
+        {
+          "item_id": "st21-2",
+          "text_th": "2. Verify accuracy of Carton Label correct according to the model produced",
+          "answer_type": "acc_rej",
+          "options_extra": {
+            "texts": [
+              {"key": "label_model", "label": "Model Label"},
+              {"key": "date_code", "label": "Date Code"}
+            ],
+            "checkboxes": ["TH"]
+          },
+          "photo": false, "critical": false, "recorder": true, "time": true
+        }
+      ]
+    }
+  ],
+  "photo_boxes": [],
+  "signatures": [
+    {"key": "operator", "label": "Production Operator", "role": "Operator"},
+    {"key": "leader", "label": "Prod. Leader", "role": "Leader"},
+    {"key": "qi", "label": "QI", "role": "QI"}
+  ]
+}
