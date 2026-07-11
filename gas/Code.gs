@@ -5,6 +5,8 @@
  *
  * Sheets ที่ต้องมีใน spreadsheet (ดู SETUP.md):
  *   Records | Recovery | Users | Config
+ *   Records-<YYYY> — ชีท archive รายปี สร้างอัตโนมัติเมื่อมี record แรกของปีนั้น
+ *   (ดูหัวข้อ "Records archive" ด้านล่าง — Records เดิมกลายเป็น legacy sheet แช่แข็ง)
  *
  * CORS: frontend ส่ง POST เป็น text/plain (เลี่ยง preflight)
  * อ่าน payload จาก e.postData.contents
@@ -142,6 +144,128 @@ function writeRow(sheetName, rowIndex, header, obj) {
   getSheet(sheetName).getRange(rowIndex, 1, 1, header.length).setValues([row]);
 }
 
+// ========================================================
+// Records archive — แยกชีทเป็นรายปี (Records-<YYYY>) กัน sheet เดียวโตจนช้า
+// (ตาม docs/ARCHITECTURE.md ข้อ "Scalability ของ Google Sheets": Sheets ช้าเห็นชัด
+// หลัง ~30-50k แถว, GAS execution มี quota 6 นาที/ครั้ง)
+//
+// ชีท "Records" เดิม (ไม่มีปีต่อท้าย) กลายเป็น legacy/archive แช่แข็งตั้งแต่ deploy นี้
+// — ไม่ย้ายข้อมูลเดิม (additive ตามหลักการเดิม) เขียนใหม่ทั้งหมดตั้งแต่วันนี้ไปเข้า
+// ชีทรายปีแทน (Records-2026, Records-2027, ...) สร้างอัตโนมัติเมื่อมี record แรกของปีนั้น
+//
+// record_id มีรูปแบบ {PREFIX}-{LINE}-{YYYYMMDD}-{seq} — ฝัง YYYYMMDD ไว้แล้ว จึง route
+// ไปชีทปีที่ถูกต้องได้ทันทีโดยไม่ต้องเดา/สแกนหลายชีท (ยกเว้น legacy ที่เช็คเป็น fallback เสมอ
+// เพราะข้อมูลก่อน migration ปนทุกปีอยู่ในนั้น — แต่ขนาดคงที่ ไม่โตต่อ จึงสแกนได้ไม่แพง)
+// ========================================================
+function recordsYearSheetName_(year) {
+  return 'Records-' + year;
+}
+function recordYearFromDate_(dateStr) {
+  var y = String(dateStr || '').slice(0, 4);
+  return /^\d{4}$/.test(y) ? y : String(new Date().getFullYear());
+}
+function recordYearFromId_(recordId) {
+  var m = String(recordId || '').match(/-(\d{4})\d{4}-\d+$/);
+  return m ? m[1] : null;
+}
+// เปิดชีทของปีนั้น สร้างใหม่พร้อม header ถ้ายังไม่มี (เรียกตอนจะเขียนเท่านั้น)
+function ensureRecordsYearSheet_(year) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = recordsYearSheetName_(year);
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, RECORDS_HEADER.length).setValues([RECORDS_HEADER]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+// ชีทรายปีทั้งหมดที่มีอยู่จริง (ใช้ตอนค้นหาแบบไม่จำกัดช่วงวันที่ — ต้องไล่ทุกปีที่มีข้อมูล)
+function listExistingRecordYearSheets_() {
+  var years = [];
+  SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(function (s) {
+    var m = s.getName().match(/^Records-(\d{4})$/);
+    if (m) years.push(m[1]);
+  });
+  return years;
+}
+// รายชื่อชีทที่ต้องอ่านสำหรับช่วงวันที่ที่ขอ — ระบุช่วงชัดเจน = อ่านแค่ปีที่เกี่ยวข้อง (เร็ว)
+// ไม่ระบุช่วง (null) = ต้องไล่ทุกปีที่มีจริง (เช่น คิวรออนุมัติที่ไม่กรองวันที่)
+function recordSheetNamesForRange_(dateFrom, dateTo) {
+  var names = [SHEET_RECORDS]; // legacy เสมอ — ขนาดคงที่ ไม่โตต่อหลัง migration
+  if (dateFrom && dateTo) {
+    var yFrom = parseInt(String(dateFrom).slice(0, 4), 10);
+    var yTo = parseInt(String(dateTo).slice(0, 4), 10);
+    if (!isNaN(yFrom) && !isNaN(yTo) && yFrom <= yTo) {
+      for (var y = yFrom; y <= yTo; y++) names.push(recordsYearSheetName_(y));
+      return names;
+    }
+  }
+  listExistingRecordYearSheets_().forEach(function (y) { names.push(recordsYearSheetName_(y)); });
+  return names;
+}
+// อ่านหลายชีทรวมเป็นก้อนเดียว — ข้ามชีทที่ยังไม่มีอยู่จริงอย่างเงียบๆ (ปกติสำหรับปีที่ยังไม่มีข้อมูล)
+function readRecordsAcross_(sheetNames) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var rows = [];
+  sheetNames.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var values = sheet.getDataRange().getValues();
+    if (values.length < 2) return;
+    var h = values[0];
+    for (var i = 1; i < values.length; i++) {
+      var obj = { _rowIndex: i + 1, _sheet: name };
+      for (var j = 0; j < h.length; j++) obj[h[j]] = values[i][j];
+      rows.push(obj);
+    }
+  });
+  return { header: RECORDS_HEADER, rows: rows };
+}
+// หา record ทีละแถว: ลองชีทปีของมันก่อน (จาก record_id) แล้วค่อย fallback legacy
+// คืน sheetName มาด้วย เพื่อให้ writeRow กลับไปเขียนถูกชีท
+function findRecordRow(recordId) {
+  var year = recordYearFromId_(recordId);
+  if (year) {
+    var found = findInSheet_(recordsYearSheetName_(year), recordId);
+    if (found) return found;
+  }
+  return findInSheet_(SHEET_RECORDS, recordId);
+}
+function findInSheet_(sheetName, recordId) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  if (!sheet) return null;
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return null;
+  var header = values[0];
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(recordId)) { // record_id เป็นคอลัมน์แรกเสมอ
+      var obj = { _rowIndex: i + 1 };
+      for (var j = 0; j < header.length; j++) obj[header[j]] = values[i][j];
+      return { header: header, row: obj, sheetName: sheetName };
+    }
+  }
+  return null;
+}
+// นับ record สถานะ PENDING_* ทุกปี — อ่านเฉพาะคอลัมน์ status (ไม่ดึงทั้งแถว) ประหยัด quota
+// เพราะ dashboard เรียก action นี้บ่อย และคิวรออนุมัติต้องนับข้ามทุกปีเสมอ (นับไม่ได้แค่ปีปัจจุบัน)
+function countPendingAcrossAllYears_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var names = [SHEET_RECORDS];
+  listExistingRecordYearSheets_().forEach(function (y) { names.push(recordsYearSheetName_(y)); });
+  var statusCol = RECORDS_HEADER.indexOf('status') + 1;
+  var count = 0;
+  names.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+    var values = sheet.getRange(2, statusCol, lastRow - 1, 1).getValues();
+    values.forEach(function (row) { if (String(row[0]).indexOf('PENDING_') === 0) count++; });
+  });
+  return count;
+}
+
 function nowISO() {
   return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
 }
@@ -225,7 +349,7 @@ function requireRole(user, roles) {
 
 // ---------- records ----------
 function actionGetRecords(params, user) {
-  var data = readAll(SHEET_RECORDS);
+  var data = readRecordsAcross_(recordSheetNamesForRange_(params.date_from, params.date_to));
   var out = [];
   for (var i = 0; i < data.rows.length; i++) {
     var r = data.rows[i];
@@ -261,16 +385,6 @@ function actionGetRecords(params, user) {
   return { success: true, records: out, truncated: truncated, total_matched: truncated ? undefined : out.length };
 }
 
-function findRecordRow(recordId) {
-  var data = readAll(SHEET_RECORDS);
-  for (var i = 0; i < data.rows.length; i++) {
-    if (String(data.rows[i].record_id) === String(recordId)) {
-      return { header: data.header, row: data.rows[i] };
-    }
-  }
-  return null;
-}
-
 function recordToClient(r) {
   var out = {};
   for (var k in r) {
@@ -291,7 +405,7 @@ function actionGetRecord(params, user) {
 
 // log-sheet: ทุก entry ของ form+station+date (สำหรับพิมพ์รวมแผ่นเดียว)
 function actionGetLogSheet(params, user) {
-  var data = readAll(SHEET_RECORDS);
+  var data = readRecordsAcross_(recordSheetNamesForRange_(params.date, params.date));
   var records = [];
   var ids = {};
   for (var i = 0; i < data.rows.length; i++) {
@@ -312,18 +426,25 @@ function actionGetLogSheet(params, user) {
 }
 
 // สร้าง record_id: FP-{LINE}-{YYYYMMDD}-{running 3 หลัก} (กัน race ด้วย LockService)
+// สแกนแค่ชีทปีของ record นี้ + legacy (ไม่ใช่ทั้งประวัติ) — legacy ต้องเช็คด้วยเพราะวันที่ deploy
+// ชีทรายปีของปีปัจจุบันยังว่าง ในขณะที่ legacy อาจมี record ของวันเดียวกันอยู่แล้ว (กัน id ชนกัน)
 function generateRecordId(line, dateStr) {
   var ymd = String(dateStr || '').replace(/-/g, '');
   var prefix = 'FP-' + String(line || 'X').toUpperCase() + '-' + ymd + '-';
-  var data = readAll(SHEET_RECORDS);
+  var year = recordYearFromDate_(dateStr);
   var max = 0;
-  for (var i = 0; i < data.rows.length; i++) {
-    var id = String(data.rows[i].record_id);
-    if (id.indexOf(prefix) === 0) {
-      var n = parseInt(id.substring(prefix.length), 10);
-      if (!isNaN(n) && n > max) max = n;
+  [recordsYearSheetName_(year), SHEET_RECORDS].forEach(function (name) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+    if (!sheet) return;
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      var id = String(values[i][0]);
+      if (id.indexOf(prefix) === 0) {
+        var n = parseInt(id.substring(prefix.length), 10);
+        if (!isNaN(n) && n > max) max = n;
+      }
     }
-  }
+  });
   var next = String(max + 1);
   while (next.length < 3) next = '0' + next;
   return prefix + next;
@@ -334,13 +455,18 @@ function actionCreateRecord(params, user) {
   lock.waitLock(20000);
   try {
     // idempotency: ถ้า client ส่ง client_uuid มาแล้วมี record นั้นอยู่แล้ว (submit ซ้ำเพราะเน็ตหลุด)
-    // → คืน record_id เดิม ไม่สร้างซ้ำ
+    // → คืน record_id เดิม ไม่สร้างซ้ำ — เช็คแค่ชีทปีเป้าหมาย (submit ซ้ำเกิดใกล้เวลากันเสมอ ไม่ข้ามปี)
     var clientUuid = String(params.client_uuid || '').trim();
+    var targetYear = recordYearFromDate_(params.date);
     if (clientUuid) {
-      var existing = readAll(SHEET_RECORDS);
-      for (var e = 0; e < existing.rows.length; e++) {
-        if (String(existing.rows[e].client_uuid) === clientUuid) {
-          return { success: true, record_id: String(existing.rows[e].record_id), duplicate: true };
+      var candSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(recordsYearSheetName_(targetYear));
+      if (candSheet) {
+        var candValues = candSheet.getDataRange().getValues();
+        var uuidCol = RECORDS_HEADER.indexOf('client_uuid');
+        for (var e = 1; e < candValues.length; e++) {
+          if (String(candValues[e][uuidCol]) === clientUuid) {
+            return { success: true, record_id: String(candValues[e][0]), duplicate: true };
+          }
         }
       }
     }
@@ -378,7 +504,7 @@ function actionCreateRecord(params, user) {
       client_uuid: clientUuid
     };
     var row = RECORDS_HEADER.map(function (h) { return record[h] !== undefined ? record[h] : ''; });
-    getSheet(SHEET_RECORDS).appendRow(row);
+    ensureRecordsYearSheet_(targetYear).appendRow(row);
 
     // recovery แนบมาพร้อม submit
     var recovery = params.recovery || [];
@@ -491,7 +617,7 @@ function actionApproveRecord(params, user) {
     // ไป step ถัดไป หรือจบ
     r.status = (idx + 1 < wf.length) ? ('PENDING_' + String(wf[idx + 1].role).toUpperCase()) : 'COMPLETED';
     r.updated_at = now;
-    writeRow(SHEET_RECORDS, r._rowIndex, found.header, r);
+    writeRow(found.sheetName, r._rowIndex, found.header, r);
 
     // แจ้งเตือน: จบครบทุก step → บอกผู้กรอก, ยังมี step ถัดไป → บอก role ถัดไป
     if (r.status === 'COMPLETED') {
@@ -532,7 +658,7 @@ function actionRejectRecord(params, user) {
     r.status = 'REJECTED';
     r.reject_reason = String(params.reason || '');
     r.updated_at = nowISO();
-    writeRow(SHEET_RECORDS, r._rowIndex, found.header, r);
+    writeRow(found.sheetName, r._rowIndex, found.header, r);
 
     // แจ้งเตือนเจาะจงถึงผู้กรอก — ให้แก้แล้ว submit ใหม่
     pushNotification('rejected', '', String(r.operator_id),
@@ -595,7 +721,7 @@ function actionUploadPhoto(params, user) {
     photos[itemId].push({ fileId: file.getId(), fileName: fileName, ts: nowISO() });
     r.photos_json = JSON.stringify(photos);
     r.updated_at = nowISO();
-    writeRow(SHEET_RECORDS, r._rowIndex, found.header, r);
+    writeRow(found.sheetName, r._rowIndex, found.header, r);
 
     return { success: true, fileId: file.getId(), fileName: fileName };
   } finally {
@@ -1459,15 +1585,19 @@ function seedMaster() {
 }
 
 // ========================================================
-// Dashboard Stats — อ่านชีท Records ครั้งเดียว สรุป KPI + trend 7 วัน + activity
+// Dashboard Stats — สรุป KPI + trend 7 วัน + activity
 // client เอา slim record ไป aggregate เอง (กรอง Line/Station ได้โดยไม่ยิง API ซ้ำ)
+//
+// pending นับข้ามทุกปีเสมอ (ของค้างอาจเก่าข้ามปีได้) แต่ใช้ countPendingAcrossAllYears_()
+// ที่อ่านแค่คอลัมน์ status ประหยัดกว่าดึงทั้งแถว — ส่วน today/week/recent อ่านแค่ปีที่เกี่ยวข้อง
+// (recordSheetNamesForRange_ + legacy) ไม่ต้องไล่ทุกปีเหมือน pending
 // ========================================================
 function actionDashboardStats(params, user) {
-  var data = readAll(SHEET_RECORDS);
   var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   var since = Utilities.formatDate(new Date(Date.now() - 6 * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var data = readRecordsAcross_(recordSheetNamesForRange_(since, today));
 
-  var pending = 0, todayTotal = 0, todayNok = 0;
+  var todayTotal = 0, todayNok = 0;
   var week = [];   // slim record 7 วันล่าสุด — client กรอง/aggregate เอง
   var recent = []; // activity ล่าสุด
 
@@ -1476,7 +1606,6 @@ function actionDashboardStats(params, user) {
     var status = String(r.status);
     var date = normDate(r.date);
     var isNok = String(r.has_nok) === 'true';
-    if (status.indexOf('PENDING_') === 0) pending++;
     if (date === today && status !== 'REJECTED') {
       todayTotal++;
       if (isNok) todayNok++;
@@ -1492,6 +1621,7 @@ function actionDashboardStats(params, user) {
     });
   }
   recent.sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
+  var pending = countPendingAcrossAllYears_();
   return {
     success: true,
     today: today, since: since,
