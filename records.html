@@ -35,6 +35,12 @@
 
   <!-- filter -->
   <section class="card" id="filter-card">
+    <div class="quick-date-filters" id="quick-date-filters">
+      <button type="button" class="quick-date-btn" data-range="today">วันนี้</button>
+      <button type="button" class="quick-date-btn" data-range="7d">7 วันล่าสุด</button>
+      <button type="button" class="quick-date-btn" data-range="30d">30 วันล่าสุด</button>
+      <button type="button" class="quick-date-btn" data-range="all">ทั้งหมด</button>
+    </div>
     <div class="filter-grid">
       <label class="field"><span>ฟอร์ม</span>
         <select id="f-form"><option value="">ทั้งหมด</option></select></label>
@@ -60,6 +66,7 @@
 
   <!-- ตารางผลลัพธ์ -->
   <section class="card">
+    <div class="results-summary" id="results-summary"></div>
     <div class="table-scroll">
       <table class="record-table">
         <thead><tr>
@@ -68,6 +75,11 @@
         </tr></thead>
         <tbody id="record-rows"><tr><td colspan="9" class="empty-hint">กด "ค้นหา" เพื่อแสดงบันทึก</td></tr></tbody>
       </table>
+    </div>
+    <div class="table-pagination" id="table-pagination" style="display:none">
+      <button type="button" class="btn-small" id="page-prev">‹ ก่อนหน้า</button>
+      <span id="page-label"></span>
+      <button type="button" class="btn-small" id="page-next">ถัดไป ›</button>
     </div>
   </section>
 
@@ -335,8 +347,44 @@ async function refreshApproveCount() {
   } catch (e) { /* เงียบ */ }
 }
 
+// ----- Quick date filters: จำกัดช่วงวันที่เร็วๆ กันดึงบันทึกทั้งหมดโดยไม่จำเป็น
+// (สอดคล้องกับ MAX_RECORDS_RETURN=1000 ฝั่ง GAS — ยิ่งช่วงแคบ ยิ่งเร็วและชัวร์ว่าไม่ถูกตัด) -----
+function isoDaysAgo(n) {
+  return new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+}
+document.querySelectorAll('.quick-date-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.quick-date-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    const today = new Date().toISOString().slice(0, 10);
+    const range = btn.dataset.range;
+    if (range === 'today') {
+      document.getElementById('f-date-from').value = today;
+      document.getElementById('f-date-to').value = today;
+    } else if (range === '7d') {
+      document.getElementById('f-date-from').value = isoDaysAgo(6);
+      document.getElementById('f-date-to').value = today;
+    } else if (range === '30d') {
+      document.getElementById('f-date-from').value = isoDaysAgo(29);
+      document.getElementById('f-date-to').value = today;
+    } else {
+      document.getElementById('f-date-from').value = '';
+      document.getElementById('f-date-to').value = '';
+    }
+    doSearch();
+  });
+});
+
+// ----- Pagination ฝั่ง client (ข้อมูลจาก 1 คำขอ ไม่ยิง API ซ้ำต่อหน้า — ประหยัด quota) -----
+const PAGE_SIZE = 50;
+let allRecords = [];
+let currentPage = 1;
+
 // ----- ค้นหา -----
-document.getElementById('btn-search').addEventListener('click', doSearch);
+document.getElementById('btn-search').addEventListener('click', function () {
+  document.querySelectorAll('.quick-date-btn').forEach(function (b) { b.classList.remove('active'); });
+  doSearch();
+});
 async function doSearch() {
   Loading.show('กำลังค้นหา...');
   try {
@@ -348,7 +396,7 @@ async function doSearch() {
       status: document.getElementById('f-status').value,
       product_model: document.getElementById('f-model').value.trim()
     });
-    renderRows(res.records || []);
+    showResults(res.records || [], res.truncated, { groupByDate: true });
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -364,7 +412,9 @@ async function loadApproveQueue() {
     if (user.role === 'Admin') {
       records = records.filter(function (r) { return isPendingStatus(r.status); });
     }
-    renderRows(records);
+    // คิวรออนุมัติ: เก่าสุดก่อน (FIFO) — กันของค้างนานถูกลืม (ต่างจากค้นหาทั่วไปที่ใหม่สุดก่อน)
+    records = records.slice().sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
+    showResults(records, res.truncated, { groupByDate: false });
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -372,20 +422,64 @@ async function loadApproveQueue() {
   }
 }
 
+// ----- แสดงผล: banner แจ้งถ้าถูกตัด + pagination ฝั่ง client -----
+function showResults(records, truncated, opts) {
+  allRecords = records;
+  currentPage = 1;
+  const summary = document.getElementById('results-summary');
+  let html = '<b>พบ ' + records.length + (truncated ? '+' : '') + ' รายการ</b>';
+  if (truncated) {
+    html += '<div class="truncated-banner">⚠ ผลลัพธ์เกิน ' + records.length +
+      ' รายการ ระบบแสดงให้เท่าที่ไหวก่อน — จำกัดช่วงวันที่ให้แคบลงเพื่อดูให้ครบ</div>';
+  }
+  summary.innerHTML = records.length ? html : '';
+  renderPage(opts);
+}
+
+function renderPage(opts) {
+  const totalPages = Math.max(1, Math.ceil(allRecords.length / PAGE_SIZE));
+  currentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageRecords = allRecords.slice(start, start + PAGE_SIZE);
+  renderRows(pageRecords, opts);
+
+  const pager = document.getElementById('table-pagination');
+  if (allRecords.length > PAGE_SIZE) {
+    pager.style.display = 'flex';
+    document.getElementById('page-label').textContent = 'หน้า ' + currentPage + ' / ' + totalPages;
+    document.getElementById('page-prev').disabled = currentPage <= 1;
+    document.getElementById('page-next').disabled = currentPage >= totalPages;
+  } else {
+    pager.style.display = 'none';
+  }
+}
+document.getElementById('page-prev').addEventListener('click', function () { currentPage--; renderPage({ groupByDate: true }); });
+document.getElementById('page-next').addEventListener('click', function () { currentPage++; renderPage({ groupByDate: true }); });
+
 function statusBadge(status) {
   const s = CONFIG.STATUS[status];
   if (!s) return status || '';
   return '<span class="status-badge" style="background:' + s.color + '">' + s.label + '</span>';
 }
 
-function renderRows(records) {
+function renderRows(records, opts) {
+  opts = opts || {};
   const tbody = document.getElementById('record-rows');
   if (!records.length) {
     tbody.innerHTML = '<tr><td colspan="9" class="empty-hint">ไม่พบบันทึก</td></tr>';
     return;
   }
   tbody.innerHTML = '';
+  let lastDate = null;
   records.forEach(function (r) {
+    // จัดกลุ่มตามวันที่ให้อ่านง่ายเมื่อรายการเยอะ (เฉพาะโหมดค้นหา — คิวอนุมัติเรียงตามคิวจริง ไม่กรุ๊ปวันที่)
+    if (opts.groupByDate && r.date !== lastDate) {
+      lastDate = r.date;
+      const groupTr = document.createElement('tr');
+      groupTr.className = 'date-group-row';
+      groupTr.innerHTML = '<td colspan="9">📅 ' + (r.date || 'ไม่ระบุวันที่') + '</td>';
+      tbody.appendChild(groupTr);
+    }
     const form = CONFIG.FORMS.find(function (f) { return f.form_id === r.form_id; });
     // ฟอร์มใหม่ (data-driven) ไม่อยู่ใน CONFIG.FORMS — ใช้ mode จาก record แทน
     const mode = form ? form.mode : r.mode;
@@ -560,9 +654,10 @@ document.getElementById('btn-reject').addEventListener('click', async function (
   }
 });
 
-// ค่าเริ่มต้น: วันนี้
+// ค่าเริ่มต้น: วันนี้ (ตรงกับ quick filter "วันนี้" — ป้องกันดึงบันทึกทั้งหมดโดยไม่ตั้งใจตอนเปิดหน้าครั้งแรก)
 document.getElementById('f-date-from').value = new Date().toISOString().slice(0, 10);
 document.getElementById('f-date-to').value = new Date().toISOString().slice(0, 10);
+document.querySelector('.quick-date-btn[data-range="today"]').classList.add('active');
 
 
 </script>
