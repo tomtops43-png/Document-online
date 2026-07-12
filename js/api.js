@@ -6,6 +6,9 @@
 
 const API = {
   // GET: ส่ง action + params เป็น query string
+  // เลี่ยง browser cache เด็ดขาด — ถ้า action เดิม+params เดิมถูกเรียกซ้ำ (เช่น โหลดลิสต์ใหม่
+  // หลัง approve เสร็จ) query string จะเหมือนเดิมทุกตัวอักษร บาง browser/WebView จะคืนค่าที่
+  // cache ไว้แทนที่จะยิงเน็ตจริง ทำให้เห็นสถานะเก่าค้างอยู่ทั้งที่เซิร์ฟเวอร์อัปเดตแล้ว
   async get(action, params) {
     const url = new URL(CONFIG.GAS_URL);
     url.searchParams.set('action', action);
@@ -16,7 +19,8 @@ const API = {
         url.searchParams.set(k, params[k]);
       }
     });
-    return API._fetchWithRetry(url.toString(), { method: 'GET' });
+    url.searchParams.set('_', Date.now().toString(36));
+    return API._fetchWithRetry(url.toString(), { method: 'GET', cache: 'no-store' });
   },
 
   // POST: body เป็น JSON string แต่ Content-Type เป็น text/plain (เลี่ยง preflight)
