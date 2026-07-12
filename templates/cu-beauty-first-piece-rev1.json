@@ -7,10 +7,34 @@
   "lines": [],
   "print_css": "css/print-nms.css",
   "header_fields": [
-    {"key": "product_model", "label": "รุ่นที่จะทำการผลิต", "type": "text", "required": true},
-    {"key": "date", "label": "วันที่", "type": "date", "required": true},
-    {"key": "line", "label": "Line", "type": "text", "required": true},
-    {"key": "shift", "label": "กะ", "type": "select", "options": ["A", "B"], "required": true}
+    {
+      "key": "product_model",
+      "label": "รุ่นที่จะทำการผลิต",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "date",
+      "label": "วันที่",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "line",
+      "label": "Line",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "shift",
+      "label": "กะ",
+      "type": "select",
+      "options": [
+        "A",
+        "B"
+      ],
+      "required": true
+    }
   ],
   "sections": [
     {
@@ -21,12 +45,22 @@
           "item_id": "st1-1",
           "text_th": "1. ตรวจสอบความถูกต้อง Box",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": [
-            "4Way (75504055DAN)", "6Way (75504055DAN)", "10Way (75504056DAN)",
-            "14Way (75504057CAN)", "18Way (S1B82681)",
-            "14 X 4 Way (75504057CAN)", "18 x 4 Way (S1B82681)", "18 x 8 Way (S1B82681)"
-          ]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4Way (75504055DAN)",
+              "6Way (75504055DAN)",
+              "10Way (75504056DAN)",
+              "14Way (75504057CAN)",
+              "18Way (S1B82681)",
+              "14 X 4 Way (75504057CAN)",
+              "18 x 4 Way (S1B82681)",
+              "18 x 8 Way (S1B82681)"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-2",
@@ -34,18 +68,35 @@
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
-              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
-              {"key": "date_code", "label": "Date Code"}
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
             ],
-            "checkboxes": ["มี 2D Barcode"]
+            "checkboxes": [
+              "มี 2D Barcode"
+            ]
           },
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {
+            "required": true,
+            "label": "ติด Rating Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-3",
           "text_th": "3. ตรวจสอบความถูกต้อง Base ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -57,21 +108,52 @@
           "item_id": "st2-1",
           "text_th": "1. ตรวจสอบความถูกต้อง Interior Way Label",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4Way",
+              "6Way",
+              "10Way",
+              "14Way",
+              "18Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-2",
           "text_th": "2. ตรวจสอบความถูกต้อง Neutral Label",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4Way",
+              "6Way",
+              "10Way",
+              "14Way",
+              "18Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-3",
           "text_th": "3. ตรวจสอบความถูกต้องของตำแหน่ง Warning Label",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -83,21 +165,41 @@
           "item_id": "st3-1",
           "text_th": "1. ตรวจสอบความถูกต้อง Neutral Terminal",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4Way",
+              "6Way",
+              "10Way",
+              "14Way",
+              "18Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-2",
           "text_th": "2. ตรวจสอบการมาร์คสีเพื่อยืนยันความถูกต้อง 3 ตำแหน่ง",
           "note_th": "Neutral Terminal / Bus Bar / Main Base",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-3",
           "text_th": "3. ตรวจสอบความถูกต้อง IP Cover ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -109,39 +211,73 @@
           "item_id": "st4-1",
           "text_th": "1. ตรวจสอบความถูกต้อง Ground Terminal",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["4Way", "6Way", "10Way", "14Way", "18Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4Way",
+              "6Way",
+              "10Way",
+              "14Way",
+              "18Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-2",
           "text_th": "2. ตรวจสอบความถูกต้อง Ground Label",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-3",
           "text_th": "3. ตรวจสอบความถูกต้อง Nut",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["Nut M8-32", "Nut M5"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "Nut M8-32",
+              "Nut M5"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-4",
           "text_th": "4. ตรวจสอบการมาร์คสีเพื่อยืนยันความถูกต้องที่ Nut 2 ตำแหน่ง",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-5",
           "text_th": "5. ตรวจสอบความถูกต้องของ Filler Plate และจำนวนครบ",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-6",
           "text_th": "6. สำหรับ Beauty Filler Plate ที่ใช้",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -153,26 +289,49 @@
           "item_id": "st5-1",
           "text_th": "1. ตรวจสอบความถูกต้องของค่าแรงดัน Dielectric 2.5 kvolts และความพร้อมของอุปกรณ์",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st5-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Hing",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st5-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ Way Label",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["4 Way", "6 Way", "10 Way", "14 Way", "18 Way", "14 X 4 Way", "18 x 4 Way", "18 x 8 Way"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4 Way",
+              "6 Way",
+              "10 Way",
+              "14 Way",
+              "18 Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st5-4",
           "text_th": "4. ตรวจสอบความถูกต้องและตำแหน่งการวางของ On-Off Lable (โดยที่ On อยู่ที่ด้านบน)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -184,38 +343,70 @@
           "item_id": "st6-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ Circuit Identification Label",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st6-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Cover Screw",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st6-3",
           "text_th": "3. สำหรับการประกอบ Beauty ต้องตรวจสอบ Breaker ว่าถูกต้อง",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["40A", "63A"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "40A",
+              "63A"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st6-4",
           "text_th": "4. สำหรับการประกอบ Split bus ต้องตรวจสอบ Breaker ว่าถูกต้อง",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["40A", "63A"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "40A",
+              "63A"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st6-5",
           "text_th": "5. ตรวจสอบความถูกต้องของ PLASTIC PARTS ASSY",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": [
-            "4Way (HRB77239)", "6Way (HRB53009)", "10Way (HRB53012)",
-            "14Way (HRB53015)", "18Way (HRB53016)",
-            "14 X 4 Way (HRB77275)", "18 x 4 Way (HRB77304)", "18 x 8 Way (HRB77500)"
-          ]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "4Way (HRB77239)",
+              "6Way (HRB53009)",
+              "10Way (HRB53012)",
+              "14Way (HRB53015)",
+              "18Way (HRB53016)",
+              "14 X 4 Way (HRB77275)",
+              "18 x 4 Way (HRB77304)",
+              "18 x 8 Way (HRB77500)"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -227,25 +418,40 @@
           "item_id": "st7-1",
           "text_th": "1. ตรวจสอบความถูกต้องและสมบูรณ์ของโลโก้ Schneider และ Square D",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st7-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ TIS&IEC Label 1PH (งานนอกไม่ติด)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st7-3",
           "text_th": "3. ตรวจสอบการเปิด - ปิด Dolly Cover หลังจากประกอบ (ยืนยัน Dolly ต้องตั้งค้าง)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st7-4",
           "text_th": "4. ตรวจสอบความถูกต้องของ QR Code (ต้องสามารถอ่านได้)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {
+            "required": true,
+            "label": "ติด QR Code"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -257,13 +463,19 @@
           "item_id": "st8-1",
           "text_th": "1. ตรวจสอบ Cover ต้องได้รับการขัน Screw เข้ากับ Box ทั้งสองตำแหน่ง",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st8-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Carton Box ถูกต้องตามรุ่นที่กำลังผลิต",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st8-3",
@@ -271,20 +483,62 @@
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
-              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
-              {"key": "date_code", "label": "Date Code"}
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
             ],
-            "checkboxes": ["TH"]
+            "checkboxes": [
+              "TH"
+            ]
           },
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {
+            "required": true,
+            "label": "ติด Carton Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     }
   ],
-  "photo_boxes": [],
+  "photo_boxes": [
+    {
+      "item_id": "st1-2",
+      "station_label": "Station1:",
+      "box_label": "ติด Rating Label"
+    },
+    {
+      "item_id": "st7-4",
+      "station_label": "Station7:",
+      "box_label": "ติด QR Code"
+    },
+    {
+      "item_id": "st8-3",
+      "station_label": "Station8:",
+      "box_label": "ติด Carton Label"
+    }
+  ],
   "signatures": [
-    {"key": "operator", "label": "Production Operator", "role": "Operator"},
-    {"key": "leader", "label": "Line Leader", "role": "Leader"},
-    {"key": "qi", "label": "QI", "role": "QI"}
+    {
+      "key": "operator",
+      "label": "Production Operator",
+      "role": "Operator"
+    },
+    {
+      "key": "leader",
+      "label": "Line Leader",
+      "role": "Leader"
+    },
+    {
+      "key": "qi",
+      "label": "QI",
+      "role": "QI"
+    }
   ]
 }

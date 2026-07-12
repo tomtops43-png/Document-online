@@ -34,8 +34,10 @@
   width: 30mm;
   border-right: 0.5pt solid #000;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 3.4mm; color: #3dcd58; /* เขียว Schneider */
-  text-align: center;
+  padding: 2mm;
+}
+.nms-logo img {
+  max-width: 100%; max-height: 16mm; object-fit: contain;
 }
 .nms-title {
   flex: 1;

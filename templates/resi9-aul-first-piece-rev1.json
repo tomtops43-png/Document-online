@@ -7,10 +7,34 @@
   "lines": [],
   "print_css": "css/print-nms.css",
   "header_fields": [
-    {"key": "product_model", "label": "รุ่นที่จะทำการผลิต", "type": "text", "required": true},
-    {"key": "date", "label": "วันที่", "type": "date", "required": true},
-    {"key": "line", "label": "line", "type": "text", "required": true},
-    {"key": "shift", "label": "กะ", "type": "select", "options": ["A", "B"], "required": true}
+    {
+      "key": "product_model",
+      "label": "รุ่นที่จะทำการผลิต",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "date",
+      "label": "วันที่",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "line",
+      "label": "line",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "shift",
+      "label": "กะ",
+      "type": "select",
+      "options": [
+        "A",
+        "B"
+      ],
+      "required": true
+    }
   ],
   "sections": [
     {
@@ -22,54 +46,92 @@
           "text_th": "1. ตรวจสอบความถูกต้องของ Box และ TOP & BOTTOM",
           "note_th": "หมายเหตุ: ต้นฉบับไม่ได้ระบุเลข Part ของ Box ต่อรุ่นไว้ในเอกสาร",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": [
-            "R9HSB110F-S", "R9HSB115F-S", "R9HSB115S-S", "R9HSB215F-S", "R9HSB215S-S",
-            "R9HSB315F-S", "R9HSB315S-S", "R9HSB415F-S", "R9HSB415S-S"
-          ]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "R9HSB110F-S",
+              "R9HSB115F-S",
+              "R9HSB115S-S",
+              "R9HSB215F-S",
+              "R9HSB215S-S",
+              "R9HSB315F-S",
+              "R9HSB315S-S",
+              "R9HSB415F-S",
+              "R9HSB415S-S"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Screw",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ YELLOW LABEL",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-4",
           "text_th": "4. ตรวจสอบความถูกต้องของ DIN RAIL SUPPORT",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-5",
           "text_th": "5. ตรวจสอบความถูกต้องของ DIN RAIL",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-6",
           "text_th": "6. ตรวจสอบความถูกต้องของ INSTRUCT SHEET",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-7",
           "text_th": "7. ตรวจสอบความถูกต้องของ CIRCUIT LABEL",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-8",
           "text_th": "8. ตรวจสอบความถูกต้องของค่า Torque (Screw 10815575)",
           "answer_type": "torque_value",
-          "torque_spec": {"min": 0.68, "max": 0.79, "unit": "N.m", "display": "0.68-0.79 N.m (6-7 lbf-in)"},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "torque_spec": {
+            "min": 0.68,
+            "max": 0.79,
+            "unit": "N.m",
+            "display": "0.68-0.79 N.m (6-7 lbf-in)"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -81,55 +143,84 @@
           "item_id": "st2-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ COMB BUSBAR",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ NEUTRAL BUSBAR",
           "note_th": "รุ่น 10 กับ รุ่น 15 = 827081x2 | รุ่น 30 = 827081x5 | รุ่น 45 = 827081x7 | รุ่น 60 = 827081x9",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ BUSBAR",
           "note_th": "หมายเหตุ: ต้นฉบับไม่ได้ระบุเลข Part ของ Busbar ไว้ในเอกสาร",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-4",
           "text_th": "4. ตรวจสอบความถูกต้องของ ACCESSORY PACK และ Silica gel",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-5",
           "text_th": "5. ตรวจสอบความถูกต้องของ EARTH WIRE 200MM",
           "note_th": "ใส่เฉพาะรุ่น 45, 60",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-6",
           "text_th": "6. ตรวจสอบความถูกต้องของ EARTH WIRE 630MM",
           "note_th": "ใส่เฉพาะรุ่น 45 และ (รุ่น 30 ที่เป็น Box เหล็ก)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-7",
           "text_th": "7. ตรวจสอบความถูกต้องของ EARTH WIRE 800MM",
           "note_th": "ใส่เฉพาะรุ่น 60",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-8",
           "text_th": "8. ตรวจสอบความถูกต้องของค่า Torque (Screw 10815575)",
           "answer_type": "torque_value",
-          "torque_spec": {"min": 0.68, "max": 0.79, "unit": "N.m", "display": "0.68-0.79 N.m (6-7 lbf-in)"},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "torque_spec": {
+            "min": 0.68,
+            "max": 0.79,
+            "unit": "N.m",
+            "display": "0.68-0.79 N.m (6-7 lbf-in)"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -141,32 +232,46 @@
           "item_id": "st3-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ COVER และ DOOR ต้องสีเดียวกันและตรงตามรุ่น",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": [
-            "R9HSB110F-S: Cover 826549 / Door 826573",
-            "R9HSB115F-S & R9HSB115S-S: Cover 826742 / Door 826676",
-            "R9HSB215F-S & R9HSB215S-S: Cover 826820 / Door 826768",
-            "R9HSB315F-S & R9HSB315S-S: Cover 826664 / Door 826854",
-            "R9HSB415F-S & R9HSB415S-S: Cover 826664 / Door 826940"
-          ]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "R9HSB110F-S: Cover 826549 / Door 826573",
+              "R9HSB115F-S & R9HSB115S-S: Cover 826742 / Door 826676",
+              "R9HSB215F-S & R9HSB215S-S: Cover 826820 / Door 826768",
+              "R9HSB315F-S & R9HSB315S-S: Cover 826664 / Door 826854",
+              "R9HSB415F-S & R9HSB415S-S: Cover 826664 / Door 826940"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ SCHNEIDER DECAL RESIN LOGO LABEL",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ LABEL",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-4",
           "text_th": "4. ตรวจสอบความถูกต้องของ Notice Label-Door",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -178,22 +283,56 @@
           "item_id": "st4-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ Carton Box",
           "answer_type": "acc_rej",
-          "options_extra": {"texts": [{"key": "part_name", "label": "ระบุชื่อ Part"}]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "texts": [
+              {
+                "key": "part_name",
+                "label": "ระบุชื่อ Part"
+              }
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Carton LABEL ต้องตรงตามรุ่น",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {
+            "required": true,
+            "label": "ติด Carton Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     }
   ],
-  "photo_boxes": [],
+  "photo_boxes": [
+    {
+      "item_id": "st4-2",
+      "station_label": "Station4:",
+      "box_label": "ติด Carton Label"
+    }
+  ],
   "signatures": [
-    {"key": "operator", "label": "Production Operator", "role": "Operator"},
-    {"key": "leader", "label": "Prod. Leader", "role": "Leader"},
-    {"key": "qi", "label": "QI", "role": "QI"}
+    {
+      "key": "operator",
+      "label": "Production Operator",
+      "role": "Operator"
+    },
+    {
+      "key": "leader",
+      "label": "Prod. Leader",
+      "role": "Leader"
+    },
+    {
+      "key": "qi",
+      "label": "QI",
+      "role": "QI"
+    }
   ]
 }

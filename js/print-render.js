@@ -119,7 +119,7 @@ const PrintRender = {
 
     // ---- หัวเอกสาร: โลโก้ + ชื่อฟอร์ม + เลขเอกสาร ----
     html += '<div class="nms-head">' +
-      '<div class="nms-logo">Schneider<br>Electric</div>' +
+      '<div class="nms-logo"><img src="assets/jhr-logo.jpg" alt="JHR"></div>' +
       '<div class="nms-title">' + esc(template.title_th) + '</div>' +
       '<div class="nms-docno">' + esc(template.doc_no) + '</div>' +
       '</div>';

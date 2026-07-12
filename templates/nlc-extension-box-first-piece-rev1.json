@@ -4,13 +4,40 @@
   "doc_no": "",
   "title_th": "FIRST PIECE CHECK LIST: NLC EXTENSION BOX",
   "mode": "single-record",
-  "lines": ["NLC"],
+  "lines": [
+    "NLC"
+  ],
   "print_css": "css/print-nms.css",
   "header_fields": [
-    {"key": "product_model", "label": "รุ่นที่จะทำการผลิต", "type": "text", "required": true},
-    {"key": "date", "label": "วันที่", "type": "date", "required": true},
-    {"key": "line", "label": "line", "type": "text", "default": "NLC", "required": true},
-    {"key": "shift", "label": "กะ", "type": "select", "options": ["A", "B"], "required": true}
+    {
+      "key": "product_model",
+      "label": "รุ่นที่จะทำการผลิต",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "date",
+      "label": "วันที่",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "line",
+      "label": "line",
+      "type": "text",
+      "default": "NLC",
+      "required": true
+    },
+    {
+      "key": "shift",
+      "label": "กะ",
+      "type": "select",
+      "options": [
+        "A",
+        "B"
+      ],
+      "required": true
+    }
   ],
   "sections": [
     {
@@ -21,39 +48,67 @@
           "item_id": "st1-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ Box และ Cover",
           "answer_type": "acc_rej",
-          "options_extra": {"way_select": ["450 (NAT18895) Diffuse", "450 (JPS25475) Project"]},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "options_extra": {
+            "way_select": [
+              "450 (NAT18895) Diffuse",
+              "450 (JPS25475) Project"
+            ]
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Din rail",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ Din rail Support",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-4",
           "text_th": "4. ตรวจสอบความถูกต้องของ Earth Terminal และ Earth pad และ Screw",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-5",
           "text_th": "5. ตรวจสอบความถูกต้องของ Ground Label",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st1-6",
           "text_th": "6. ตรวจสอบความถูกต้องของค่า Torque",
           "answer_type": "torque_value",
-          "torque_spec": {"min": 2.6, "max": 3.05, "unit": "N.m", "display": "(2.60-3.05 N.m) / 23-27 lbf-in"},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.05,
+            "unit": "N.m",
+            "display": "(2.60-3.05 N.m) / 23-27 lbf-in"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -66,33 +121,53 @@
           "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Support และ Screw",
           "note_th": "(NNZ46555)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-2",
           "text_th": "2. ตรวจสอบความถูกต้องของค่า Torque (JYT11560)",
           "answer_type": "torque_value",
-          "torque_spec": {"min": 1.85, "max": 2.15, "unit": "N.m", "display": "2.0 ± 0.15 N.m"},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "torque_spec": {
+            "min": 1.85,
+            "max": 2.15,
+            "unit": "N.m",
+            "display": "2.0 ± 0.15 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ Terminal Lug",
           "note_th": "(HRB40661) ค่า Torque 2.8 ± 0.2 N.m",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-4",
           "text_th": "4. ตรวจสอบความถูกต้องของตำแหน่ง Neutral Label",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st2-5",
           "text_th": "5. ตรวจสอบความถูกต้องของตำแหน่ง Warning label",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -105,20 +180,34 @@
           "text_th": "1. ตรวจสอบความถูกต้องของ ACCESSORY PACK",
           "note_th": "(826753) Pole Filler x2",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Panel captive screw",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st3-3",
           "text_th": "3. ตรวจสอบความถูกต้องของค่า Torque",
           "answer_type": "torque_value",
-          "torque_spec": {"min": 2.6, "max": 3.0, "unit": "N.m", "display": "2.8 ± 0.2 N.m"},
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.0,
+            "unit": "N.m",
+            "display": "2.8 ± 0.2 N.m"
+          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -130,20 +219,29 @@
           "item_id": "st4-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ Receptical",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Door handle",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ Banner",
           "note_th": "Banner for EB Diffuse (JPS40881) / Banner for EB Project (JPS40882)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st4-4",
@@ -151,12 +249,26 @@
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
-              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
-              {"key": "date_code", "label": "Date Code"}
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
             ],
-            "checkboxes": ["TH"]
+            "checkboxes": [
+              "TH"
+            ]
           },
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {
+            "required": true,
+            "label": "ติด Rating Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     },
@@ -168,7 +280,10 @@
           "item_id": "st5-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ Carton Box",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
         },
         {
           "item_id": "st5-2",
@@ -176,20 +291,57 @@
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
-              {"key": "label_model", "label": "ระบุรุ่นบน Label"},
-              {"key": "date_code", "label": "Date Code"}
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
             ],
-            "checkboxes": ["TH"]
+            "checkboxes": [
+              "TH"
+            ]
           },
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {
+            "required": true,
+            "label": "ติด Carton Label"
+          },
+          "critical": false,
+          "recorder": true,
+          "time": true
         }
       ]
     }
   ],
-  "photo_boxes": [],
+  "photo_boxes": [
+    {
+      "item_id": "st4-4",
+      "station_label": "Station4:",
+      "box_label": "ติด Rating Label"
+    },
+    {
+      "item_id": "st5-2",
+      "station_label": "Station5:",
+      "box_label": "ติด Carton Label"
+    }
+  ],
   "signatures": [
-    {"key": "operator", "label": "Production Operator", "role": "Operator"},
-    {"key": "leader", "label": "Prod. Leader", "role": "Leader"},
-    {"key": "qi", "label": "QI", "role": "QI"}
+    {
+      "key": "operator",
+      "label": "Production Operator",
+      "role": "Operator"
+    },
+    {
+      "key": "leader",
+      "label": "Prod. Leader",
+      "role": "Leader"
+    },
+    {
+      "key": "qi",
+      "label": "QI",
+      "role": "QI"
+    }
   ]
 }
