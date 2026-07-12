@@ -681,15 +681,26 @@ function getConfigValue(key) {
 }
 
 // โฟลเดอร์ {root}/{line}/{YYYY-MM}/ (สร้างถ้ายังไม่มี)
+// cache ID โฟลเดอร์ต่อ line+เดือน ไว้ 6 ชม. — ไม่งั้นทุกรูปที่อัปโหลดต้องเดิน Drive API
+// ค้นหา/สร้างโฟลเดอร์ซ้ำ 2 รอบ (line, แล้วก็ year-month) ซึ่งช้าและสะสมได้เยอะเมื่อมีคนอัปพร้อมกันหลายคน
 function getPhotoFolder(line, dateStr) {
+  var ym = String(dateStr || nowISO()).substring(0, 7); // YYYY-MM
+  var lineKey = String(line || 'X');
+  var cacheKey = 'photofolder_' + lineKey + '_' + ym;
+  var cache = CacheService.getScriptCache();
+  var cachedId = cache.get(cacheKey);
+  if (cachedId) {
+    try { return DriveApp.getFolderById(cachedId); } catch (e) { /* โฟลเดอร์ถูกลบ/ย้าย — หาใหม่ */ }
+  }
+
   var rootId = getConfigValue('drive_root_folder_id');
   if (!rootId) throw new Error('ยังไม่ได้ตั้งค่า drive_root_folder_id ในชีท Config');
   var folder = DriveApp.getFolderById(rootId);
-  var ym = String(dateStr || nowISO()).substring(0, 7); // YYYY-MM
-  [String(line || 'X'), ym].forEach(function (name) {
+  [lineKey, ym].forEach(function (name) {
     var it = folder.getFoldersByName(name);
     folder = it.hasNext() ? it.next() : folder.createFolder(name);
   });
+  cache.put(cacheKey, folder.getId(), 21600); // 6 ชม. (ค่าสูงสุดที่ CacheService รองรับ)
   return folder;
 }
 
@@ -700,23 +711,29 @@ function actionUploadPhoto(params, user) {
     return { success: false, error: 'ข้อมูลรูปไม่ครบ (record_id/item_id/base64)' };
   }
 
+  var found0 = findRecordRow(recordId);
+  if (!found0) return { success: false, error: 'ไม่พบบันทึก: ' + recordId };
+  var n = (JSON.parse(String(found0.row.photos_json || '{}'))[itemId] || []).length + 1;
+
+  // อัปโหลดไฟล์ขึ้น Drive "นอก" lock — เป็นขั้นตอนที่ช้าที่สุด (สร้าง/ค้นหาโฟลเดอร์ + อัปโหลดไฟล์
+  // หลาย round-trip ไป Drive API) ถ้าถือ lock ทั้งเส้นทางนี้ จะบล็อกทุก request อื่นทั้งระบบ
+  // (createRecord, approve, uploadPhoto รูปอื่น ฯลฯ) พร้อมกันหลายคนพร้อมกันบนโรงงานจริง
+  // ทำให้คิวยาว จน connection ฝั่ง client หลุดเป็น "Failed to fetch" ก่อน GAS จะตอบทัน
+  var fileName = recordId + '_' + itemId + '_' + n + '.jpg';
+  var blob = Utilities.newBlob(Utilities.base64Decode(params.base64), 'image/jpeg', fileName);
+  var folder = getPhotoFolder(params.line || found0.row.line, normDate(found0.row.date));
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  // ถือ lock เฉพาะช่วงอ่าน-แก้ไข-เขียนแถวชีท (เร็วมาก) กัน race condition ตอนอัปหลายรูปพร้อมกัน
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    var found = findRecordRow(recordId);
+    var found = findRecordRow(recordId); // อ่านซ้ำให้สดที่สุดก่อนเขียน กันทับข้อมูลที่เพิ่งเปลี่ยนระหว่างอัปโหลด
     if (!found) return { success: false, error: 'ไม่พบบันทึก: ' + recordId };
     var r = found.row;
-
     var photos = {};
     try { photos = JSON.parse(String(r.photos_json || '{}')); } catch (e) { photos = {}; }
-    var n = (photos[itemId] || []).length + 1;
-
-    var fileName = recordId + '_' + itemId + '_' + n + '.jpg';
-    var blob = Utilities.newBlob(Utilities.base64Decode(params.base64), 'image/jpeg', fileName);
-    var folder = getPhotoFolder(params.line || r.line, normDate(r.date));
-    var file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
     photos[itemId] = photos[itemId] || [];
     photos[itemId].push({ fileId: file.getId(), fileName: fileName, ts: nowISO() });
     r.photos_json = JSON.stringify(photos);
