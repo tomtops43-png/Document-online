@@ -207,11 +207,12 @@ const FormRender = {
 
     const extra = item.options_extra || {};
 
-    // way_select (เลือกรุ่น single-select)
+    // way_select (เลือกรุ่น — multi-select toggle: กดเลือก กดซ้ำยกเลิก ไม่บังคับต้องเลือก)
     if (extra.way_select) {
+      const selectedWays = waySelectedList(ans);
       html += '<div class="way-group" data-role="way">';
       extra.way_select.forEach(function (w) {
-        html += '<button type="button" class="btn-way' + (ans.way === w ? ' selected' : '') + '" data-way="' + escAttr(w) + '">' + esc(w) + '</button>';
+        html += '<button type="button" class="btn-way' + (selectedWays.indexOf(w) > -1 ? ' selected' : '') + '" data-way="' + escAttr(w) + '">' + esc(w) + '</button>';
       });
       html += '</div>';
     }
@@ -311,14 +312,19 @@ const FormRender = {
       });
     }
 
-    // way_select
+    // way_select — toggle เลือกได้หลายอัน กดซ้ำยกเลิก
     const wayGroup = el.querySelector('[data-role="way"]');
     if (wayGroup) {
       wayGroup.querySelectorAll('.btn-way').forEach(function (btn) {
         btn.addEventListener('click', function () {
-          wayGroup.querySelectorAll('.btn-way').forEach(function (b) { b.classList.remove('selected'); });
-          btn.classList.add('selected');
-          self.getAnswer(item.item_id).way = btn.dataset.way;
+          const ans = self.getAnswer(item.item_id);
+          const ways = waySelectedList(ans).slice();
+          const w = btn.dataset.way;
+          const idx = ways.indexOf(w);
+          if (idx > -1) { ways.splice(idx, 1); btn.classList.remove('selected'); }
+          else { ways.push(w); btn.classList.add('selected'); }
+          ans.ways = ways;
+          delete ans.way; // เลิกใช้ฟิลด์เดิม (single-select) — ย้ายไปเก็บเป็น array ทั้งหมด
           self.saveDraft();
           self.updateProgress();
         });

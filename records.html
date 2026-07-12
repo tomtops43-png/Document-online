@@ -563,7 +563,8 @@ function renderDetail(template, record, recovery) {
     sec.items.forEach(function (item) {
       const a = answers[item.item_id] || {};
       let valTxt = a.value || '';
-      if (a.way) valTxt += ' [' + a.way + ']';
+      const waysArr = waySelectedList(a);
+      if (waysArr.length) valTxt += ' [' + waysArr.join(', ') + ']';
       const cls = (a.value === 'NOK' || a.value === 'REJ') ? 'val-nok' : 'val-ok';
       const recorderTxt = (typeof a.recorder === 'string' && isSignatureImage(a.recorder))
         ? '<img src="' + signatureImgSrc(a.recorder) + '" style="max-height:26px;vertical-align:middle">'

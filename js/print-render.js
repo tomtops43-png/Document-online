@@ -150,9 +150,10 @@ const PrintRender = {
         let pointHtml = esc(item.text_th);
         const extra = item.options_extra || {};
         if (extra.way_select) {
+          const selectedWays = waySelectedList(ans);
           pointHtml += '<div class="way-line">';
           extra.way_select.forEach(function (w) {
-            const on = ans.way === w;
+            const on = selectedWays.indexOf(w) > -1;
             pointHtml += '<span class="way-opt"><span class="tickbox">' + (on ? '✓' : '&nbsp;') + '</span>' + esc(w) + '</span>';
           });
           pointHtml += '</div>';

@@ -58,6 +58,14 @@ function signatureImgSrc(value) {
   return s;
 }
 
+// way_select เป็น multi-select toggle (เลือกได้หลายอัน กดซ้ำยกเลิก ไม่บังคับต้องเลือก) —
+// เก็บใน ans.ways (array) แบบใหม่ รองรับ ans.way (string เดี่ยว) ของ record เก่าก่อนเปลี่ยนด้วย
+function waySelectedList(ans) {
+  if (ans && Array.isArray(ans.ways)) return ans.ways;
+  if (ans && ans.way) return [ans.way];
+  return [];
+}
+
 // โหลด template JSON จาก templates/
 // - ระบบเดิม: loadTemplate('nms-first-piece') → หาจาก CONFIG.FORMS
 // - ระบบใหม่ (data-driven): loadTemplate(null, 'templates/xxx.json') → โหลดตรงจาก path
