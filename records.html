@@ -621,15 +621,18 @@ document.getElementById('btn-approve').addEventListener('click', async function 
 
   Loading.show('กำลังอนุมัติ...');
   try {
-    await API.post('approveRecord', { 
+    console.log('[approve] sending record_id=', JSON.stringify(detailRecord.record_id), 'full detailRecord=', detailRecord);
+    const res = await API.post('approveRecord', {
       record_id: detailRecord.record_id,
-      signature: sigDataUrl 
+      signature: sigDataUrl
     });
-    showToast('อนุมัติแล้ว', 'success');
+    console.log('[approve] server response=', res);
+    showToast('อนุมัติแล้ว (สถานะใหม่จากเซิร์ฟเวอร์: ' + (res && res.status) + ')', 'success');
     closeDetail();
     if (currentTab === 'approve') loadApproveQueue(); else doSearch();
     refreshApproveCount();
   } catch (err) {
+    console.log('[approve] error=', err);
     showToast(err.message, 'error');
   } finally {
     Loading.hide();
