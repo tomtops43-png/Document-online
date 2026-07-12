@@ -46,7 +46,7 @@
             ],
             "checkboxes": ["มี 2D Barcode"]
           },
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {"required": true, "label": "ติด Rating Label"}, "critical": false, "recorder": true, "time": true
         },
         {
           "item_id": "st1-4",
@@ -316,12 +316,15 @@
             ],
             "checkboxes": ["TH"]
           },
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {"required": true, "label": "ติด Carton Label"}, "critical": false, "recorder": true, "time": true
         }
       ]
     }
   ],
-  "photo_boxes": [],
+  "photo_boxes": [
+    {"item_id": "st1-3", "station_label": "Station1:", "box_label": "ติด Rating Label"},
+    {"item_id": "st8-3", "station_label": "Station8:", "box_label": "ติด Carton Label"}
+  ],
   "signatures": [
     {"key": "operator", "label": "Production Operator", "role": "Operator"},
     {"key": "leader", "label": "Line Leader", "role": "Leader"},
