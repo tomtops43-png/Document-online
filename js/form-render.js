@@ -181,6 +181,9 @@ const FormRender = {
     }
     canvas.addEventListener('mouseup', captureSignature);
     canvas.addEventListener('touchend', captureSignature);
+    // touchcancel เกิดได้เมื่อ OS/เบราว์เซอร์ตัดจังหวะการลากนิ้วกลางคัน (เช่น ปัดหน้าจอ, สลับแอป) —
+    // ถ้าไม่ดักไว้ด้วย ลายเซ็นที่ขีดค้างอยู่บน canvas จะไม่ถูกบันทึกเข้า answers เลย แม้จะเห็นเส้นบนจอ
+    canvas.addEventListener('touchcancel', captureSignature);
 
     clearBtn.addEventListener('click', function () { applyToStation(''); });
   },
@@ -484,11 +487,20 @@ const FormRender = {
     const errors = this.validate();
     if (errors.length) {
       showToast('ยังกรอกไม่ครบ: ' + errors[0] + (errors.length > 1 ? ' (และอีก ' + (errors.length - 1) + ' ข้อ)' : ''), 'error');
+      document.querySelectorAll('.highlight-missing').forEach(function (el) { el.classList.remove('highlight-missing'); });
       // เลื่อนไปข้อแรกที่ยังไม่ตอบ
       const firstMissing = this.allItems().find(function (i) { return !FormRender.isItemAnswered(i); });
       if (firstMissing) {
         const el = document.querySelector('[data-item-id="' + firstMissing.item_id + '"]');
         if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-missing'); }
+      } else {
+        // ไม่มีข้อคำถามค้าง แต่ยังขาดลายเซ็น Recorder ของบาง Station — เลื่อนไปช่องเซ็นที่ขาดจริงๆ
+        // (ไม่ใช่แค่บอกชื่อ Station ทาง toast อย่างเดียว ซึ่งหาเจอยากในฟอร์มที่มีหลาย Station)
+        const firstMissingSection = (this.stationSections || []).find(function (s) { return !FormRender.getAnswer(s.itemIds[0]).recorder; });
+        if (firstMissingSection) {
+          const el = document.querySelector('[data-station-key="' + firstMissingSection.key + '"]');
+          if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-missing'); }
+        }
       }
       return;
     }

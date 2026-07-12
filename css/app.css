@@ -290,6 +290,7 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .text-field input[readonly] { background: var(--canvas-alt); color: var(--text-soft); }
 
 .station-sig-block { margin: 16px 0 4px; padding-top: 14px; border-top: 1.5px dashed var(--border); }
+.station-sig-block.highlight-missing { background: #fdf0e3; border-radius: 10px; padding: 14px; }
 .station-sig-label { font-size: 13px; color: var(--text-faint); font-weight: 600; margin-bottom: 6px; }
 .station-sig-pad-wrap {
   position: relative; height: 100px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
