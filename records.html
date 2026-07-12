@@ -627,6 +627,7 @@ document.getElementById('btn-approve').addEventListener('click', async function 
       signature: sigDataUrl
     });
     console.log('[approve] server response=', res);
+    alert('DEBUG approveRecord response:\n' + JSON.stringify(res, null, 2));
     showToast('อนุมัติแล้ว (สถานะใหม่จากเซิร์ฟเวอร์: ' + (res && res.status) + ')', 'success');
     closeDetail();
     if (currentTab === 'approve') loadApproveQueue(); else doSearch();

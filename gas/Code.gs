@@ -618,6 +618,13 @@ function actionApproveRecord(params, user) {
     r.status = (idx + 1 < wf.length) ? ('PENDING_' + String(wf[idx + 1].role).toUpperCase()) : 'COMPLETED';
     r.updated_at = now;
     writeRow(found.sheetName, r._rowIndex, found.header, r);
+    SpreadsheetApp.flush(); // บังคับให้เขียนจริงก่อนอ่านย้อนกลับตรวจสอบ
+
+    // อ่านย้อนกลับทันทีเพื่อ debug บั๊ก "approve สำเร็จแต่สถานะไม่เปลี่ยน" — จะลบออกหลังหา root cause เจอ
+    var statusColIdx = found.header.indexOf('status') + 1;
+    var readback = getSheet(found.sheetName).getRange(r._rowIndex, statusColIdx).getValue();
+    var readbackSpreadsheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
+    var readbackSpreadsheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
 
     // แจ้งเตือน: จบครบทุก step → บอกผู้กรอก, ยังมี step ถัดไป → บอก role ถัดไป
     if (r.status === 'COMPLETED') {
@@ -628,7 +635,12 @@ function actionApproveRecord(params, user) {
         'เอกสารรอตรวจ: ' + r.record_id, (r.line || '') + ' — ผ่านขั้น ' + stepRole + ' แล้ว', 'records.html');
     }
 
-    return { success: true, status: r.status };
+    return {
+      success: true, status: r.status,
+      debug_sheet_name: found.sheetName, debug_row_index: r._rowIndex,
+      debug_readback_status: String(readback),
+      debug_ss_id: readbackSpreadsheetId, debug_ss_url: readbackSpreadsheetUrl
+    };
   } finally {
     lock.releaseLock();
   }
