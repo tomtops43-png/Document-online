@@ -279,7 +279,7 @@
           "item_id": "st7-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ QR Code (ต้องสามารถอ่านได้)",
           "answer_type": "acc_rej",
-          "photo": false, "critical": false, "recorder": true, "time": true
+          "photo": {"required": true, "label": "ติด QR Code"}, "critical": false, "recorder": true, "time": true
         },
         {
           "item_id": "st7-4",
@@ -323,6 +323,7 @@
   ],
   "photo_boxes": [
     {"item_id": "st1-3", "station_label": "Station1:", "box_label": "ติด Rating Label"},
+    {"item_id": "st7-3", "station_label": "Station7:", "box_label": "ติด QR Code"},
     {"item_id": "st8-3", "station_label": "Station8:", "box_label": "ติด Carton Label"}
   ],
   "signatures": [

@@ -517,6 +517,12 @@ const FormRender = {
         return;
       }
       this.answers._operator_sign = cropCanvas(canvas).toDataURL('image/png');
+    } else if (usesStationSignatures) {
+      // ฟอร์มที่เซ็น Recorder แยกท้าย Station แล้ว — เอาลายเซ็นของ Station สุดท้ายมาใช้เป็น
+      // ลายเซ็น Production Operator ในตารางสรุปท้ายเอกสารด้วย (ไม่บังคับเซ็นซ้ำอีกรอบ)
+      const lastSection = this.stationSections[this.stationSections.length - 1];
+      const lastAns = this.getAnswer(lastSection.itemIds[0]);
+      if (lastAns.recorder) this.answers._operator_sign = lastAns.recorder;
     }
 
     const t = this.template;
