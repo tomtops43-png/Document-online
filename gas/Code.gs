@@ -470,27 +470,52 @@ function uploadInlineImage_(dataUrl, recordId, tag, line, dateStr) {
 }
 
 // เดินทั้ง object หา string ที่เป็น data:image base64 แล้วอัปโหลดแทนที่ด้วย marker (ทำ in-place)
+// คืนจำนวนรูปที่อัปโหลดจริง — ให้ผู้เรียกรู้ว่าต้องเขียนกลับชีทซ้ำอีกรอบไหม (ฟอร์มส่วนใหญ่ไม่มี
+// ลายเซ็นฝังเลย ไม่ควรต้องเสียเวลา lock+เขียนซ้ำเปล่าๆ)
 function uploadInlineImagesDeep_(obj, recordId, line, dateStr) {
-  if (!obj || typeof obj !== 'object') return obj;
-  Object.keys(obj).forEach(function (k) {
+  var count = 0;
+  function walk(o) {
+    if (!o || typeof o !== 'object') return;
+    Object.keys(o).forEach(function (k) {
+      var v = o[k];
+      if (typeof v === 'string' && v.indexOf('data:image/') === 0) {
+        o[k] = uploadInlineImage_(v, recordId, k, line, dateStr);
+        count++;
+      } else if (v && typeof v === 'object') {
+        walk(v);
+      }
+    });
+  }
+  walk(obj);
+  return count;
+}
+
+// เช็คเร็วๆ (ไม่แตะ Drive) ว่า answers มีรูปฝัง data:image อยู่บ้างไหม — ใช้ตัดสินใจว่า
+// createRecord ต้องเดิน 2 รอบ (จอง record_id ก่อน แล้วค่อยอัปโหลดรูปนอก lock) หรือรอบเดียวพอ
+function hasInlineImages_(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  for (var k in obj) {
     var v = obj[k];
-    if (typeof v === 'string' && v.indexOf('data:image/') === 0) {
-      obj[k] = uploadInlineImage_(v, recordId, k, line, dateStr);
-    } else if (v && typeof v === 'object') {
-      uploadInlineImagesDeep_(v, recordId, line, dateStr);
-    }
-  });
-  return obj;
+    if (typeof v === 'string' && v.indexOf('data:image/') === 0) return true;
+    if (v && typeof v === 'object' && hasInlineImages_(v)) return true;
+  }
+  return false;
 }
 
 function actionCreateRecord(params, user) {
+  var answersObj = params.answers || {};
+  // ฟอร์มส่วนใหญ่ไม่มีลายเซ็นฝังใน answers เลย (log-sheet, ฟอร์มไม่กี่ Station) — กรณีนี้เขียน
+  // answers_json จริงได้ในรอบ lock เดียวเหมือนเดิม ไม่ต้องเสีย round-trip Drive เลย
+  var needsImageUpload = hasInlineImages_(answersObj);
+
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  var recordId, targetYear, wf;
   try {
     // idempotency: ถ้า client ส่ง client_uuid มาแล้วมี record นั้นอยู่แล้ว (submit ซ้ำเพราะเน็ตหลุด)
     // → คืน record_id เดิม ไม่สร้างซ้ำ — เช็คแค่ชีทปีเป้าหมาย (submit ซ้ำเกิดใกล้เวลากันเสมอ ไม่ข้ามปี)
     var clientUuid = String(params.client_uuid || '').trim();
-    var targetYear = recordYearFromDate_(params.date);
+    targetYear = recordYearFromDate_(params.date);
     if (clientUuid) {
       var candSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(recordsYearSheetName_(targetYear));
       if (candSheet) {
@@ -505,16 +530,14 @@ function actionCreateRecord(params, user) {
     }
 
     var now = nowISO();
-    var recordId = generateRecordId(params.line, params.date);
+    recordId = generateRecordId(params.line, params.date);
     var doctypeId = String(params.doctype_id || '');
     var mode = params.mode || 'single-record';
     // สถานะเริ่มต้นอ่านจาก workflow (data-driven) — ปกติได้ PENDING_LEADER เหมือนเดิม
-    var wf = resolveWorkflow({ doctype_id: doctypeId, mode: mode });
+    wf = resolveWorkflow({ doctype_id: doctypeId, mode: mode });
     var initStatus = wf.length ? ('PENDING_' + String(wf[0].role).toUpperCase()) : 'PENDING_LEADER';
-    // ลายเซ็นผู้บันทึกต่อ Station (form-render.js เก็บเป็น data:image ใน answers[id].recorder) —
-    // ต้องอัปโหลดขึ้น Drive ก่อนเก็บ ไม่งั้น answers_json เกินลิมิต 50,000 ตัวอักษรของ Sheets
-    var answersObj = params.answers || {};
-    uploadInlineImagesDeep_(answersObj, recordId, params.line, params.date);
+    // ถ้ามีรูปฝัง เขียน answers_json ว่างไปก่อน (จองแถว/record_id เฉยๆ) แล้วไปอัปโหลดขึ้น Drive
+    // นอก lock ด้านล่าง ไม่งั้น answers_json ดิบเกิน 50,000 ตัวอักษร/เซลล์ของ Sheets เขียนไม่ได้เลย
     var record = {
       record_id: recordId,
       form_id: params.form_id,
@@ -525,7 +548,7 @@ function actionCreateRecord(params, user) {
       product_model: params.product_model || '',
       date: params.date || '',
       shift: params.shift || '',
-      answers_json: JSON.stringify(answersObj),
+      answers_json: needsImageUpload ? '{}' : JSON.stringify(answersObj),
       photos_json: JSON.stringify({}),
       status: initStatus,
       has_nok: params.has_nok ? 'true' : 'false',
@@ -573,11 +596,29 @@ function actionCreateRecord(params, user) {
       pushNotification('nok', firstRole, '',
         'พบ NOK: ' + recordId, where + ' — มีรายการตรวจไม่ผ่าน ต้องติดตาม Recovery', 'records.html');
     }
-
-    return { success: true, record_id: recordId };
   } finally {
     lock.releaseLock();
   }
+
+  if (needsImageUpload) {
+    // นอก lock: อัปโหลดลายเซ็น/รูปฝังขึ้น Drive (ช้า, หลาย round-trip) แล้วเขียน answers_json
+    // จริงกลับเข้าแถวที่จองไว้ — ถ้าถือ lock ทั้งระบบไว้ตลอดขั้นตอนนี้จะบล็อกทุกคนพร้อมกัน
+    uploadInlineImagesDeep_(answersObj, recordId, params.line, params.date);
+    var lock2 = LockService.getScriptLock();
+    lock2.waitLock(20000);
+    try {
+      var found = findRecordRow(recordId);
+      if (found) {
+        found.row.answers_json = JSON.stringify(answersObj);
+        found.row.updated_at = nowISO();
+        writeRow(found.sheetName, found.row._rowIndex, found.header, found.row);
+      }
+    } finally {
+      lock2.releaseLock();
+    }
+  }
+
+  return { success: true, record_id: recordId };
 }
 
 // อ่านลำดับการอนุมัติของ record จาก M_DocType.workflow_json (data-driven)
