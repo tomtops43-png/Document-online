@@ -14,10 +14,11 @@ if (typeof esc === 'undefined') {
     return esc(s).replace(/"/g, '&quot;');
   };
 }
-// ans.recorder อาจเป็นลายเซ็น (data URL รูป) หรือชื่อ (ข้อความ — จากบันทึกเก่าก่อนเปลี่ยนเป็นลายเซ็น)
+// ans.recorder อาจเป็นลายเซ็น (data:image ฝังตรงๆ ของเก่า, หรือ "drive:<fileId>" ของใหม่) หรือชื่อ
+// (ข้อความ — จากบันทึกเก่าก่อนเปลี่ยนเป็นลายเซ็น)
 function recorderCellHtml(recorder) {
-  if (typeof recorder === 'string' && recorder.indexOf('data:image') === 0) {
-    return '<img src="' + recorder + '" class="sig-img-inline" alt="signature">';
+  if (typeof recorder === 'string' && isSignatureImage(recorder)) {
+    return '<img src="' + signatureImgSrc(recorder) + '" class="sig-img-inline" alt="signature">';
   }
   return esc(recorder || '');
 }
@@ -219,7 +220,7 @@ const PrintRender = {
       const dateStr = ts ? String(ts).slice(0, 10) : '';
       let signHtml = '';
       if (record && answers['_' + sig.key + '_sign']) {
-        signHtml = '<img src="' + answers['_' + sig.key + '_sign'] + '" class="sig-img-inline" style="max-height:10mm; display:inline-block; vertical-align:middle; margin-left:10px;">';
+        signHtml = '<img src="' + signatureImgSrc(answers['_' + sig.key + '_sign']) + '" class="sig-img-inline" style="max-height:10mm; display:inline-block; vertical-align:middle; margin-left:10px;">';
       }
       html += '<tr><td class="sig-role">' + esc(sig.label) + '</td>' +
         '<td class="sig-name">Name: <span class="fill-value">' + esc(name) + '</span>' + signHtml + '</td>' +
@@ -291,11 +292,11 @@ const PrintRender = {
       // สรุปผล: ลงชื่อผู้ตรวจสอบ / หัวหน้างานยืนยัน
       let opSign = esc(rec ? (rec.operator_name || '') : '');
       if (rec && ans._operator_sign) {
-        opSign = '<img src="' + ans._operator_sign + '" class="sig-img-inline">';
+        opSign = '<img src="' + signatureImgSrc(ans._operator_sign) + '" class="sig-img-inline">';
       }
       let ldSign = esc(rec && rec.leader_name && (rec.status === 'COMPLETED' || rec.status === 'PENDING_QI') ? rec.leader_name : '');
       if (rec && ans._leader_sign && (rec.status === 'COMPLETED' || rec.status === 'PENDING_QI')) {
-        ldSign = '<img src="' + ans._leader_sign + '" class="sig-img-inline">';
+        ldSign = '<img src="' + signatureImgSrc(ans._leader_sign) + '" class="sig-img-inline">';
       }
       html += '<td class="c-sign">' + opSign + '</td>';
       html += '<td class="c-sign">' + ldSign + '</td>';

@@ -45,6 +45,19 @@ function drivePhotoUrl(fileId, width) {
   return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w' + (width || 1200);
 }
 
+// ลายเซ็นที่บันทึกไว้มี 2 รูปแบบ: "data:image/..." ฝังตรงๆ (ของเก่า/ยังไม่ส่งเข้าเซิร์ฟเวอร์)
+// หรือ "drive:<fileId>" (อัปโหลดขึ้น Drive แล้ว — กัน answers_json เกินลิมิต 50,000
+// ตัวอักษรต่อเซลล์ของ Google Sheets เมื่อฟอร์มมีลายเซ็นหลาย Station)
+function isSignatureImage(value) {
+  var s = String(value || '');
+  return s.indexOf('data:image') === 0 || s.indexOf('drive:') === 0;
+}
+function signatureImgSrc(value) {
+  var s = String(value || '');
+  if (s.indexOf('drive:') === 0) return drivePhotoUrl(s.slice(6), 400);
+  return s;
+}
+
 // โหลด template JSON จาก templates/
 // - ระบบเดิม: loadTemplate('nms-first-piece') → หาจาก CONFIG.FORMS
 // - ระบบใหม่ (data-driven): loadTemplate(null, 'templates/xxx.json') → โหลดตรงจาก path

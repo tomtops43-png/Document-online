@@ -450,6 +450,39 @@ function generateRecordId(line, dateStr) {
   return prefix + next;
 }
 
+// ========================================================
+// ลายเซ็น/รูปที่ฝังมาใน answers เป็น data:image base64 ตรงๆ — ต้องอัปโหลดขึ้น Drive แทน
+// ห้ามฝังในเซลล์ตรงๆ เพราะ Google Sheets จำกัด 50,000 ตัวอักษรต่อเซลล์เดียว ฟอร์มที่มี
+// ลายเซ็นผู้บันทึกหลาย Station (เช่น First Piece 18-21 Station) ฝังรูปตรงๆ ไม่กี่รูปก็เกินแล้ว
+// เก็บเป็น "drive:<fileId>" แทน (ฝั่ง client resolve ด้วย signatureImgSrc() ใน config.js)
+// ========================================================
+function uploadInlineImage_(dataUrl, recordId, tag, line, dateStr) {
+  var m = String(dataUrl).match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!m) return dataUrl; // ไม่ใช่ data:image base64 (อาจเป็น "drive:..." อยู่แล้ว หรือค่าว่าง) — คืนค่าเดิม
+  var ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+  var safeTag = String(tag).replace(/[^a-zA-Z0-9_-]/g, '') || 'sign';
+  var fileName = recordId + '_' + safeTag + '_' + Date.now() + '.' + ext;
+  var blob = Utilities.newBlob(Utilities.base64Decode(m[2]), 'image/' + m[1], fileName);
+  var folder = getPhotoFolder(line, dateStr);
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return 'drive:' + file.getId();
+}
+
+// เดินทั้ง object หา string ที่เป็น data:image base64 แล้วอัปโหลดแทนที่ด้วย marker (ทำ in-place)
+function uploadInlineImagesDeep_(obj, recordId, line, dateStr) {
+  if (!obj || typeof obj !== 'object') return obj;
+  Object.keys(obj).forEach(function (k) {
+    var v = obj[k];
+    if (typeof v === 'string' && v.indexOf('data:image/') === 0) {
+      obj[k] = uploadInlineImage_(v, recordId, k, line, dateStr);
+    } else if (v && typeof v === 'object') {
+      uploadInlineImagesDeep_(v, recordId, line, dateStr);
+    }
+  });
+  return obj;
+}
+
 function actionCreateRecord(params, user) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -478,6 +511,10 @@ function actionCreateRecord(params, user) {
     // สถานะเริ่มต้นอ่านจาก workflow (data-driven) — ปกติได้ PENDING_LEADER เหมือนเดิม
     var wf = resolveWorkflow({ doctype_id: doctypeId, mode: mode });
     var initStatus = wf.length ? ('PENDING_' + String(wf[0].role).toUpperCase()) : 'PENDING_LEADER';
+    // ลายเซ็นผู้บันทึกต่อ Station (form-render.js เก็บเป็น data:image ใน answers[id].recorder) —
+    // ต้องอัปโหลดขึ้น Drive ก่อนเก็บ ไม่งั้น answers_json เกินลิมิต 50,000 ตัวอักษรของ Sheets
+    var answersObj = params.answers || {};
+    uploadInlineImagesDeep_(answersObj, recordId, params.line, params.date);
     var record = {
       record_id: recordId,
       form_id: params.form_id,
@@ -488,7 +525,7 @@ function actionCreateRecord(params, user) {
       product_model: params.product_model || '',
       date: params.date || '',
       shift: params.shift || '',
-      answers_json: JSON.stringify(params.answers || {}),
+      answers_json: JSON.stringify(answersObj),
       photos_json: JSON.stringify({}),
       status: initStatus,
       has_nok: params.has_nok ? 'true' : 'false',
@@ -608,7 +645,9 @@ function actionApproveRecord(params, user) {
     // เก็บลง column เฉพาะ Leader/QI (backward compat กับหน้าจอ/พิมพ์เดิม)
     if (roleKey === 'leader') { r.leader_id = user.employee_id; r.leader_name = user.name; r.leader_ts = now; }
     else if (roleKey === 'qi') { r.qi_id = user.employee_id; r.qi_name = user.name; r.qi_ts = now; }
-    if (params.signature) answers['_' + roleKey + '_sign'] = String(params.signature);
+    // ลายเซ็นผู้อนุมัติต้องอัปโหลดขึ้น Drive ก่อนเก็บ (เหมือนตอน createRecord) — ถ้าฝัง data:image
+    // ตรงๆ ทับกับลายเซ็น Station ที่มีอยู่แล้วใน answers_json อาจดันยอดรวมเกิน 50,000 ตัวอักษร/เซลล์
+    if (params.signature) answers['_' + roleKey + '_sign'] = uploadInlineImage_(String(params.signature), r.record_id, roleKey + '_sign', r.line, normDate(r.date));
     // ประวัติอนุมัติแบบ generic (รองรับ role ใหม่ + เตรียมย้ายเป็น T_Approval ในอนาคต)
     answers._approvals = answers._approvals || [];
     answers._approvals.push({ step: wf[idx].step || (idx + 1), role: stepRole, user_id: user.employee_id, user_name: user.name, ts: now });

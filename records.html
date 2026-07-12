@@ -565,8 +565,8 @@ function renderDetail(template, record, recovery) {
       let valTxt = a.value || '';
       if (a.way) valTxt += ' [' + a.way + ']';
       const cls = (a.value === 'NOK' || a.value === 'REJ') ? 'val-nok' : 'val-ok';
-      const recorderTxt = (typeof a.recorder === 'string' && a.recorder.indexOf('data:image') === 0)
-        ? '<img src="' + a.recorder + '" style="max-height:26px;vertical-align:middle">'
+      const recorderTxt = (typeof a.recorder === 'string' && isSignatureImage(a.recorder))
+        ? '<img src="' + signatureImgSrc(a.recorder) + '" style="max-height:26px;vertical-align:middle">'
         : (a.recorder || '');
       html += '<tr><td>' + (item.critical ? '✱ ' : '') + item.text_th + '</td>' +
         '<td class="' + cls + '">' + valTxt + '</td>' +
