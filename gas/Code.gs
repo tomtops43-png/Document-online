@@ -463,7 +463,7 @@ function uploadInlineImage_(dataUrl, recordId, tag, line, dateStr) {
   var safeTag = String(tag).replace(/[^a-zA-Z0-9_-]/g, '') || 'sign';
   var fileName = recordId + '_' + safeTag + '_' + Date.now() + '.' + ext;
   var blob = Utilities.newBlob(Utilities.base64Decode(m[2]), 'image/' + m[1], fileName);
-  var folder = getPhotoFolder(line, dateStr);
+  var folder = getPhotoFolder(line, dateStr, recordId, 'signatures');
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return 'drive:' + file.getId();
@@ -760,13 +760,18 @@ function getConfigValue(key) {
   return '';
 }
 
-// โฟลเดอร์ {root}/{line}/{YYYY-MM}/ (สร้างถ้ายังไม่มี)
-// cache ID โฟลเดอร์ต่อ line+เดือน ไว้ 6 ชม. — ไม่งั้นทุกรูปที่อัปโหลดต้องเดิน Drive API
-// ค้นหา/สร้างโฟลเดอร์ซ้ำ 2 รอบ (line, แล้วก็ year-month) ซึ่งช้าและสะสมได้เยอะเมื่อมีคนอัปพร้อมกันหลายคน
-function getPhotoFolder(line, dateStr) {
+// โฟลเดอร์ {root}/{line}/{YYYY-MM}/{recordId}/{subType}/ (สร้างถ้ายังไม่มี)
+// แยกไฟล์ของแต่ละ record ออกจากกัน (recordId) และแยกรูปที่ถ่ายหน้างาน (photos) ออกจาก
+// ลายเซ็นผู้บันทึก/ผู้อนุมัติ (signatures) กันไฟล์นับร้อยของทั้งเดือนกองรวมกันเป็นชั้นเดียว
+// หาย/งงตอนไล่หาไฟล์ทีหลัง
+// cache ID โฟลเดอร์ต่อ line+เดือน+record+subType ไว้ 6 ชม. — ไม่งั้นทุกรูปที่อัปโหลดต้องเดิน Drive API
+// ค้นหา/สร้างโฟลเดอร์ซ้ำหลายรอบ ซึ่งช้าและสะสมได้เยอะเมื่อมีคนอัปพร้อมกันหลายคน
+function getPhotoFolder(line, dateStr, recordId, subType) {
   var ym = String(dateStr || nowISO()).substring(0, 7); // YYYY-MM
   var lineKey = String(line || 'X');
-  var cacheKey = 'photofolder_' + lineKey + '_' + ym;
+  var recKey = String(recordId || '_misc');
+  var subKey = String(subType || 'photos');
+  var cacheKey = 'photofolder_' + lineKey + '_' + ym + '_' + recKey + '_' + subKey;
   var cache = CacheService.getScriptCache();
   var cachedId = cache.get(cacheKey);
   if (cachedId) {
@@ -776,7 +781,7 @@ function getPhotoFolder(line, dateStr) {
   var rootId = getConfigValue('drive_root_folder_id');
   if (!rootId) throw new Error('ยังไม่ได้ตั้งค่า drive_root_folder_id ในชีท Config');
   var folder = DriveApp.getFolderById(rootId);
-  [lineKey, ym].forEach(function (name) {
+  [lineKey, ym, recKey, subKey].forEach(function (name) {
     var it = folder.getFoldersByName(name);
     folder = it.hasNext() ? it.next() : folder.createFolder(name);
   });
@@ -801,7 +806,7 @@ function actionUploadPhoto(params, user) {
   // ทำให้คิวยาว จน connection ฝั่ง client หลุดเป็น "Failed to fetch" ก่อน GAS จะตอบทัน
   var fileName = recordId + '_' + itemId + '_' + n + '.jpg';
   var blob = Utilities.newBlob(Utilities.base64Decode(params.base64), 'image/jpeg', fileName);
-  var folder = getPhotoFolder(params.line || found0.row.line, normDate(found0.row.date));
+  var folder = getPhotoFolder(params.line || found0.row.line, normDate(found0.row.date), recordId, 'photos');
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
