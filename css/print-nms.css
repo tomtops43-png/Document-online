@@ -4,16 +4,16 @@
    (JRTLQR860-04/1)
    ======================================================== */
 
-@page { size: A4 portrait; margin: 8mm; }
+@page { size: A4 portrait; margin: 6mm; }
 
 .sheet-nms {
-  width: 194mm;                 /* 210 - 8*2 */
+  width: 198mm;                 /* 210 - 6*2 */
   background: #fff;
   color: #000;
   font-family: 'Sarabun', sans-serif;
-  font-size: 3.2mm;
-  line-height: 1.25;
-  padding: 2mm;
+  font-size: 3mm;
+  line-height: 1.15;
+  padding: 1mm;
   margin-bottom: 6mm;
   box-shadow: 0 2px 8px rgba(0,0,0,.3);
   print-color-adjust: exact;
@@ -28,16 +28,17 @@
   display: flex;
   align-items: stretch;
   border: 0.5pt solid #000;
-  height: 14mm;
+  height: 11mm;
 }
 .nms-logo {
   width: 30mm;
   border-right: 0.5pt solid #000;
   display: flex; align-items: center; justify-content: center;
-  padding: 2mm;
+  padding: 1mm;
+  overflow: hidden;
 }
 .nms-logo img {
-  max-width: 100%; max-height: 16mm; object-fit: contain;
+  max-width: 100%; max-height: 100%; object-fit: contain;
 }
 .nms-title {
   flex: 1;
@@ -60,8 +61,8 @@
 .nms-header-table td {
   border: 0.5pt solid #000;
   border-top: none;
-  height: 8mm;
-  padding: 1mm 1.5mm;
+  height: 6mm;
+  padding: 0.6mm 1.5mm;
   vertical-align: middle;
 }
 .nms-header-table .hlabel { font-size: 3mm; }
@@ -87,13 +88,13 @@
   vertical-align: middle;
 }
 .nms-main thead th {
-  height: 6mm;
-  font-size: 3.4mm;
+  height: 5mm;
+  font-size: 3.2mm;
   font-weight: 700;
   text-align: center;
   background: #eee;
 }
-.nms-main .item-row td { height: 6.5mm; font-size: 3mm; }
+.nms-main .item-row td { height: 5.2mm; font-size: 2.8mm; }
 .cell-process { text-align: center; font-weight: 700; font-size: 3.2mm; }
 .cell-acc, .cell-rej { text-align: center; white-space: nowrap; }
 .cell-recorder, .cell-time { text-align: center; }
@@ -139,7 +140,7 @@
 }
 .ps-role, .ps-name { font-weight: 400; }
 .photo-frame {
-  height: 48mm;
+  height: 30mm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,8 +149,8 @@
   overflow: hidden;
 }
 .photo-img {
-  max-height: 46mm;
-  max-width: 60mm;
+  max-height: 28mm;
+  max-width: 50mm;
   object-fit: contain;
 }
 .photo-placeholder {
@@ -159,9 +160,9 @@
 
 /* ---------- ลายเซ็น ---------- */
 .sign-title {
-  margin-top: 2mm;
+  margin-top: 1.5mm;
   font-weight: 700;
-  font-size: 3.4mm;
+  font-size: 3.2mm;
 }
 .sign-table {
   width: 100%;
@@ -171,9 +172,10 @@
 }
 .sign-table td {
   border: 0.5pt solid #000;
-  height: 8mm;
-  padding: 1mm 2mm;
-  font-size: 3.2mm;
+  height: 7mm;
+  padding: 0.8mm 2mm;
+  font-size: 3mm;
 }
 .sig-role { width: 50mm; font-weight: 700; }
+.sig-name { text-align: center; }
 .sig-date { width: 55mm; }

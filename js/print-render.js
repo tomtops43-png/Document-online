@@ -216,15 +216,14 @@ const PrintRender = {
     html += '<div class="sign-title">ลงชื่อผู้ตรวจสอบความถูกต้อง</div>';
     html += '<table class="sign-table">';
     (template.signatures || []).forEach(function (sig) {
-      const name = record ? (record[sig.key + '_name'] || '') : '';
       const ts = record ? (record[sig.key + '_ts'] || '') : '';
       const dateStr = ts ? String(ts).slice(0, 10) : '';
       let signHtml = '';
       if (record && answers['_' + sig.key + '_sign']) {
-        signHtml = '<img src="' + signatureImgSrc(answers['_' + sig.key + '_sign']) + '" class="sig-img-inline" style="max-height:10mm; display:inline-block; vertical-align:middle; margin-left:10px;">';
+        signHtml = '<img src="' + signatureImgSrc(answers['_' + sig.key + '_sign']) + '" class="sig-img-inline" style="max-height:10mm; display:inline-block; vertical-align:middle;">';
       }
       html += '<tr><td class="sig-role">' + esc(sig.label) + '</td>' +
-        '<td class="sig-name">Name: <span class="fill-value">' + esc(name) + '</span>' + signHtml + '</td>' +
+        '<td class="sig-name">' + signHtml + '</td>' +
         '<td class="sig-date">Date: <span class="fill-value">' + esc(dateStr) + '</span></td></tr>';
     });
     html += '</table>';
