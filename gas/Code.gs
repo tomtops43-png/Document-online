@@ -472,15 +472,25 @@ function uploadInlineImage_(dataUrl, recordId, tag, line, dateStr) {
 // เดินทั้ง object หา string ที่เป็น data:image base64 แล้วอัปโหลดแทนที่ด้วย marker (ทำ in-place)
 // คืนจำนวนรูปที่อัปโหลดจริง — ให้ผู้เรียกรู้ว่าต้องเขียนกลับชีทซ้ำอีกรอบไหม (ฟอร์มส่วนใหญ่ไม่มี
 // ลายเซ็นฝังเลย ไม่ควรต้องเสียเวลา lock+เขียนซ้ำเปล่าๆ)
+//
+// dedupe ตาม dataUrl เป๊ะๆ: ฟอร์มที่เซ็น Recorder ครั้งเดียวต่อ Station (ไม่ใช่ต่อข้อ) ฝั่ง client
+// จะ apply ลายเซ็นเดิม (base64 เดียวกัน) ไปทับทุก item ใน Station นั้น (ดู applyToStation ใน
+// form-render.js) — ฟอร์ม 20 Station ก็คือรูปเดิมซ้ำๆ กัน 40-50 ครั้งทั่ว answers ถ้าอัปโหลดตรงๆ
+// ทีละจุดจะยิง Drive API ซ้ำโดยใช่เหตุ (นี่คือสาเหตุหลักที่ submit ช้ามากในฟอร์มหลาย Station) —
+// อัปโหลดรูปที่ไบต์เหมือนกันแค่ครั้งเดียว แล้วใช้ fileId เดียวกันแทนที่ทุกจุดที่ซ้ำ
 function uploadInlineImagesDeep_(obj, recordId, line, dateStr) {
   var count = 0;
+  var uploaded = {}; // dataUrl → 'drive:<fileId>' ที่อัปโหลดไปแล้วในรอบนี้
   function walk(o) {
     if (!o || typeof o !== 'object') return;
     Object.keys(o).forEach(function (k) {
       var v = o[k];
       if (typeof v === 'string' && v.indexOf('data:image/') === 0) {
-        o[k] = uploadInlineImage_(v, recordId, k, line, dateStr);
-        count++;
+        if (!uploaded[v]) {
+          uploaded[v] = uploadInlineImage_(v, recordId, k, line, dateStr);
+          count++;
+        }
+        o[k] = uploaded[v];
       } else if (v && typeof v === 'object') {
         walk(v);
       }
