@@ -557,22 +557,43 @@ const FormRender = {
       });
       const recordId = res.record_id;
 
-      // 2) อัปโหลดรูปทีละรูป (มี progress)
+      // 2) อัปโหลดรูป — คำขอแรกอัปโหลดเดี่ยวๆ ก่อน (กันสร้างโฟลเดอร์ Drive ซ้ำซ้อนตอนแข่งกัน
+      // สร้างโฟลเดอร์ของ record นี้ครั้งแรก) จากนั้นที่เหลือยิงพร้อมกันเป็นชุด (concurrency 3)
+      // แทนที่จะรอทีละรูป — ฟอร์มที่มีหลายช่องแนบรูปจะไม่ต้องรอ N รอบ round-trip ต่อกันยาวๆ
       const uploads = [];
       const photos = this.photos;
+      const uploadLine = ctx.header.line || (t.lines && t.lines[0]) || '';
       Object.keys(photos).forEach(function (itemId) {
         (photos[itemId] || []).forEach(function (p, idx) {
           if (p.base64) uploads.push({ item_id: itemId, index: idx, base64: p.base64 });
         });
       });
-      for (let i = 0; i < uploads.length; i++) {
-        Loading.show('กำลังอัปโหลดรูป ' + (i + 1) + '/' + uploads.length + '...');
-        await API.post('uploadPhoto', {
+      const doUpload = function (u) {
+        return API.post('uploadPhoto', {
           record_id: recordId,
-          item_id: uploads[i].item_id,
-          line: ctx.header.line || (t.lines && t.lines[0]) || '',
-          base64: uploads[i].base64
+          item_id: u.item_id,
+          line: uploadLine,
+          base64: u.base64
         });
+      };
+      if (uploads.length) {
+        let done = 0;
+        const total = uploads.length;
+        const showProgress = function () {
+          Loading.show('กำลังอัปโหลดรูป ' + done + '/' + total + '...');
+        };
+        showProgress();
+        await doUpload(uploads[0]);
+        done++;
+        showProgress();
+        const rest = uploads.slice(1);
+        const CONCURRENCY = 3;
+        for (let i = 0; i < rest.length; i += CONCURRENCY) {
+          const batch = rest.slice(i, i + CONCURRENCY);
+          await Promise.all(batch.map(function (u) {
+            return doUpload(u).then(function () { done++; showProgress(); });
+          }));
+        }
       }
 
       this.clearDraft();
