@@ -30,7 +30,10 @@ var RECORDS_HEADER = [
   'created_at', 'updated_at',
   // เพิ่มใหม่ (ต่อท้าย — ปลอดภัยกับข้อมูลเดิม): doctype_id ใช้อ่าน workflow แบบ data-driven,
   // client_uuid เป็น idempotency key กัน record ซ้ำเมื่อเน็ตหลุดแล้ว submit ซ้ำ
-  'doctype_id', 'client_uuid'
+  'doctype_id', 'client_uuid',
+  // resubmit_of: record_id เดิมที่ถูกตีกลับแล้วกรอกใหม่จากปุ่ม "แก้ไขและส่งใหม่" (records.html)
+  // ว่างสำหรับ record ปกติที่ไม่ใช่การส่งซ้ำ
+  'resubmit_of'
 ];
 
 // จำนวนแถวสูงสุดที่ getRecords คืนกลับ (กัน payload บวม/ช้าเมื่อ record โตหลักหมื่น)
@@ -546,6 +549,17 @@ function actionCreateRecord(params, user) {
     // สถานะเริ่มต้นอ่านจาก workflow (data-driven) — ปกติได้ PENDING_LEADER เหมือนเดิม
     wf = resolveWorkflow({ doctype_id: doctypeId, mode: mode });
     var initStatus = wf.length ? ('PENDING_' + String(wf[0].role).toUpperCase()) : 'PENDING_LEADER';
+
+    // "แก้ไขและส่งใหม่" จาก record ที่ถูกตีกลับ (records.html) — ไม่ต้องอัปโหลดรูปที่มีอยู่แล้วซ้ำ
+    // แค่คัดลอก photos_json (fileId เดิม) มาตั้งต้น แล้วให้ client อัปโหลดเพิ่มเฉพาะรูปที่ยังขาด/
+    // เปลี่ยนใหม่ผ่าน uploadPhoto ตามปกติ (จะ push ต่อท้าย list เดิมของ item นั้น)
+    var resubmitOf = String(params.copy_from_record_id || '').trim();
+    var copiedPhotosJson = '{}';
+    if (resubmitOf) {
+      var oldFound = findRecordRow(resubmitOf);
+      if (oldFound && oldFound.row.photos_json) copiedPhotosJson = String(oldFound.row.photos_json);
+    }
+
     // ถ้ามีรูปฝัง เขียน answers_json ว่างไปก่อน (จองแถว/record_id เฉยๆ) แล้วไปอัปโหลดขึ้น Drive
     // นอก lock ด้านล่าง ไม่งั้น answers_json ดิบเกิน 50,000 ตัวอักษร/เซลล์ของ Sheets เขียนไม่ได้เลย
     var record = {
@@ -559,7 +573,7 @@ function actionCreateRecord(params, user) {
       date: params.date || '',
       shift: params.shift || '',
       answers_json: needsImageUpload ? '{}' : JSON.stringify(answersObj),
-      photos_json: JSON.stringify({}),
+      photos_json: copiedPhotosJson,
       status: initStatus,
       has_nok: params.has_nok ? 'true' : 'false',
       reject_reason: '',
@@ -571,7 +585,8 @@ function actionCreateRecord(params, user) {
       created_at: now,
       updated_at: now,
       doctype_id: doctypeId,
-      client_uuid: clientUuid
+      client_uuid: clientUuid,
+      resubmit_of: resubmitOf
     };
     var row = RECORDS_HEADER.map(function (h) { return record[h] !== undefined ? record[h] : ''; });
     ensureRecordsYearSheet_(targetYear).appendRow(row);

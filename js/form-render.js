@@ -12,6 +12,7 @@ const FormRender = {
   draftKey: '',
 
   clientUuid: '',
+  resubmitOf: '', // record_id เดิมที่ถูกตีกลับ ถ้าเข้ามาทาง "แก้ไขและส่งใหม่" (records.html)
 
   // ---------- เริ่มต้น ----------
   async init(template, context) {
@@ -37,6 +38,7 @@ const FormRender = {
         photos: this.photos,
         recovery: this.recovery,
         client_uuid: this.clientUuid,
+        resubmit_of: this.resubmitOf,
         saved_at: new Date().toISOString()
       }));
     } catch (e) {
@@ -47,6 +49,7 @@ const FormRender = {
           answers: this.answers,
           recovery: this.recovery,
           client_uuid: this.clientUuid,
+          resubmit_of: this.resubmitOf,
           saved_at: new Date().toISOString()
         }));
       } catch (e2) { /* เก็บไม่ได้จริงๆ */ }
@@ -67,7 +70,10 @@ const FormRender = {
         this.photos = draft.photos || {};
         this.recovery = draft.recovery || [];
         this.clientUuid = draft.client_uuid || '';
-        showToast('กู้คืนข้อมูลที่กรอกค้างไว้แล้ว', 'info');
+        this.resubmitOf = draft.resubmit_of || '';
+        showToast(this.resubmitOf
+          ? 'คัดลอกคำตอบจากใบที่ถูกตีกลับมาให้แล้ว แก้ไข/เพิ่มส่วนที่ขาดแล้ว Submit ใหม่ได้เลย'
+          : 'กู้คืนข้อมูลที่กรอกค้างไว้แล้ว', 'info');
       } else {
         localStorage.removeItem(this.draftKey);
       }
@@ -162,7 +168,11 @@ const FormRender = {
 
     const self = this;
     const firstAns = this.getAnswer(s.itemIds[0]);
-    if (firstAns.recorder) {
+    // วาดตัวอย่างลายเซ็นเดิมลง canvas ได้เฉพาะ data: URL (same-origin, วาดแล้วอ่าน pixel กลับได้
+    // ปกติ) — ค่าที่เป็น "drive:<fileId>" (ลายเซ็นจาก record เดิมตอนกด "แก้ไขและส่งใหม่") เป็นรูปจาก
+    // Drive ข้าม origin จริง วาดลง canvas แล้วจะ taint canvas จน cropCanvas/getImageData ใช้ไม่ได้
+    // ถ้า user เซ็นซ้ำทับ — คำตอบ (firstAns.recorder) ยังคงถูกเก็บไว้ใช้ได้ปกติ แค่ไม่โชว์พรีวิวบน pad
+    if (firstAns.recorder && String(firstAns.recorder).indexOf('data:image') === 0) {
       const img = new Image();
       img.onload = function () { canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); };
       img.src = firstAns.recorder;
@@ -562,7 +572,8 @@ const FormRender = {
         shift: ctx.header.shift || '',
         answers: this.answers,
         has_nok: this.hasNok(),
-        recovery: this.recovery
+        recovery: this.recovery,
+        copy_from_record_id: this.resubmitOf || ''
       });
       const recordId = res.record_id;
 

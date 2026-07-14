@@ -507,6 +507,9 @@ function renderRows(records, opts) {
 
 // ----- รายละเอียด record + อนุมัติ/ตีกลับ -----
 let detailRecord = null;
+let detailTemplate = null;
+let detailTemplateFile = null; // content_ref ถ้า resolve ผ่าน Master ได้ (ระบบใหม่), null = ฟอร์มเดิมใช้ form_id พอ
+let detailRecovery = [];
 
 async function getTemplateCached(formId) {
   if (!templatesCache[formId]) templatesCache[formId] = await loadTemplate(formId);
@@ -518,15 +521,19 @@ async function openDetail(recordId) {
   try {
     const res = await API.get('getRecord', { record_id: recordId });
     detailRecord = res.record;
+    detailTemplateFile = null;
     let template;
     // ลองโหลด template: ใหม่ (data-driven) ก่อน แล้ว fallback ระบบเดิม
     try {
       const tplPath = await Master.resolveTemplate(detailRecord.form_id);
       template = await loadTemplate(null, tplPath);
+      detailTemplateFile = tplPath;
     } catch (e) {
       template = await getTemplateCached(detailRecord.form_id);
     }
-    renderDetail(template, detailRecord, res.recovery || []);
+    detailTemplate = template;
+    detailRecovery = res.recovery || [];
+    renderDetail(template, detailRecord, detailRecovery);
     document.getElementById('detail-modal').style.display = 'flex';
     
     // Initialize signature pad if approve-bar is visible
@@ -569,6 +576,16 @@ function renderDetail(template, record, recovery) {
   if (record.reject_reason) {
     html += '<div class="reject-reason">เหตุผลตีกลับ: ' + record.reject_reason + '</div>';
   }
+  if (record.resubmit_of) {
+    html += '<div class="detail-meta" style="font-size:13px;color:var(--ink-500,#666)">ส่งใหม่แทนที่ ' + record.resubmit_of + '</div>';
+  }
+  // ส่งใหม่ได้เฉพาะ record ที่ถูกตีกลับ และเป็นคนที่กรอกใบนี้เอง (หรือ Admin) — ป้องกันคนอื่นมากด
+  // ส่งใหม่แทนแล้วเปลี่ยนคำตอบของ operator คนอื่นโดยไม่รู้ตัว
+  const canResubmit = record.status === 'REJECTED' &&
+    (user.role === 'Admin' || String(user.employee_id) === String(record.operator_id));
+  if (canResubmit) {
+    html += '<button type="button" class="btn-primary" id="btn-resubmit" style="margin-bottom:12px">✏ แก้ไขและส่งใหม่</button>';
+  }
 
   template.sections.forEach(function (sec) {
     html += '<div class="detail-section"><b>' + sec.title + '</b><table class="detail-table">';
@@ -606,10 +623,71 @@ function renderDetail(template, record, recovery) {
 
   document.getElementById('detail-body').innerHTML = html;
 
+  const resubmitBtn = document.getElementById('btn-resubmit');
+  if (resubmitBtn) resubmitBtn.addEventListener('click', resubmitRejectedRecord);
+
   // แสดงปุ่มอนุมัติเมื่อ record รอที่ role ของเรา (generic: PENDING_<ROLE> ตรงกับ role ของผู้ใช้ หรือ Admin)
   const canApprove = isPendingStatus(record.status) &&
     (user.role === 'Admin' || record.status === 'PENDING_' + String(user.role).toUpperCase());
   document.getElementById('approve-bar').style.display = canApprove ? 'block' : 'none';
+}
+
+// "แก้ไขและส่งใหม่": คัดลอกคำตอบ+รูปเดิมจาก record ที่ถูกตีกลับ ไปตั้งต้นเป็น draft ใหม่ใน fill.html
+// (แทนที่จะบังคับกรอกใหม่ทั้งหมด) — operator แค่แก้/เพิ่มส่วนที่ขาด (เช่น รูปที่หลุด) แล้ว submit
+// จะได้ record_id ใหม่ (ใบเดิมยังอยู่เป็นประวัติ ไม่ถูกแก้ทับ)
+function resubmitRejectedRecord() {
+  if (!detailRecord || !detailTemplate) return;
+  const record = detailRecord;
+  const template = detailTemplate;
+
+  const answers = typeof record.answers_json === 'string' ? JSON.parse(record.answers_json || '{}') : record.answers_json || {};
+  const photosRaw = typeof record.photos_json === 'string' ? JSON.parse(record.photos_json || '{}') : record.photos_json || {};
+  // photos_json เก็บ {fileId, fileName, ts} (อัปโหลดขึ้น Drive แล้ว) — fill.html คาดหวัง
+  // {dataUrl, base64} สำหรับรูปที่ยังไม่อัปโหลด หรือจะแสดงพรีวิวผ่าน fileId ก็ได้ (renderPhotoPreviews
+  // รองรับ p.fileId อยู่แล้ว) ไม่ต้อง fetch รูปจริงมาแปลงเป็น base64 ใหม่ — เก็บ fileId ไว้เฉยๆ พอ
+  // เซิร์ฟเวอร์จะคัดลอก photos_json เดิมให้ record ใหม่เองตอน createRecord (ดู copy_from_record_id)
+  const photos = {};
+  Object.keys(photosRaw).forEach(function (itemId) { photos[itemId] = (photosRaw[itemId] || []).slice(); });
+
+  const header = {};
+  (template.header_fields || []).forEach(function (f) {
+    header[f.key] = record[f.key] || '';
+  });
+
+  // Recovery sheet เก็บ record_id/operator_sign/decision ฯลฯ ด้วย — fill.html ต้องการแค่
+  // {item_id, problem, countermeasure} (รูปแบบเดียวกับที่ saveRecoveryFromModal สร้าง)
+  const recovery = detailRecovery.map(function (rv) {
+    return { item_id: rv.item_id, problem: rv.problem, countermeasure: rv.countermeasure };
+  });
+
+  const draftKey = CONFIG.LS_DRAFT_PREFIX + template.form_id + '_' + (record.station || 'single');
+  localStorage.setItem(draftKey, JSON.stringify({
+    header: header,
+    answers: answers,
+    photos: photos,
+    recovery: recovery,
+    client_uuid: genClientUuidForResubmit(),
+    resubmit_of: record.record_id,
+    saved_at: new Date().toISOString()
+  }));
+
+  sessionStorage.setItem('fp_fill_context', JSON.stringify({
+    form_id: template.form_id,
+    template_file: detailTemplateFile || undefined,
+    doctype_id: record.doctype_id || '',
+    station: template.mode === 'log-sheet' ? (record.station || '') : null,
+    header: header
+  }));
+
+  closeDetail();
+  location.href = 'fill.html';
+}
+
+function genClientUuidForResubmit() {
+  try {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  } catch (e) { /* fallback ด้านล่าง */ }
+  return 'cu-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 }
 
 function closeDetail() {
