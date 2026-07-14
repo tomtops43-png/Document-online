@@ -430,9 +430,20 @@ function actionGetLogSheet(params, user) {
   return { success: true, records: records, recovery: recovery };
 }
 
+// อ่านค่าคอลัมน์เดียวของชีท (ข้าม header) — สำคัญกับชีท Records มาก: getDataRange().getValues()
+// ลากทุกคอลัมน์รวม answers_json/photos_json (เซลล์ละหลายหมื่นตัวอักษร) มาด้วยทุกแถว ทั้งที่ผู้เรียก
+// ใช้แค่คอลัมน์เดียว — ยิ่ง record สะสมมาก ยิ่งช้าลงเรื่อยๆ โดยเปล่าประโยชน์ และงานพวกนี้เกิด "ใน lock"
+// ตอน submit ทุกครั้ง = บล็อกทั้งระบบนานขึ้นตามขนาดชีท
+function readColumn_(sheet, colIndex1Based) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2 || sheet.getLastColumn() < colIndex1Based) return [];
+  return sheet.getRange(2, colIndex1Based, lastRow - 1, 1).getValues().map(function (r) { return String(r[0]); });
+}
+
 // สร้าง record_id: FP-{LINE}-{YYYYMMDD}-{running 3 หลัก} (กัน race ด้วย LockService)
 // สแกนแค่ชีทปีของ record นี้ + legacy (ไม่ใช่ทั้งประวัติ) — legacy ต้องเช็คด้วยเพราะวันที่ deploy
 // ชีทรายปีของปีปัจจุบันยังว่าง ในขณะที่ legacy อาจมี record ของวันเดียวกันอยู่แล้ว (กัน id ชนกัน)
+// อ่านเฉพาะคอลัมน์ record_id (คอลัมน์เดียว) — ไม่ลากทั้งตาราง
 function generateRecordId(line, dateStr) {
   var ymd = String(dateStr || '').replace(/-/g, '');
   var prefix = 'FP-' + String(line || 'X').toUpperCase() + '-' + ymd + '-';
@@ -441,14 +452,12 @@ function generateRecordId(line, dateStr) {
   [recordsYearSheetName_(year), SHEET_RECORDS].forEach(function (name) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
     if (!sheet) return;
-    var values = sheet.getDataRange().getValues();
-    for (var i = 1; i < values.length; i++) {
-      var id = String(values[i][0]);
+    readColumn_(sheet, 1).forEach(function (id) {
       if (id.indexOf(prefix) === 0) {
         var n = parseInt(id.substring(prefix.length), 10);
         if (!isNaN(n) && n > max) max = n;
       }
-    }
+    });
   });
   var next = String(max + 1);
   while (next.length < 3) next = '0' + next;
@@ -532,13 +541,21 @@ function actionCreateRecord(params, user) {
     var clientUuid = String(params.client_uuid || '').trim();
     targetYear = recordYearFromDate_(params.date);
     if (clientUuid) {
+      // fast path: cache uuid→record_id ที่เขียนไว้ตอนสร้าง record สำเร็จ (ท้ายฟังก์ชันนี้) —
+      // submit ซ้ำเกิดห่างจากครั้งแรกไม่กี่วินาที/นาที (เน็ตหลุดแล้วกดใหม่) อยู่ใน TTL 6 ชม. เสมอ
+      // เจอใน cache = ตอบได้ทันทีโดยไม่แตะชีทเลย
+      var cachedDupId = CacheService.getScriptCache().get('cuuid_' + clientUuid);
+      if (cachedDupId) return { success: true, record_id: cachedDupId, duplicate: true };
+
+      // cache หาย (ถูก evict/ script restart) — fallback อ่านชีท แต่อ่านเฉพาะคอลัมน์ client_uuid
+      // คอลัมน์เดียว ไม่ getDataRange ทั้งตาราง (ซึ่งลาก answers_json ยักษ์มาด้วยทุกแถว)
       var candSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(recordsYearSheetName_(targetYear));
       if (candSheet) {
-        var candValues = candSheet.getDataRange().getValues();
-        var uuidCol = RECORDS_HEADER.indexOf('client_uuid');
-        for (var e = 1; e < candValues.length; e++) {
-          if (String(candValues[e][uuidCol]) === clientUuid) {
-            return { success: true, record_id: String(candValues[e][0]), duplicate: true };
+        var uuids = readColumn_(candSheet, RECORDS_HEADER.indexOf('client_uuid') + 1);
+        for (var e = 0; e < uuids.length; e++) {
+          if (uuids[e] === clientUuid) {
+            var dupId = String(candSheet.getRange(e + 2, 1).getValue());
+            return { success: true, record_id: dupId, duplicate: true };
           }
         }
       }
@@ -607,6 +624,12 @@ function actionCreateRecord(params, user) {
     };
     var row = RECORDS_HEADER.map(function (h) { return record[h] !== undefined ? record[h] : ''; });
     ensureRecordsYearSheet_(targetYear).appendRow(row);
+
+    // จำ uuid→record_id ไว้ให้ fast path ของการเช็ค submit ซ้ำด้านบน (TTL 6 ชม. — ค่าสูงสุดของ
+    // CacheService) — เขียนในนี้ (ยังถือ lock อยู่) เพื่อให้ retry ที่ต่อคิว lock ถัดไปเจอ cache ทันที
+    if (clientUuid) {
+      try { CacheService.getScriptCache().put('cuuid_' + clientUuid, recordId, 21600); } catch (ce) { /* cache ล่มไม่ใช่เหตุให้ submit fail — fallback อ่านชีทยังอยู่ */ }
+    }
 
     // recovery แนบมาพร้อม submit
     var recovery = params.recovery || [];
