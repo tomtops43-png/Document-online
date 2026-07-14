@@ -244,6 +244,33 @@ const FormRender = {
       ก็ยังอัปโหลดจากค่า base64 เดิมได้ตามปกติ (fallback เดิมไม่เปลี่ยน) */ });
   },
 
+  // อัปโหลดรูปที่เพิ่งถ่ายแนบขึ้น Drive แบบเงียบๆ เบื้องหลัง (เหมือน backgroundUploadSignature) — อ้างอิง
+  // photoObj โดยตรง (ไม่ใช้ index) เพราะ user อาจลบรูปอื่นในลิสต์เดียวกันระหว่างรออัปโหลด ทำให้ index
+  // เลื่อนได้ — เช็ค list.indexOf(photoObj) ก่อนแก้ กันกรณีรูปนี้เองถูกลบไปแล้วตอนอัปโหลดเสร็จ
+  backgroundUploadPhoto(itemId, photoObj) {
+    const self = this;
+    const ctx = this.context;
+    if (!photoObj.base64) return;
+    const base64 = photoObj.base64;
+    API.post('uploadPhotoPending', {
+      client_uuid: this.clientUuid,
+      item_id: itemId,
+      line: ctx.header.line || (this.template.lines && this.template.lines[0]) || '',
+      date: ctx.header.date || '',
+      base64: base64
+    }).then(function (res) {
+      const list = self.photos[itemId] || [];
+      if (list.indexOf(photoObj) === -1 || photoObj.base64 !== base64) return;
+      if (res && res.success) {
+        delete photoObj.base64;
+        photoObj.fileId = res.fileId;
+        photoObj.fileName = res.fileName;
+        photoObj.pending = true; // ต่างจากรูปที่ copy มาจาก record เดิมตอน resubmit (ไม่มี flag นี้)
+        self.saveDraft();
+      }
+    }).catch(function () { /* เงียบๆ — เหลือ base64 ไว้ อัปโหลดจริงตอน submit ตามปกติ */ });
+  },
+
   // ---------- render 1 item ----------
   renderItem(item) {
     const el = document.createElement('div');
@@ -422,6 +449,9 @@ const FormRender = {
           self.renderPhotoPreviews(el, item);
           self.saveDraft();
           self.updateProgress();
+          // อัปโหลดรูปนี้ขึ้น Drive เบื้องหลังทันที เหมือนลายเซ็น Station — ไม่ต้องรอไปอัปโหลดตอน
+          // submit ท้ายฟอร์ม (ฟอร์มที่มีหลายช่องแนบรูปเดิมต้องรออัปโหลดหลายรูปติดกันตอนกด Submit)
+          self.backgroundUploadPhoto(item.item_id, shot);
         } catch (err) {
           showToast('ถ่ายรูปไม่สำเร็จ: ' + err.message, 'error');
         }
@@ -593,6 +623,19 @@ const FormRender = {
     if (t.mode === 'log-sheet' && !this.answers._entry) {
       this.answers._entry = { time: new Date().toTimeString().slice(0, 5) };
     }
+    // รูปที่อัปโหลดเบื้องหลังไปล่วงหน้าแล้วระหว่างกรอก (มี .pending — ต่างจากรูปที่ copy มาจาก record
+    // เดิมตอน resubmit ซึ่งไม่มี flag นี้ ป้องกันส่งซ้ำไปผูกกับ record ใหม่ 2 รอบ) — ส่งไปให้
+    // createRecord ผูกเข้ากับ record ที่เพิ่งสร้างตรงๆ ไม่ต้องอัปโหลดซ้ำผ่าน uploadPhoto อีกรอบ
+    const pendingPhotos = {};
+    Object.keys(this.photos).forEach(function (itemId) {
+      (FormRender.photos[itemId] || []).forEach(function (p) {
+        if (p.pending && p.fileId) {
+          pendingPhotos[itemId] = pendingPhotos[itemId] || [];
+          pendingPhotos[itemId].push({ fileId: p.fileId, fileName: p.fileName || '' });
+        }
+      });
+    });
+
     Loading.show('กำลังบันทึกข้อมูล...');
     try {
       // 1) สร้าง record — client_uuid กัน record ซ้ำเมื่อ submit ซ้ำ, doctype_id ใช้เดิน workflow ฝั่ง server
@@ -610,7 +653,8 @@ const FormRender = {
         answers: this.answers,
         has_nok: this.hasNok(),
         recovery: this.recovery,
-        copy_from_record_id: this.resubmitOf || ''
+        copy_from_record_id: this.resubmitOf || '',
+        pending_photos: pendingPhotos
       });
       const recordId = res.record_id;
 

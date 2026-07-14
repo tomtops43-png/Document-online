@@ -103,6 +103,7 @@ function handleRequest(e, method) {
       case 'approveRecord': return jsonOut(actionApproveRecord(params, user));
       case 'rejectRecord': return jsonOut(actionRejectRecord(params, user));
       case 'uploadPhoto':  return jsonOut(actionUploadPhoto(params, user));
+      case 'uploadPhotoPending': return jsonOut(actionUploadPhotoPending(params, user));
       case 'uploadSignature': return jsonOut(actionUploadSignature(params, user));
       case 'addRecovery':  return jsonOut(actionAddRecovery(params, user));
       case 'search':       return jsonOut(actionSearch(params, user));
@@ -555,11 +556,26 @@ function actionCreateRecord(params, user) {
     // แค่คัดลอก photos_json (fileId เดิม) มาตั้งต้น แล้วให้ client อัปโหลดเพิ่มเฉพาะรูปที่ยังขาด/
     // เปลี่ยนใหม่ผ่าน uploadPhoto ตามปกติ (จะ push ต่อท้าย list เดิมของ item นั้น)
     var resubmitOf = String(params.copy_from_record_id || '').trim();
-    var copiedPhotosJson = '{}';
+    var photosObj = {};
     if (resubmitOf) {
       var oldFound = findRecordRow(resubmitOf);
-      if (oldFound && oldFound.row.photos_json) copiedPhotosJson = String(oldFound.row.photos_json);
+      if (oldFound && oldFound.row.photos_json) {
+        try { photosObj = JSON.parse(String(oldFound.row.photos_json)) || {}; } catch (e) { photosObj = {}; }
+      }
     }
+    // รูปที่ fill.html อัปโหลด "เงียบๆ" ไปล่วงหน้าระหว่างกรอกฟอร์ม (ดู actionUploadPhotoPending) —
+    // ตอนนั้นยังไม่มี record_id เลยเก็บไว้ในโฟลเดอร์ชั่วคราวก่อน มาผูกเข้ากับ record จริงตรงนี้เลย
+    // ไม่ต้องให้ client เสียเวลาอัปโหลดซ้ำผ่าน uploadPhoto อีกรอบตอน submit
+    var pendingPhotos = params.pending_photos || {};
+    Object.keys(pendingPhotos).forEach(function (itemId) {
+      var arr = pendingPhotos[itemId] || [];
+      if (!arr.length) return;
+      photosObj[itemId] = photosObj[itemId] || [];
+      arr.forEach(function (p) {
+        if (p && p.fileId) photosObj[itemId].push({ fileId: p.fileId, fileName: p.fileName || '', ts: now });
+      });
+    });
+    var copiedPhotosJson = JSON.stringify(photosObj);
 
     // ถ้ามีรูปฝัง เขียน answers_json ว่างไปก่อน (จองแถว/record_id เฉยๆ) แล้วไปอัปโหลดขึ้น Drive
     // นอก lock ด้านล่าง ไม่งั้น answers_json ดิบเกิน 50,000 ตัวอักษร/เซลล์ของ Sheets เขียนไม่ได้เลย
@@ -832,6 +848,25 @@ function actionUploadSignature(params, user) {
     return { success: false, error: 'อัปโหลดลายเซ็นไม่สำเร็จ' };
   }
   return { success: true, ref: ref };
+}
+
+// อัปโหลดรูปที่ถ่ายแนบระหว่างกรอกฟอร์มแบบ "เงียบๆ" เหมือน actionUploadSignature — ยังไม่มี record_id
+// ตอนนี้ (record สร้างตอน submit) จึงเก็บไว้ในโฟลเดอร์ชั่วคราว "pending-<client_uuid>/photos/" ก่อน
+// ไม่ต้องแตะ/ล็อกแถว record เลย (ยังไม่มีให้แตะ) แค่คืน fileId มาให้ client เก็บไว้เฉยๆ
+// ตอน submit จริง createRecord จะรับ pending_photos (fileId ที่อัปโหลดไปล่วงหน้าแล้วพวกนี้) ไปใส่ใน
+// photos_json ของ record ใหม่ตรงๆ โดยไม่ต้องอัปโหลดซ้ำผ่าน actionUploadPhoto อีกรอบ
+function actionUploadPhotoPending(params, user) {
+  var clientUuid = String(params.client_uuid || '').trim();
+  var itemId = String(params.item_id || '');
+  if (!clientUuid || !itemId || !params.base64) {
+    return { success: false, error: 'ข้อมูลรูปไม่ครบ (client_uuid/item_id/base64)' };
+  }
+  var fileName = 'pending-' + clientUuid + '_' + itemId + '_' + Date.now() + '.jpg';
+  var blob = Utilities.newBlob(Utilities.base64Decode(params.base64), 'image/jpeg', fileName);
+  var folder = getPhotoFolder(params.line || '', params.date || '', 'pending-' + clientUuid, 'photos');
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { success: true, fileId: file.getId(), fileName: fileName };
 }
 
 function actionUploadPhoto(params, user) {
