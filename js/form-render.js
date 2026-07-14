@@ -184,6 +184,11 @@ const FormRender = {
     // touchcancel เกิดได้เมื่อ OS/เบราว์เซอร์ตัดจังหวะการลากนิ้วกลางคัน (เช่น ปัดหน้าจอ, สลับแอป) —
     // ถ้าไม่ดักไว้ด้วย ลายเซ็นที่ขีดค้างอยู่บน canvas จะไม่ถูกบันทึกเข้า answers เลย แม้จะเห็นเส้นบนจอ
     canvas.addEventListener('touchcancel', captureSignature);
+    // mouseleave: initSignaturePad (fill.html) หยุดวาดทันทีที่เมาส์ออกนอกกรอบ canvas (เส้นขาดที่ขอบ
+    // เหมือนในภาพที่ user ส่งมา) แต่ browser จะไม่ยิง mouseup ให้ canvas อีกเพราะปล่อยปุ่มนอกกรอบไปแล้ว
+    // ถ้าไม่ดัก mouseleave ไว้ด้วย ลายเซ็นที่ลากออกนอกกรอบจะติดอยู่บนจอเฉยๆ ไม่ถูกบันทึกเข้า answers เลย
+    // ทั้งที่ user เห็นลายเซ็นครบแล้วบนหน้าจอ — ระบบเลยแจ้ง "ยังไม่ได้เซ็น" ทั้งที่เซ็นไปแล้วจริงๆ
+    canvas.addEventListener('mouseleave', captureSignature);
 
     clearBtn.addEventListener('click', function () { applyToStation(''); });
   },
