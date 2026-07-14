@@ -182,10 +182,20 @@ const FormRender = {
     // itemIds[0] อยู่แล้ว ส่วนตอนพิมพ์ print-render.js จะดึงค่านี้ไปโชว์ซ้ำทุกแถวของ Station เอง
     // ลดขนาดข้อมูล base64 ที่ต้องส่งไป server ตอน submit ได้มาก (ฟอร์มที่มีหลาย Station หลายข้อ
     // ต่อ Station เดิมส่งลายเซ็นเดิมซ้ำไปหลายสิบชุดโดยใช่เหตุ ทำให้ submit ช้า)
+    let uploadDebounceTimer = null;
     function applyToStation(dataUrl) {
       self.getAnswer(s.itemIds[0]).recorder = dataUrl;
       self.saveDraft();
       self.updateProgress();
+      // อัปโหลดลายเซ็นขึ้น Drive "เบื้องหลัง" ทันทีที่เซ็นเสร็จ (เงียบๆ ไม่รอ ไม่บล็อก UI) แทนที่จะรอ
+      // ไปฝังรวมกับ createRecord ตอนกด Submit ท้ายฟอร์มทีเดียว — debounce กันยิงรัวๆ ระหว่างขีดหลาย
+      // จังหวะ (เว้นจังหวะปากกา) ของลายเซ็นเดียวกัน รอ 1.2 วิหลังขีดจังหวะสุดท้ายค่อยอัปโหลดจริง
+      clearTimeout(uploadDebounceTimer);
+      if (dataUrl) {
+        uploadDebounceTimer = setTimeout(function () {
+          self.backgroundUploadSignature(s.itemIds[0], dataUrl);
+        }, 1200);
+      }
     }
 
     function captureSignature() {
@@ -205,6 +215,33 @@ const FormRender = {
     canvas.addEventListener('mouseleave', captureSignature);
 
     clearBtn.addEventListener('click', function () { applyToStation(''); });
+  },
+
+  // อัปโหลดลายเซ็น Station หนึ่งขึ้น Drive แบบเงียบๆ เบื้องหลัง (ไม่ block การกรอกฟอร์มต่อ) — เรียกจาก
+  // initStationSignature หลัง debounce ยังไม่มี record_id ตอนนี้ (record สร้างตอน submit เท่านั้น)
+  // จึงส่ง client_uuid (สร้างไว้ตั้งแต่เปิดฟอร์ม) ไปแทน ฝั่งเซิร์ฟเวอร์เก็บไว้ในโฟลเดอร์ชั่วคราว
+  // สำเร็จแล้วแทนที่ base64 ในคำตอบด้วย "drive:<fileId>" ทันที — พอกด Submit จริง
+  // uploadInlineImagesDeep_ จะข้ามรูปกลุ่มนี้ไปเลย (ไม่ใช่ data:image ซ้ำ) เหลืองานตอน submit
+  // แค่ลายเซ็น Station ล่าสุดที่เพิ่งเซ็น (ยังไม่ทันอัปโหลดเบื้องหลังเสร็จ) เท่านั้น
+  backgroundUploadSignature(itemId, dataUrl) {
+    const self = this;
+    const ctx = this.context;
+    API.post('uploadSignature', {
+      client_uuid: this.clientUuid,
+      tag: itemId + '_sign',
+      line: ctx.header.line || (this.template.lines && this.template.lines[0]) || '',
+      date: ctx.header.date || '',
+      data_url: dataUrl
+    }).then(function (res) {
+      const ans = self.getAnswer(itemId);
+      // เช็คว่า user ยังไม่เซ็นทับใหม่/กดล้างระหว่างรออัปโหลด (ans.recorder เปลี่ยนไปแล้วจาก dataUrl
+      // ที่ส่งไป) ถ้าเปลี่ยนแล้วห้ามเอาผลอัปโหลดเก่ามาทับค่าใหม่ล่าสุด
+      if (res && res.success && ans.recorder === dataUrl) {
+        ans.recorder = res.ref;
+        self.saveDraft();
+      }
+    }).catch(function () { /* เงียบๆ ไม่ต้องแจ้ง user — ถ้าอัปโหลดเบื้องหลังไม่สำเร็จ ตอน submit จริง
+      ก็ยังอัปโหลดจากค่า base64 เดิมได้ตามปกติ (fallback เดิมไม่เปลี่ยน) */ });
   },
 
   // ---------- render 1 item ----------

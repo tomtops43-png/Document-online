@@ -103,6 +103,7 @@ function handleRequest(e, method) {
       case 'approveRecord': return jsonOut(actionApproveRecord(params, user));
       case 'rejectRecord': return jsonOut(actionRejectRecord(params, user));
       case 'uploadPhoto':  return jsonOut(actionUploadPhoto(params, user));
+      case 'uploadSignature': return jsonOut(actionUploadSignature(params, user));
       case 'addRecovery':  return jsonOut(actionAddRecovery(params, user));
       case 'search':       return jsonOut(actionSearch(params, user));
       default:
@@ -812,6 +813,25 @@ function getPhotoFolder(line, dateStr, recordId, subType) {
   });
   cache.put(cacheKey, folder.getId(), 21600); // 6 ชม. (ค่าสูงสุดที่ CacheService รองรับ)
   return folder;
+}
+
+// อัปโหลดลายเซ็นแบบ "เงียบๆ" ระหว่างกรอกฟอร์ม (ก่อนมี record_id จริง) — fill.html เรียกตอนเซ็นเสร็จ
+// แต่ละ Station ทันที แทนที่จะรอฝัง base64 ไปกับ createRecord ตอนกด Submit ท้ายฟอร์มทีเดียวหมด
+// (ฟอร์มหลาย Station เดิมต้องรออัปโหลดหลายรูปติดกันตอน submit ทำให้ "กำลังบันทึกข้อมูล..." ค้างนาน)
+// ยังไม่มี record_id ตอนนี้ — ใช้ client_uuid (สร้างตั้งแต่เปิดฟอร์ม) เป็นชื่อโฟลเดอร์ชั่วคราวแทน
+// ถ้าอัปโหลดสำเร็จ client จะแทนที่ base64 ในคำตอบด้วย "drive:<fileId>" ที่ได้ทันที — พอกด Submit
+// จริง uploadInlineImagesDeep_ จะข้ามรูปที่อัปโหลดไปแล้วกลุ่มนี้ไปเลย (ไม่ใช่ data:image ซ้ำ)
+function actionUploadSignature(params, user) {
+  var clientUuid = String(params.client_uuid || '').trim();
+  if (!clientUuid || !params.data_url) {
+    return { success: false, error: 'ข้อมูลไม่ครบ (client_uuid/data_url)' };
+  }
+  var tag = String(params.tag || 'sign');
+  var ref = uploadInlineImage_(String(params.data_url), 'pending-' + clientUuid, tag, params.line || '', params.date || '');
+  if (String(ref).indexOf('drive:') !== 0) {
+    return { success: false, error: 'อัปโหลดลายเซ็นไม่สำเร็จ' };
+  }
+  return { success: true, ref: ref };
 }
 
 function actionUploadPhoto(params, user) {
