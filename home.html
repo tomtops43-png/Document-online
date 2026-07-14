@@ -91,6 +91,10 @@
 <script>
 const user = Auth.requireLogin();
 AppShell.init('home');
+if (user && user.role === 'Operator') {
+  showToast('หน้านี้สำหรับหัวหน้างานขึ้นไปเท่านั้น', 'error');
+  setTimeout(function () { location.href = 'dashboard.html'; }, 1500);
+}
 
 const BRAND = '#2563eb', OK_C = '#16a34a', NOK_C = '#dc2626', GRID = '#e5e7eb', FAINT = '#9ca3af';
 let weekData = [];      // slim records 7 วัน จาก server

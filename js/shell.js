@@ -8,7 +8,9 @@
 const AppShell = {
   // เมนูหลัก — เพิ่มเมนูใหม่ในอนาคตแค่เพิ่ม object ในลิสต์นี้ที่เดียว
   NAV_ITEMS: [
-    { key: 'home', href: 'home.html', icon: '📊', label: 'Dashboard' },
+    // Dashboard เป็นข้อมูลสรุป/วิเคราะห์สำหรับหัวหน้างานขึ้นไป — Operator ใช้แค่กรอกฟอร์มหน้างาน
+    // ไม่ต้องเห็นเมนูนี้ (ตัดตัวเลือกที่ไม่เกี่ยวกับงานเขาออก กันสับสน)
+    { key: 'home', href: 'home.html', icon: '📊', label: 'Dashboard', roles: ['Admin', 'DocControl', 'Leader', 'QI'] },
     { key: 'dashboard', href: 'dashboard.html', icon: '🏭', label: 'Document Center' },
     { key: 'search', href: 'search.html', icon: '🔍', label: 'ค้นหา' },
     { key: 'records', href: 'records.html', icon: '📋', label: 'บันทึก / อนุมัติ' }
@@ -33,7 +35,12 @@ const AppShell = {
     nav.className = 'app-sidebar';
 
     let itemsHtml = '';
-    this.NAV_ITEMS.forEach((item) => { itemsHtml += this._renderLink(item, activeKey); });
+    const navItems = this.NAV_ITEMS.filter((item) => {
+      if (!item.roles) return true;
+      if (!user) return false;
+      return user.role === 'Admin' || item.roles.indexOf(user.role) >= 0;
+    });
+    navItems.forEach((item) => { itemsHtml += this._renderLink(item, activeKey); });
 
     const adminItems = this.NAV_ITEMS_ADMIN.filter((item) => {
       if (!user) return false;
@@ -46,9 +53,10 @@ const AppShell = {
     }
 
     const initials = user ? user.name.trim().slice(0, 1).toUpperCase() : '?';
+    const brandHref = (user && user.role === 'Operator') ? 'dashboard.html' : 'home.html';
 
     nav.innerHTML =
-      '<a href="home.html" class="sidebar-brand">' +
+      '<a href="' + brandHref + '" class="sidebar-brand">' +
       '<span class="logo">🏭</span><span class="brand-text">ENC QMS</span></a>' +
       '<div class="sidebar-nav">' + itemsHtml + adminHtml + '</div>' +
       '<div class="sidebar-footer">' +

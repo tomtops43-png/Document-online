@@ -66,8 +66,8 @@ document.getElementById('btn-login').addEventListener('click', async function ()
   if (!empId || !pin) { showToast('กรุณากรอกรหัสพนักงานและ PIN', 'error'); return; }
   Loading.show('กำลังเข้าสู่ระบบ...');
   try {
-    await Auth.login(empId, pin);
-    location.href = 'home.html';
+    const data = await Auth.login(empId, pin);
+    location.href = data.role === 'Operator' ? 'dashboard.html' : 'home.html';
   } catch (err) {
     Loading.hide();
     showToast('เข้าสู่ระบบไม่สำเร็จ: ' + err.message, 'error');
@@ -77,7 +77,10 @@ document.getElementById('login-pin').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') document.getElementById('btn-login').click();
 });
 
-if (Auth.isLoggedIn()) location.href = 'home.html';
+if (Auth.isLoggedIn()) {
+  const u = Auth.currentUser();
+  location.href = (u && u.role === 'Operator') ? 'dashboard.html' : 'home.html';
+}
 </script>
 </body>
 </html>
