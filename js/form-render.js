@@ -13,11 +13,13 @@ const FormRender = {
 
   clientUuid: '',
   resubmitOf: '', // record_id เดิมที่ถูกตีกลับ ถ้าเข้ามาทาง "แก้ไขและส่งใหม่" (records.html)
+  _bgPhotoUploads: [], // promise ของรูปที่กำลังอัปโหลดเบื้องหลัง — submit() รอให้ settle ก่อนเสมอ (กัน race)
 
   // ---------- เริ่มต้น ----------
   async init(template, context) {
     this.template = template;
     this.context = context;
+    this._bgPhotoUploads = [];
     this.excludedItemIds = this.getExcludedItemIds();
     this.draftKey = CONFIG.LS_DRAFT_PREFIX + template.form_id + '_' + (context.station || 'single');
     this.restoreDraft();
@@ -285,7 +287,12 @@ const FormRender = {
     const ctx = this.context;
     if (!photoObj.base64) return;
     const base64 = photoObj.base64;
-    API.post('uploadPhotoPending', {
+    // เก็บ promise ไว้ใน _bgPhotoUploads เพื่อให้ submit() รอให้ settle ก่อนตัดสินใจว่ารูปไหนไป
+    // pendingPhotos (อัปโหลดเสร็จแล้ว) หรือไป uploads (ยังมี base64) — ถ้าไม่รอ จะเกิด race: รูปที่
+    // อัปโหลดเบื้องหลังเสร็จ "ระหว่าง" createRecord กำลัง await จะตกหล่นทั้งสองทาง (ตอนสร้าง
+    // pendingPhotos ยังไม่ pending, พอ createRecord เสร็จ base64 ถูกลบไปแล้วเลยไม่เข้า uploads) →
+    // รูปหายทั้งที่แนบแล้ว (นี่คือบั๊กที่รูป Carton Label/รูปสุดท้ายหลุดบ่อย)
+    const p = API.post('uploadPhotoPending', {
       client_uuid: this.clientUuid,
       item_id: itemId,
       line: ctx.header.line || (this.template.lines && this.template.lines[0]) || '',
@@ -302,6 +309,13 @@ const FormRender = {
         self.saveDraft();
       }
     }).catch(function () { /* เงียบๆ — เหลือ base64 ไว้ อัปโหลดจริงตอน submit ตามปกติ */ });
+    this._bgPhotoUploads.push(p);
+    // เอา promise ออกจากลิสต์เมื่อจบ (ใช้ then สองอาร์กิวเมนต์แทน .finally เพื่อรองรับ WebView เก่า)
+    const cleanup = function () {
+      const i = self._bgPhotoUploads.indexOf(p);
+      if (i >= 0) self._bgPhotoUploads.splice(i, 1);
+    };
+    p.then(cleanup, cleanup);
   },
 
   // ---------- render 1 item ----------
@@ -656,6 +670,16 @@ const FormRender = {
     if (t.mode === 'log-sheet' && !this.answers._entry) {
       this.answers._entry = { time: new Date().toTimeString().slice(0, 5) };
     }
+    // สำคัญ: รอรูปที่กำลังอัปโหลดเบื้องหลังทั้งหมดให้ settle ก่อน แล้วค่อยแยกรูปไป pendingPhotos/uploads
+    // ทุกรูปจะอยู่ในสถานะนิ่ง (มี base64 = ยังไม่อัปโหลด/อัปโหลดล้มเหลว, หรือ pending+fileId = อัปโหลด
+    // เสร็จแล้ว) อย่างใดอย่างหนึ่งแน่นอน ไม่มีรูปที่ค้างกลางทางจนตกหล่นทั้งสองทางระหว่าง createRecord
+    // await อีก (ดูรายละเอียดบั๊กใน backgroundUploadPhoto) — _bgPhotoUploads แต่ละตัว catch ไว้แล้ว
+    // จึงไม่ reject, Promise.all ปลอดภัย (ใช้แทน allSettled เพื่อรองรับ WebView เก่า)
+    if (this._bgPhotoUploads.length) {
+      Loading.show('กำลังอัปโหลดรูปที่เหลือ...');
+      try { await Promise.all(this._bgPhotoUploads.slice()); } catch (e) { /* ไม่ reject อยู่แล้ว */ }
+    }
+
     // รูปที่อัปโหลดเบื้องหลังไปล่วงหน้าแล้วระหว่างกรอก (มี .pending — ต่างจากรูปที่ copy มาจาก record
     // เดิมตอน resubmit ซึ่งไม่มี flag นี้ ป้องกันส่งซ้ำไปผูกกับ record ใหม่ 2 รอบ) — ส่งไปให้
     // createRecord ผูกเข้ากับ record ที่เพิ่งสร้างตรงๆ ไม่ต้องอัปโหลดซ้ำผ่าน uploadPhoto อีกรอบ
