@@ -468,9 +468,18 @@
         {
           "item_id": "st16-1",
           "text_th": "1. ตรวจสอบความถูกต้องของ QR Code (ต้องสามารถแสกนอ่านได้)",
-          "note_th": "หมายเหตุ: งานไทยต้องมีตัว T ตามหลัง QR-Code — ติด QR CODE",
+          "note_th": "หมายเหตุ: งานไทยต้องมีตัว T ตามหลัง QR-Code",
           "answer_type": "acc_rej",
-          "photo": false,
+          "options_extra": {
+            "checkboxes": [
+              "งานไทย (T) Local",
+              "งานนอก Export"
+            ]
+          },
+          "photo": {
+            "required": true,
+            "label": "ติด QR CODE"
+          },
           "critical": false,
           "recorder": true,
           "time": true
@@ -641,6 +650,11 @@
       "item_id": "st2-1",
       "station_label": "Station2:",
       "box_label": "ติด Rating Label"
+    },
+    {
+      "item_id": "st16-1",
+      "station_label": "Station16:",
+      "box_label": "ติด QR CODE"
     },
     {
       "item_id": "st21-22-1",
