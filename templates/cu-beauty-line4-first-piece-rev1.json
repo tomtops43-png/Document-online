@@ -46,7 +46,7 @@
       "items": [
         {
           "item_id": "st1-1",
-          "text_th": "1. Verify accuracy Box",
+          "text_th": "1. ตรวจสอบความถูกต้อง Box",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -73,13 +73,13 @@
       "items": [
         {
           "item_id": "st2-1",
-          "text_th": "1. Verify accuracy Rating Label and Wiring Diagram Label for Load Center",
+          "text_th": "1. ตรวจสอบความถูกต้อง Rating Label และ Wiring Diagram Label สำหรับ Load Center",
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
               {
                 "key": "label_model",
-                "label": "Model Label"
+                "label": "ระบุรุ่นบน Label"
               },
               {
                 "key": "date_code",
@@ -89,7 +89,7 @@
           },
           "photo": {
             "required": true,
-            "label": "Attach Rating Label"
+            "label": "ติด Rating Label"
           },
           "critical": false,
           "recorder": true,
@@ -103,7 +103,7 @@
       "items": [
         {
           "item_id": "st3-1",
-          "text_th": "1. Verify accuracy Ground Terminal",
+          "text_th": "1. ตรวจสอบความถูกต้อง Ground Terminal",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -124,7 +124,7 @@
         },
         {
           "item_id": "st3-2",
-          "text_th": "2. Verify accuracy of Base correct according to the model and amount produced",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Base ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -139,7 +139,7 @@
       "items": [
         {
           "item_id": "st4-1",
-          "text_th": "1. Verify accuracy of Neutral Label",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Label",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -160,7 +160,7 @@
         },
         {
           "item_id": "st4-2",
-          "text_th": "2. Verify accuracy of Interior Way Label",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Interior Way Label",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -187,7 +187,7 @@
       "items": [
         {
           "item_id": "st5-1",
-          "text_th": "1. Verify accuracy of Base add on",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Base add on",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -196,7 +196,7 @@
         },
         {
           "item_id": "st5-2",
-          "text_th": "2. Verify accuracy of Main Busbar",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Main Busbar",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -217,7 +217,7 @@
         },
         {
           "item_id": "st5-3",
-          "text_th": "3. Verify accuracy of Neutral Busbar",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Neutral Busbar",
           "note_th": "ต้นฉบับระบุชื่อซ้ำกับข้อ 2 (\"Main Busbar\") — ตั้งชื่อแยกให้ชัดเจนเป็น Neutral Busbar",
           "answer_type": "acc_rej",
           "options_extra": {
@@ -245,7 +245,7 @@
       "items": [
         {
           "item_id": "st6-1",
-          "text_th": "1. Verify Neutral Terminal and screw",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Terminal และ Screw",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -266,7 +266,7 @@
         },
         {
           "item_id": "st6-2",
-          "text_th": "2. Verify accuracy of IP Cover correct according to the model and amount produced",
+          "text_th": "2. ตรวจสอบความถูกต้องของ IP Cover ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -275,7 +275,7 @@
         },
         {
           "item_id": "st6-3",
-          "text_th": "3. Verify accuracy of IP Lock correct according to the model and amount produced",
+          "text_th": "3. ตรวจสอบความถูกต้องของ IP Lock ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -284,7 +284,7 @@
         },
         {
           "item_id": "st6-4",
-          "text_th": "4. Verify Neutral cable and Live cable",
+          "text_th": "4. ตรวจสอบความถูกต้องของ Neutral cable และ Live cable",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -299,7 +299,7 @@
       "items": [
         {
           "item_id": "st8-1",
-          "text_th": "1. Verify accuracy of Nut",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Nut",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -314,7 +314,7 @@
         },
         {
           "item_id": "st8-2",
-          "text_th": "2. Verify accuracy of Ground Label",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Ground Label",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -329,7 +329,7 @@
       "items": [
         {
           "item_id": "st9-1",
-          "text_th": "1. Verify accuracy of Filler Plate according to the model and amount produced",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Filler Plate ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -389,7 +389,7 @@
       "items": [
         {
           "item_id": "st15-1",
-          "text_th": "1. Verify accuracy of Cover",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Cover",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -398,7 +398,7 @@
         },
         {
           "item_id": "st15-2",
-          "text_th": "2. Verify accuracy position of On-Off Lable (where On is at the top)",
+          "text_th": "2. ตรวจสอบความถูกต้องตำแหน่งของ On-Off Lable (โดยที่ด้าน On จะต้องอยู่ด้านบน)",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -407,7 +407,7 @@
         },
         {
           "item_id": "st15-3",
-          "text_th": "3. Verify accuracy of Way Label",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Way Label",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -428,7 +428,7 @@
         },
         {
           "item_id": "st15-4",
-          "text_th": "4. Verify accuracy of Hing",
+          "text_th": "4. ตรวจสอบความถูกต้องของ Hing",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -443,7 +443,7 @@
       "items": [
         {
           "item_id": "st16-1",
-          "text_th": "1. Verify accuracy of circuit breaker (beauty)",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Circuit Breaker (Beauty)",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -458,7 +458,7 @@
         },
         {
           "item_id": "st16-2",
-          "text_th": "2. Verify accuracy of circuit breaker (split)",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Circuit Breaker (Split)",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -473,7 +473,7 @@
         },
         {
           "item_id": "st16-3",
-          "text_th": "3. Verify accuracy of Cover Screw",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Cover Screw",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -488,7 +488,7 @@
       "items": [
         {
           "item_id": "st17-1",
-          "text_th": "1. Verify Continuity",
+          "text_th": "1. ตรวจสอบความถูกต้อง Continuity",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -503,7 +503,7 @@
       "items": [
         {
           "item_id": "st18-1",
-          "text_th": "1. Verify accuracy and logo integrity Schneider and Square D",
+          "text_th": "1. ตรวจสอบความถูกต้องและสมบูรณ์ของโลโก้ Schneider และ Square D",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -512,7 +512,7 @@
         },
         {
           "item_id": "st18-2",
-          "text_th": "2. Verify accuracy of TIS&IEC Label 1PH (Export no stick)",
+          "text_th": "2. ตรวจสอบความถูกต้องของ TIS&IEC Label 1PH (งานนอกไม่ติด)",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -521,8 +521,8 @@
         },
         {
           "item_id": "st18-3",
-          "text_th": "3. Verify open-close Dolly Cover after assembly",
-          "note_th": "(confirm Dolly not move)",
+          "text_th": "3. ตรวจสอบการเปิด-ปิด Dolly Cover หลังจากการประกอบ",
+          "note_th": "(ยืนยัน Dolly ต้องตั้งค้าง)",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -531,7 +531,7 @@
         },
         {
           "item_id": "st18-4",
-          "text_th": "4. Verify polybag",
+          "text_th": "4. ตรวจสอบความถูกต้องของ Polybag",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -561,7 +561,7 @@
       "items": [
         {
           "item_id": "st20-1",
-          "text_th": "1. Verify accuracy of Carton",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Carton",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -576,7 +576,7 @@
       "items": [
         {
           "item_id": "st21-1",
-          "text_th": "1. Verify accuracy of Schneider Label",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Schneider Label",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -585,13 +585,13 @@
         },
         {
           "item_id": "st21-2",
-          "text_th": "2. Verify accuracy of Carton Label correct according to the model produced",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Carton Label ถูกต้องตามรุ่นที่กำลังผลิต",
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
               {
                 "key": "label_model",
-                "label": "Model Label"
+                "label": "ระบุรุ่นบน Label"
               },
               {
                 "key": "date_code",
@@ -604,7 +604,7 @@
           },
           "photo": {
             "required": true,
-            "label": "Attach Carton Label"
+            "label": "ติด Carton Label"
           },
           "critical": false,
           "recorder": true,
@@ -617,12 +617,12 @@
     {
       "item_id": "st2-1",
       "station_label": "Station2:",
-      "box_label": "Attach Rating Label"
+      "box_label": "ติด Rating Label"
     },
     {
       "item_id": "st21-2",
       "station_label": "Station21:",
-      "box_label": "Attach Carton Label"
+      "box_label": "ติด Carton Label"
     }
   ],
   "signatures": [
