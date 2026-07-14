@@ -114,6 +114,25 @@ const FormRender = {
       }
       sticky.innerHTML = info;
     }
+
+    // .app-bar-fill เป็น position:fixed (ดูเหตุผลใน app.css) — ไม่มี padding-top ที่เนื้อหาข้างล่าง
+    // จะโดนแถบด้านบนบัง ต้องวัดความสูงจริงแล้วเว้น padding ให้ .container พอดี วัดใหม่ทุกครั้งที่ resize
+    // ด้วย (พลิกจอมือถือ/แท็บเล็ต หรือ context info ยาวจนขึ้นบรรทัดใหม่ ความสูงแถบจะเปลี่ยน)
+    FormRender.adjustFillTopPadding();
+    if (!FormRender._fillPaddingResizeBound) {
+      window.addEventListener('resize', function () {
+        clearTimeout(FormRender._fillPaddingResizeTimer);
+        FormRender._fillPaddingResizeTimer = setTimeout(function () { FormRender.adjustFillTopPadding(); }, 150);
+      });
+      FormRender._fillPaddingResizeBound = true;
+    }
+  },
+
+  adjustFillTopPadding() {
+    const bar = document.querySelector('.app-bar-fill');
+    const container = document.querySelector('main.container');
+    if (!bar || !container) return;
+    container.style.paddingTop = (bar.offsetHeight + 20) + 'px';
   },
 
   // ---------- item ที่ Station ที่เลือกไม่ต้องตรวจ (ตาม Master Excel ต้นแบบ — คอลัมน์ N/A ต่อ Station) ----------

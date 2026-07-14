@@ -157,9 +157,13 @@ body.has-shell { padding-left: var(--sidebar-w); }
   font-weight: 600; white-space: nowrap;
 }
 
-/* แถบสรุปเอกสาร/รุ่นที่กำลังกรอก ใน app-bar ของ fill.html — app-bar sticky อยู่แล้ว
-   เลื่อนฟอร์มยาวๆ ลงไปแค่ไหน พนักงานก็ยังเห็นตลอดว่ากรอกเอกสารรุ่นไหนอยู่ */
-.app-bar-fill { flex-wrap: wrap; row-gap: 4px; }
+/* แถบสรุปเอกสาร/รุ่นที่กำลังกรอก ใน app-bar ของ fill.html — ต้องใช้ position:fixed ไม่ใช่ sticky
+   เพราะ body/html มี overflow-x:hidden (กัน horizontal overflow บนมือถือ) ซึ่งทำให้ browser มองว่า
+   body เป็น scroll container ของตัวเอง (overflow-y คำนวณเป็น auto ไปด้วยตามสเปก) — position:sticky
+   ของลูก body ในสถานการณ์นี้จะไม่ยึดกับหน้าจอจริงในหลาย browser/WebView (บั๊กที่รู้จักกันดี) ผลคือ
+   เลื่อนหน้าลงแล้วแถบหายไปเลยแทนที่จะติดอยู่บนสุด — ใช้ fixed แทนซึ่งไม่มีปัญหานี้ (ดู JS ที่เว้น
+   padding-top ให้ .container พอดีความสูงจริงของแถบ กันเนื้อหาโดนบัง) */
+.app-bar-fill { position: fixed; top: 0; left: 0; right: 0; flex-wrap: wrap; row-gap: 4px; }
 .fill-context-info {
   flex-basis: 100%;
   font-size: 13px; line-height: 1.4;
