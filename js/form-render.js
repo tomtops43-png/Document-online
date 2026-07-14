@@ -168,8 +168,12 @@ const FormRender = {
       img.src = firstAns.recorder;
     }
 
+    // เก็บลายเซ็นไว้แค่ที่ item แรกของ Station (ไม่ยัดซ้ำทุกข้อ) — validate()/submit() อ่านแค่
+    // itemIds[0] อยู่แล้ว ส่วนตอนพิมพ์ print-render.js จะดึงค่านี้ไปโชว์ซ้ำทุกแถวของ Station เอง
+    // ลดขนาดข้อมูล base64 ที่ต้องส่งไป server ตอน submit ได้มาก (ฟอร์มที่มีหลาย Station หลายข้อ
+    // ต่อ Station เดิมส่งลายเซ็นเดิมซ้ำไปหลายสิบชุดโดยใช่เหตุ ทำให้ submit ช้า)
     function applyToStation(dataUrl) {
-      s.itemIds.forEach(function (id) { self.getAnswer(id).recorder = dataUrl; });
+      self.getAnswer(s.itemIds[0]).recorder = dataUrl;
       self.saveDraft();
       self.updateProgress();
     }

@@ -115,6 +115,20 @@ const PrintRender = {
     const answers = record ? (typeof record.answers_json === 'string' ? JSON.parse(record.answers_json || '{}') : record.answers_json || {}) : {};
     const photos = record ? (typeof record.photos_json === 'string' ? JSON.parse(record.photos_json || '{}') : record.photos_json || {}) : {};
 
+    // fill.html เก็บลายเซ็น Recorder ไว้แค่ที่ข้อแรกของแต่ละ Station (ไม่ยัดซ้ำทุกข้อ — กัน payload
+    // ตอน submit บวมและ Drive อัปโหลดซ้ำโดยใช่เหตุ) ตอนพิมพ์เลยต้อง map ย้อนกลับ: หาลายเซ็นที่มีจริง
+    // ของแต่ละ Station แล้วใช้กับทุกข้อใน Station นั้น (รองรับ record เก่าที่เคยเก็บซ้ำทุกข้อด้วย
+    // เพราะ fallback ใช้ ans.recorder ของตัวเองก่อนเสมอถ้ามี)
+    const sectionRecorderByItem = {};
+    (template.sections || []).forEach(function (section) {
+      let sig = '';
+      section.items.forEach(function (item) {
+        const a = answers[item.item_id] || {};
+        if (a.recorder) sig = a.recorder;
+      });
+      section.items.forEach(function (item) { sectionRecorderByItem[item.item_id] = sig; });
+    });
+
     let html = '<div class="sheet sheet-nms">';
 
     // ---- หัวเอกสาร: โลโก้ + ชื่อฟอร์ม + เลขเอกสาร ----
@@ -186,7 +200,7 @@ const PrintRender = {
         const decision = ans.value;
         html += '<td class="cell-acc">Acc <span class="tickbox">' + (decision === 'ACC' ? '✓' : '&nbsp;') + '</span></td>';
         html += '<td class="cell-rej">Rej <span class="tickbox">' + (decision === 'REJ' ? '✓' : '&nbsp;') + '</span></td>';
-        html += '<td class="cell-recorder">' + recorderCellHtml(ans.recorder) + '</td>';
+        html += '<td class="cell-recorder">' + recorderCellHtml(ans.recorder || sectionRecorderByItem[item.item_id]) + '</td>';
         html += '<td class="cell-time">' + esc(ans.time || '') + '</td>';
         html += '</tr>';
       });
@@ -200,7 +214,7 @@ const PrintRender = {
       html += '<div class="photo-section">' +
         '<div class="photo-section-head">' + esc(box.station_label) +
         ' <span class="ps-role">Production Operator</span>' +
-        ' <span class="ps-name">Recorder: ' + recorderCellHtml(ans.recorder) + '</span></div>' +
+        ' <span class="ps-name">Recorder: ' + recorderCellHtml(ans.recorder || sectionRecorderByItem[box.item_id]) + '</span></div>' +
         '<div class="photo-frame">';
       if (list.length) {
         list.forEach(function (p) {

@@ -550,6 +550,18 @@ function renderDetail(template, record, recovery) {
   const answers = typeof record.answers_json === 'string' ? JSON.parse(record.answers_json || '{}') : record.answers_json || {};
   const photos = typeof record.photos_json === 'string' ? JSON.parse(record.photos_json || '{}') : record.photos_json || {};
 
+  // fill.html เก็บลายเซ็น Recorder ไว้แค่ข้อแรกของแต่ละ Station เท่านั้น (ดู form-render.js) —
+  // map ย้อนกลับให้ทุกข้อใน Station เดียวกันเห็นลายเซ็นเดียวกันตอนแสดงผลตรงนี้ด้วย
+  const sectionRecorderByItem = {};
+  (template.sections || []).forEach(function (section) {
+    let sig = '';
+    section.items.forEach(function (item) {
+      const a = answers[item.item_id] || {};
+      if (a.recorder) sig = a.recorder;
+    });
+    section.items.forEach(function (item) { sectionRecorderByItem[item.item_id] = sig; });
+  });
+
   let html = '<div class="detail-meta">' + statusBadge(record.status) +
     ' <b>' + template.title_th + '</b>' +
     (record.station ? ' | Station ' + record.station : '') +
@@ -566,9 +578,10 @@ function renderDetail(template, record, recovery) {
       const waysArr = waySelectedList(a);
       if (waysArr.length) valTxt += ' [' + waysArr.join(', ') + ']';
       const cls = (a.value === 'NOK' || a.value === 'REJ') ? 'val-nok' : 'val-ok';
-      const recorderTxt = (typeof a.recorder === 'string' && isSignatureImage(a.recorder))
-        ? '<img src="' + signatureImgSrc(a.recorder) + '" style="max-height:26px;vertical-align:middle">'
-        : (a.recorder || '');
+      const recorderVal = a.recorder || sectionRecorderByItem[item.item_id];
+      const recorderTxt = (typeof recorderVal === 'string' && isSignatureImage(recorderVal))
+        ? '<img src="' + signatureImgSrc(recorderVal) + '" style="max-height:26px;vertical-align:middle">'
+        : (recorderVal || '');
       html += '<tr><td>' + (item.critical ? '✱ ' : '') + item.text_th + '</td>' +
         '<td class="' + cls + '">' + valTxt + '</td>' +
         '<td>' + recorderTxt + ' ' + (a.time || '') + '</td></tr>';
