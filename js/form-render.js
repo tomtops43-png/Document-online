@@ -100,6 +100,20 @@ const FormRender = {
     }
     html += '</div>';
     el.innerHTML = html;
+
+    // แถบสรุปใน app-bar (sticky) — เลื่อนฟอร์มลงไปไกลแค่ไหนก็ยังเห็นว่ากรอกเอกสาร/รุ่นไหนอยู่
+    const sticky = document.getElementById('fill-context-info');
+    if (sticky) {
+      let info = '<span class="fci-title">' + esc(t.title_th) + '</span>';
+      (t.header_fields || []).forEach(function (f) {
+        const val = FormRender.context.header[f.key] || '';
+        if (val) info += '<span class="fci-item">' + esc(f.label) + ': <b>' + esc(val) + '</b></span>';
+      });
+      if (this.context.station) {
+        info += '<span class="fci-item">Station: <b>' + esc(String(this.context.station)) + '</b></span>';
+      }
+      sticky.innerHTML = info;
+    }
   },
 
   // ---------- item ที่ Station ที่เลือกไม่ต้องตรวจ (ตาม Master Excel ต้นแบบ — คอลัมน์ N/A ต่อ Station) ----------

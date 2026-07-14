@@ -19,12 +19,14 @@
 </head>
 <body>
 
-<header class="app-bar">
+<header class="app-bar app-bar-fill">
   <a href="index.html" class="btn-small">◀ หน้าแรก</a>
   <div class="progress-wrap">
     <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
     <div class="progress-text" id="progress-label"></div>
   </div>
+  <!-- สรุปว่ากำลังกรอกเอกสารอะไร/รุ่นไหน — อยู่ใน app-bar ที่ sticky อยู่แล้ว เลื่อนลงยังเห็นตลอด -->
+  <div class="fill-context-info" id="fill-context-info"></div>
 </header>
 
 <main class="container">

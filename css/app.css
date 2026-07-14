@@ -157,6 +157,19 @@ body.has-shell { padding-left: var(--sidebar-w); }
   font-weight: 600; white-space: nowrap;
 }
 
+/* แถบสรุปเอกสาร/รุ่นที่กำลังกรอก ใน app-bar ของ fill.html — app-bar sticky อยู่แล้ว
+   เลื่อนฟอร์มยาวๆ ลงไปแค่ไหน พนักงานก็ยังเห็นตลอดว่ากรอกเอกสารรุ่นไหนอยู่ */
+.app-bar-fill { flex-wrap: wrap; row-gap: 4px; }
+.fill-context-info {
+  flex-basis: 100%;
+  font-size: 13px; line-height: 1.4;
+  color: rgba(255,255,255,.9);
+  display: flex; flex-wrap: wrap; gap: 2px 14px;
+}
+.fill-context-info:empty { display: none; }
+.fill-context-info .fci-title { font-weight: 700; color: #fff; }
+.fill-context-info .fci-item b { font-weight: 700; color: #fff; }
+
 .container { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
 .container-wide { max-width: 1240px; }
 
