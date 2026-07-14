@@ -577,13 +577,33 @@ const FormRender = {
           if (p.base64) uploads.push({ item_id: itemId, index: idx, base64: p.base64 });
         });
       });
-      const doUpload = function (u) {
-        return API.post('uploadPhoto', {
-          record_id: recordId,
-          item_id: u.item_id,
-          line: uploadLine,
-          base64: u.base64
-        });
+      // ชื่อรูปไว้ใช้ขึ้น error message ให้ user รู้ว่าจุดไหนหลุด (แทน "บันทึกไม่สำเร็จ" เฉยๆ ซึ่ง
+      // หาสาเหตุไม่ได้ว่ารูปไหนของ Station ไหน)
+      const itemLabelById = {};
+      this.allItems().forEach(function (i) {
+        itemLabelById[i.item_id] = (i.photo && i.photo.label) || i.text_th || i.item_id;
+      });
+      // retry ต่อรูป: ตอนอัปโหลดพร้อมกันหลายรูป (concurrency 3) มีโอกาสชน lock ของ GAS
+      // (actionUploadPhoto ล็อกแถว record เดียวกันตอนเขียน photos_json กลับ) แล้วได้ error ที่ไม่ใช่
+      // network error ธรรมดา (เช่น lock timeout) ซึ่ง API._fetchWithRetry ไม่ retry ให้อัตโนมัติ —
+      // ถ้าไม่ retry ซ้ำตรงนี้ด้วย รูปนั้นจะหลุดเงียบๆ ทั้งที่ record หลักสร้างสำเร็จไปแล้ว
+      // (บั๊กที่ user เจอ: แนบรูปแล้วแต่ไม่ขึ้นตอนพิมพ์)
+      const doUpload = async function (u, attempt) {
+        attempt = attempt || 1;
+        try {
+          return await API.post('uploadPhoto', {
+            record_id: recordId,
+            item_id: u.item_id,
+            line: uploadLine,
+            base64: u.base64
+          });
+        } catch (err) {
+          if (attempt < 3) {
+            await new Promise(function (r) { setTimeout(r, 800 * attempt); });
+            return doUpload(u, attempt + 1);
+          }
+          throw new Error('อัปโหลดรูป "' + (itemLabelById[u.item_id] || u.item_id) + '" ไม่สำเร็จ: ' + err.message);
+        }
       };
       if (uploads.length) {
         let done = 0;
