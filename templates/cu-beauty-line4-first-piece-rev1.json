@@ -50,14 +50,14 @@
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
-              "4Way",
-              "6Way",
-              "10Way",
-              "14Way",
-              "18Way",
-              "14 X 4 Way",
-              "18 x 4 Way",
-              "18 x 8 Way"
+              "4Way (75504055DAN)",
+              "6Way (75504055DAN)",
+              "10Way (75504056DAN)",
+              "14Way (75504057CAN)",
+              "18Way (S1B82681)",
+              "14 X 4 Way(75504057CAN)",
+              "18 x 4 Way(S1B82681)",
+              "18 x 8 Way(S1B82681)"
             ]
           },
           "photo": false,
@@ -68,12 +68,12 @@
       ]
     },
     {
-      "section_id": "st2",
-      "title": "Station: 2",
+      "section_id": "st3",
+      "title": "Station: 3",
       "items": [
         {
-          "item_id": "st2-1",
-          "text_th": "1. ตรวจสอบความถูกต้อง Rating Label และ Wiring Diagram Label สำหรับ Load Center",
+          "item_id": "st3-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Rating Label , Wiring Diagram Label สำหรับ CU",
           "answer_type": "acc_rej",
           "options_extra": {
             "texts": [
@@ -94,38 +94,17 @@
           "critical": false,
           "recorder": true,
           "time": true
-        }
-      ]
-    },
-    {
-      "section_id": "st3",
-      "title": "Station: 3",
-      "items": [
-        {
-          "item_id": "st3-1",
-          "text_th": "1. ตรวจสอบความถูกต้อง Ground Terminal",
-          "answer_type": "acc_rej",
-          "options_extra": {
-            "way_select": [
-              "4Way",
-              "6Way",
-              "10Way",
-              "14Way",
-              "18Way",
-              "14 X 4 Way",
-              "18 x 4 Way",
-              "18 x 8 Way"
-            ]
-          },
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
         },
         {
           "item_id": "st3-2",
-          "text_th": "2. ตรวจสอบความถูกต้องของ Base ถูกรุ่นและจำนวนครบ",
-          "answer_type": "acc_rej",
+          "text_th": "2. ตรวจสอบความถูกต้องของ สกรู Screw 75503762AA",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 1.69,
+            "max": 1.92,
+            "unit": "N.m",
+            "display": "1.69-1.92 N.m (15-17 lbf-in)"
+          },
           "photo": false,
           "critical": false,
           "recorder": true,
@@ -139,7 +118,7 @@
       "items": [
         {
           "item_id": "st4-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Label",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Interior Way Label และ Neutral Label",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -160,20 +139,17 @@
         },
         {
           "item_id": "st4-2",
-          "text_th": "2. ตรวจสอบความถูกต้องของ Interior Way Label",
+          "text_th": "2. ตรวจสอบความถูกต้องตำแหน่งของ Warning Label",
           "answer_type": "acc_rej",
-          "options_extra": {
-            "way_select": [
-              "4Way",
-              "6Way",
-              "10Way",
-              "14Way",
-              "18Way",
-              "14 X 4 Way",
-              "18 x 4 Way",
-              "18 x 8 Way"
-            ]
-          },
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st4-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Main Base ตรงกับรุ่นที่กำลังผลิต",
+          "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
           "recorder": true,
@@ -187,7 +163,7 @@
       "items": [
         {
           "item_id": "st5-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Base add on",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Base 4 Way add on",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -196,29 +172,7 @@
         },
         {
           "item_id": "st5-2",
-          "text_th": "2. ตรวจสอบความถูกต้องของ Main Busbar",
-          "answer_type": "acc_rej",
-          "options_extra": {
-            "way_select": [
-              "4Way",
-              "6Way",
-              "10Way",
-              "14Way",
-              "18Way",
-              "14 X 4 Way",
-              "18 x 4 Way",
-              "18 x 8 Way"
-            ]
-          },
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
-        },
-        {
-          "item_id": "st5-3",
-          "text_th": "3. ตรวจสอบความถูกต้องของ Neutral Busbar",
-          "note_th": "ต้นฉบับระบุชื่อซ้ำกับข้อ 2 (\"Main Busbar\") — ตั้งชื่อแยกให้ชัดเจนเป็น Neutral Busbar",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Main Busbar และ Neutral Busbar",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -245,7 +199,7 @@
       "items": [
         {
           "item_id": "st6-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Terminal และ Screw",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Terminal and screw",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
@@ -266,7 +220,8 @@
         },
         {
           "item_id": "st6-2",
-          "text_th": "2. ตรวจสอบความถูกต้องของ IP Cover ถูกรุ่นและจำนวนครบ",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Nut",
+          "note_th": "M5 (23001-00170)",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -275,7 +230,7 @@
         },
         {
           "item_id": "st6-3",
-          "text_th": "3. ตรวจสอบความถูกต้องของ IP Lock ถูกรุ่นและจำนวนครบ",
+          "text_th": "3. ตรวจสอบความถูกต้องของ IP Cover และ IP Lock ถูกรุ่นและจำนวนครบ",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -284,8 +239,14 @@
         },
         {
           "item_id": "st6-4",
-          "text_th": "4. ตรวจสอบความถูกต้องของ Neutral cable และ Live cable",
-          "answer_type": "acc_rej",
+          "text_th": "4. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.05,
+            "unit": "N.m",
+            "display": "2.60-3.05 N.m (23-27 lbf-in)"
+          },
           "photo": false,
           "critical": false,
           "recorder": true,
@@ -299,12 +260,18 @@
       "items": [
         {
           "item_id": "st8-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Nut",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Terminal Bar",
           "answer_type": "acc_rej",
           "options_extra": {
             "way_select": [
-              "Nut M8-32",
-              "Nut M5"
+              "4Way",
+              "6Way",
+              "10Way",
+              "14Way",
+              "18Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
             ]
           },
           "photo": false,
@@ -314,23 +281,33 @@
         },
         {
           "item_id": "st8-2",
-          "text_th": "2. ตรวจสอบความถูกต้องของ Ground Label",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Nut",
+          "note_th": "M8 (75500-407-01)",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
           "recorder": true,
           "time": true
-        }
-      ]
-    },
-    {
-      "section_id": "st9",
-      "title": "Station: 9",
-      "items": [
+        },
         {
-          "item_id": "st9-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Filler Plate ถูกรุ่นและจำนวนครบ",
+          "item_id": "st8-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Ground Label",
           "answer_type": "acc_rej",
+          "photo": false,
+          "critical": false,
+          "recorder": true,
+          "time": true
+        },
+        {
+          "item_id": "st8-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.15,
+            "max": 2.49,
+            "unit": "N.m",
+            "display": "2.15-2.49 N.m (19-22 lbf-in)"
+          },
           "photo": false,
           "critical": false,
           "recorder": true,
@@ -389,7 +366,7 @@
       "items": [
         {
           "item_id": "st15-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Cover",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Filler Plate with bag และจำนวนครบ",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -398,7 +375,7 @@
         },
         {
           "item_id": "st15-2",
-          "text_th": "2. ตรวจสอบความถูกต้องตำแหน่งของ On-Off Lable (โดยที่ด้าน On จะต้องอยู่ด้านบน)",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Circuit Identification Label",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -407,73 +384,7 @@
         },
         {
           "item_id": "st15-3",
-          "text_th": "3. ตรวจสอบความถูกต้องของ Way Label",
-          "answer_type": "acc_rej",
-          "options_extra": {
-            "way_select": [
-              "4Way",
-              "6Way",
-              "10Way",
-              "14Way",
-              "18Way",
-              "14 X 4 Way",
-              "18 x 4 Way",
-              "18 x 8 Way"
-            ]
-          },
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
-        },
-        {
-          "item_id": "st15-4",
-          "text_th": "4. ตรวจสอบความถูกต้องของ Hing",
-          "answer_type": "acc_rej",
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
-        }
-      ]
-    },
-    {
-      "section_id": "st16",
-      "title": "Station: 16",
-      "items": [
-        {
-          "item_id": "st16-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Circuit Breaker (Beauty)",
-          "answer_type": "acc_rej",
-          "options_extra": {
-            "way_select": [
-              "40A",
-              "63A"
-            ]
-          },
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
-        },
-        {
-          "item_id": "st16-2",
-          "text_th": "2. ตรวจสอบความถูกต้องของ Circuit Breaker (Split)",
-          "answer_type": "acc_rej",
-          "options_extra": {
-            "way_select": [
-              "40A",
-              "63A"
-            ]
-          },
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
-        },
-        {
-          "item_id": "st16-3",
-          "text_th": "3. ตรวจสอบความถูกต้องของ Cover Screw",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Thai Instruction sheet (สำหรับรุ่น Beauty)",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -503,8 +414,20 @@
       "items": [
         {
           "item_id": "st18-1",
-          "text_th": "1. ตรวจสอบความถูกต้องและสมบูรณ์ของโลโก้ Schneider และ Square D",
+          "text_th": "1. ตรวจสอบความถูกต้องของ PLASTIC PARTS ASSY",
           "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "4Way (HRB77239)",
+              "6Way (HRB53009)",
+              "10Way (HRB53012)",
+              "14Way (HRB53015)",
+              "18Way (HRB53016)",
+              "14 X 4 Way(HRB77275)",
+              "18 x 4 Way(HRB77304)",
+              "18 x 8 Way(HRB77500)"
+            ]
+          },
           "photo": false,
           "critical": false,
           "recorder": true,
@@ -521,8 +444,7 @@
         },
         {
           "item_id": "st18-3",
-          "text_th": "3. ตรวจสอบการเปิด-ปิด Dolly Cover หลังจากการประกอบ",
-          "note_th": "(ยืนยัน Dolly ต้องตั้งค้าง)",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Cover Screw พร้อมขันให้แน่นสนิท",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -531,8 +453,14 @@
         },
         {
           "item_id": "st18-4",
-          "text_th": "4. ตรวจสอบความถูกต้องของ Polybag",
-          "answer_type": "acc_rej",
+          "text_th": "4. ตรวจสอบความถูกต้องของค่า Torque",
+          "answer_type": "torque_value",
+          "torque_spec": {
+            "min": 2.6,
+            "max": 3.05,
+            "unit": "N.m",
+            "display": "2.60-3.05 N.m (23-27 lbf-in)"
+          },
           "photo": false,
           "critical": false,
           "recorder": true,
@@ -556,35 +484,32 @@
       ]
     },
     {
-      "section_id": "st20",
-      "title": "Station: 20",
+      "section_id": "st21-22",
+      "title": "Station: 21-22",
       "items": [
         {
-          "item_id": "st20-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Carton",
+          "item_id": "st21-22-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Carton Box ถูกต้องตามรุ่นที่กำลังผลิต",
           "answer_type": "acc_rej",
-          "photo": false,
-          "critical": false,
-          "recorder": true,
-          "time": true
-        }
-      ]
-    },
-    {
-      "section_id": "st21",
-      "title": "Station: 21",
-      "items": [
-        {
-          "item_id": "st21-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของ Schneider Label",
-          "answer_type": "acc_rej",
+          "options_extra": {
+            "way_select": [
+              "4Way",
+              "6Way",
+              "10Way",
+              "14Way",
+              "18Way",
+              "14 X 4 Way",
+              "18 x 4 Way",
+              "18 x 8 Way"
+            ]
+          },
           "photo": false,
           "critical": false,
           "recorder": true,
           "time": true
         },
         {
-          "item_id": "st21-2",
+          "item_id": "st21-22-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ Carton Label ถูกต้องตามรุ่นที่กำลังผลิต",
           "answer_type": "acc_rej",
           "options_extra": {
@@ -604,7 +529,7 @@
           },
           "photo": {
             "required": true,
-            "label": "ติด Carton Label"
+            "label": "Stick Carton Label"
           },
           "critical": false,
           "recorder": true,
@@ -615,14 +540,14 @@
   ],
   "photo_boxes": [
     {
-      "item_id": "st2-1",
+      "item_id": "st3-1",
       "station_label": "Station2:",
       "box_label": "ติด Rating Label"
     },
     {
-      "item_id": "st21-2",
+      "item_id": "st21-22-2",
       "station_label": "Station21:",
-      "box_label": "ติด Carton Label"
+      "box_label": "Stick Carton Label"
     }
   ],
   "signatures": [
