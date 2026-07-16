@@ -413,7 +413,14 @@ async function loadApproveQueue() {
       records = records.filter(function (r) { return isPendingStatus(r.status); });
     }
     // คิวรออนุมัติ: เก่าสุดก่อน (FIFO) — กันของค้างนานถูกลืม (ต่างจากค้นหาทั่วไปที่ใหม่สุดก่อน)
-    records = records.slice().sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
+    // เรียงตามคอลัมน์ "วันที่" (วันที่ผลิต) ที่เห็นในตารางเป็นหลักก่อนเสมอ — ถ้าเรียงตาม created_at
+    // (เวลา submit จริง) ซึ่งเป็นค่าที่มองไม่เห็นในตาราง พอมีใครกรอกย้อนหลัง (submit วันนี้แต่ตั้งวันที่
+    // ผลิตเป็นเมื่อวาน) ลำดับที่เห็นบนจอจะดูสลับมั่ว ทั้งที่จริงเรียงถูกตามเวลา submit จริงอยู่แล้ว —
+    // created_at ใช้เป็น tie-breaker รองสำหรับ record ที่วันที่ผลิตวันเดียวกัน
+    records = records.slice().sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return a.created_at < b.created_at ? -1 : 1;
+    });
     showResults(records, res.truncated, { groupByDate: false });
   } catch (err) {
     showToast(err.message, 'error');
