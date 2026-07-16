@@ -85,9 +85,6 @@
                 "key": "date_code",
                 "label": "Date Code"
               }
-            ],
-            "checkboxes": [
-              "ติด Rating Label"
             ]
           },
           "photo": {
@@ -630,8 +627,7 @@
               }
             ],
             "checkboxes": [
-              "TH",
-              "Stick Carton Label"
+              "TH"
             ]
           },
           "photo": {
