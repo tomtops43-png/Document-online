@@ -374,6 +374,7 @@
         {
           "item_id": "st7-3",
           "text_th": "3. ตรวจสอบความถูกต้องของ Filler Plate และจำนวนครบ",
+          "note_th": "4 & 6 way = 2 pcs, 8 & 10 & 14 way = 3 pcs",
           "answer_type": "acc_rej",
           "photo": false,
           "critical": false,
@@ -407,8 +408,12 @@
         {
           "item_id": "st8-2",
           "text_th": "2. ตรวจสอบความถูกต้องของ QR-Code Label",
+          "note_th": "หมายเหตุ: งานไทยต้องมีตัว S ตามหลัง QR-Code",
           "answer_type": "acc_rej",
-          "photo": false,
+          "photo": {
+            "required": true,
+            "label": "ติดQR Code"
+          },
           "critical": false,
           "recorder": true,
           "time": true
@@ -448,6 +453,11 @@
       "item_id": "st1-2",
       "station_label": "Station1:",
       "box_label": "ติด Rating Label"
+    },
+    {
+      "item_id": "st8-2",
+      "station_label": "Station8:",
+      "box_label": "ติดQR Code"
     },
     {
       "item_id": "st8-3",
