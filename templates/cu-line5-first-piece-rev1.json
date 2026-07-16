@@ -190,7 +190,7 @@
       "items": [
         {
           "item_id": "st5-1",
-          "text_th": "1. ตรวจสอบความถูกต้องของค่ากระแส Dielectric 2.5 kvolts และความพร้อมของอุปกรณ์",
+          "text_th": "1. ตรวจสอบความถูกต้องของค่าแรงดัน Dielectric 2.5 kvolts และความพร้อมของอุปกรณ์",
           "answer_type": "acc_rej",
           "photo": false, "critical": false, "recorder": true, "time": true
         },
