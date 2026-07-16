@@ -29,7 +29,7 @@
   <div class="tab-bar">
     <button type="button" class="tab active" id="tab-search" onclick="switchTab('search')">🔍 ค้นหาบันทึก</button>
     <button type="button" class="tab" id="tab-approve" onclick="switchTab('approve')" style="display:none">
-      ⏳ รออนุมัติ <span class="badge-count" id="approve-count"></span>
+      ⏳ รออนุมัติ <span class="tab-badge" id="approve-count"></span>
     </button>
   </div>
 
@@ -343,7 +343,10 @@ async function refreshApproveCount() {
       records = records.filter(function (r) { return isPendingStatus(r.status); });
     }
     const n = records.length;
-    document.getElementById('approve-count').textContent = n ? '(' + n + ')' : '';
+    const badge = document.getElementById('approve-count');
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.classList.toggle('on', n > 0);
+    if (typeof AppShell !== 'undefined') AppShell.setBadge('records', n);
   } catch (e) { /* เงียบ */ }
 }
 

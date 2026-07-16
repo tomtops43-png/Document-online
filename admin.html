@@ -26,7 +26,7 @@
 <main class="container container-wide">
 
   <div class="tab-bar">
-    <button type="button" class="tab active" id="tab-formreg" onclick="switchTab('formreg')">📋 ลงทะเบียนฟอร์ม <span class="count-pill" id="formreg-count"></span></button>
+    <button type="button" class="tab active" id="tab-formreg" onclick="switchTab('formreg')">📋 ลงทะเบียนฟอร์ม <span class="tab-badge" id="formreg-count"></span></button>
     <button type="button" class="tab" id="tab-new" onclick="switchTab('new')">➕ เพิ่มเอกสารไฟล์ใหม่</button>
     <button type="button" class="tab" id="tab-rev" onclick="switchTab('rev')">🔄 เพิ่ม Revision</button>
     <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔Station</button>
@@ -307,7 +307,11 @@ async function loadManifest() {
   manifestTemplates = data.templates.filter(function (t) { return !registeredPaths[t.path]; });
 
   const sel = document.getElementById('f-template');
-  document.getElementById('formreg-count').textContent = manifestTemplates.length ? manifestTemplates.length : '';
+  const n = manifestTemplates.length;
+  const badge = document.getElementById('formreg-count');
+  badge.textContent = n > 99 ? '99+' : String(n);
+  badge.classList.toggle('on', n > 0);
+  if (typeof AppShell !== 'undefined') AppShell.setBadge('admin', n);
   if (!manifestTemplates.length) {
     sel.innerHTML = '<option value="">— ไม่มีฟอร์มค้างลงทะเบียน —</option>';
     document.getElementById('f-preview').textContent = 'ฟอร์มทั้งหมดที่ Claude แปลงไว้ถูกลงทะเบียนครบแล้ว';

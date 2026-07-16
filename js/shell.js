@@ -126,7 +126,19 @@ const AppShell = {
   _renderLink(item, activeKey) {
     const cls = 'sidebar-link' + (item.key === activeKey ? ' active' : '');
     return '<a class="' + cls + '" href="' + item.href + '">' +
-      '<span class="icon">' + item.icon + '</span><span class="label">' + esc(item.label) + '</span></a>';
+      '<span class="icon">' + item.icon +
+      '<span class="nav-badge" id="nav-badge-' + item.key + '"></span></span>' +
+      '<span class="label">' + esc(item.label) + '</span></a>';
+  },
+
+  // แสดงป้ายแจ้งเตือนวงกลมแดง (สไตล์ LINE) บนเมนู sidebar ที่มีสถานะ "รอ" ค้างอยู่
+  // เรียกจากหน้าที่รู้จำนวนคิวของตัวเอง เช่น records.html เรียก setBadge('records', n)
+  setBadge(key, count) {
+    const el = document.getElementById('nav-badge-' + key);
+    if (!el) return;
+    const n = Number(count) || 0;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.classList.toggle('on', n > 0);
   },
 
   // ---------- Notifications ----------
@@ -141,7 +153,11 @@ const AppShell = {
       const res = await API.post('notif.list', {});
       this._notifLoaded = true;
       const dot = document.getElementById('notif-dot');
-      if (dot) dot.classList.toggle('on', (res.unread || 0) > 0);
+      if (dot) {
+        const n = res.unread || 0;
+        dot.textContent = n > 99 ? '99+' : String(n);
+        dot.classList.toggle('on', n > 0);
+      }
       this.renderNotifList(res.notifications || []);
     } catch (e) {
       if (!quiet) {
