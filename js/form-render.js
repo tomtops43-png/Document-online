@@ -134,7 +134,10 @@ const FormRender = {
     const bar = document.querySelector('.app-bar-fill');
     const container = document.querySelector('main.container');
     if (!bar || !container) return;
-    container.style.paddingTop = (bar.offsetHeight + 20) + 'px';
+    const h = bar.offsetHeight;
+    container.style.paddingTop = (h + 20) + 'px';
+    // ให้ scrollToNextStep() รู้ความสูงแถบจริง กัน auto-scroll พาเนื้อหาไปโผล่ใต้แถบ fixed พอดี
+    document.documentElement.style.setProperty('--fill-bar-h', h + 'px');
   },
 
   // ---------- item ที่ Station ที่เลือกไม่ต้องตรวจ (ตาม Master Excel ต้นแบบ — คอลัมน์ N/A ต่อ Station) ----------
@@ -227,8 +230,11 @@ const FormRender = {
       // จังหวะ (เว้นจังหวะปากกา) ของลายเซ็นเดียวกัน รอ 1.2 วิหลังขีดจังหวะสุดท้ายค่อยอัปโหลดจริง
       clearTimeout(uploadDebounceTimer);
       if (dataUrl) {
+        // debounce เดียวกันนี้ยังใช้เป็นจังหวะเลื่อนจอไป Station ถัดไปด้วย (รอเซ็นนิ่งก่อนค่อยเลื่อน
+        // กันจอกระโดดหนีระหว่าง user ยังขีดๆ ลบๆ ลายเซ็นอยู่)
         uploadDebounceTimer = setTimeout(function () {
           self.backgroundUploadSignature(s.itemIds[0], dataUrl);
+          self.scrollToNextStep(wrap);
         }, 1200);
       }
     }
@@ -434,9 +440,12 @@ const FormRender = {
           }
           self.saveDraft();
           self.updateProgress();
-          // NOK/REJ บนข้อ critical → บังคับ Recovery Plan ทันที
+          // NOK/REJ บนข้อ critical → บังคับ Recovery Plan ทันที (ห้ามเลื่อนหนีไปก่อน user จะกรอก
+          // Recovery Plan ไม่เห็น modal ที่เพิ่งเด้งขึ้นมา)
           if (item.critical && (ans.value === 'NOK' || ans.value === 'REJ')) {
             self.openRecoveryModal(item);
+          } else {
+            self.scrollToNextStep(el);
           }
         });
       });
@@ -557,6 +566,22 @@ const FormRender = {
     const label = document.getElementById('progress-label');
     if (bar) bar.style.width = (items.length ? (done / items.length) * 100 : 0) + '%';
     if (label) label.textContent = 'ตอบแล้ว ' + done + '/' + items.length + ' ข้อ';
+  },
+
+  // เลื่อนจอไปข้อ/ช่องเซ็นถัดไปอัตโนมัติ หลังตอบ Acc/Rej หรือเซ็นชื่อ Station เสร็จ — กันต้อง
+  // เลื่อนมือทีละข้อในฟอร์มยาวๆ (20+ Station) ใช้ index ใน list รวม item-card + station-sig-block
+  // ทั้งหน้า (ไม่ใช่ nextElementSibling ตรงๆ) กัน edge case ข้าม section ว่าง/section ไม่มีลายเซ็น
+  scrollToNextStep(fromEl) {
+    const steps = Array.from(document.querySelectorAll('.item-card, .station-sig-block'));
+    const idx = steps.indexOf(fromEl);
+    const next = idx >= 0 && idx + 1 < steps.length ? steps[idx + 1] : null;
+    if (next) {
+      next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      // ถึงข้อ/ลายเซ็นสุดท้ายแล้ว — เลื่อนไปหาปุ่ม Submit แทน
+      const submitBar = document.querySelector('.submit-bar');
+      if (submitBar) submitBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   },
 
   // ---------- Recovery Plan modal ----------

@@ -174,6 +174,11 @@ body.has-shell { padding-left: var(--sidebar-w); }
 .fill-context-info .fci-title { font-weight: 700; color: #fff; }
 .fill-context-info .fci-item b { font-weight: 700; color: #fff; }
 
+/* กันคำถาม/ช่องเซ็นที่ auto-scroll พาไป โผล่ไปโดนแถบ fixed ด้านบนบังตอนเลื่อนถึง — ค่า
+   --fill-bar-h ตั้งจาก JS (adjustFillTopPadding) ให้ตรงความสูงจริงของแถบเสมอ */
+:root { --fill-bar-h: 90px; }
+.item-card, .station-sig-block { scroll-margin-top: calc(var(--fill-bar-h) + 12px); }
+
 .container { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
 .container-wide { max-width: 1240px; }
 
