@@ -1,0 +1,618 @@
+{
+  "form_id": "2row-splitbus-first-piece",
+  "template_rev": "rev1",
+  "doc_no": "THPLSTL-ME-FRM0-3208",
+  "title_th": "FIRST PIECE CHECK LIST: 2 Row Split bus",
+  "mode": "single-record",
+  "lines": [
+    "Line4"
+  ],
+  "print_css": "css/print-nms.css",
+  "header_fields": [
+    {
+      "key": "product_model",
+      "label": "Product Model/ รุ่นที่จะทำการผลิต",
+      "type": "text",
+      "required": true
+    },
+    {
+      "key": "date",
+      "label": "Date/ วันที่",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "line",
+      "label": "Line/ไลน์การผลิต",
+      "type": "text",
+      "default": "4",
+      "required": true
+    },
+    {
+      "key": "shift",
+      "label": "Shift/กะ",
+      "type": "select",
+      "options": [
+        "A",
+        "B"
+      ],
+      "required": true
+    }
+  ],
+  "sections": [
+    {
+      "section_id": "st3",
+      "title": "Station: 3",
+      "items": [
+        {
+          "item_id": "st3-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Box และ Trim cover",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "Box 450 2 Row Split bus (JYT13984-S)"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st3-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Earth Terminal (NNZ96186) และ Erath pad และ Screw",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "100 A"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st3-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Ground Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st4",
+      "title": "Station: 4",
+      "items": [
+        {
+          "item_id": "st4-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Main Base 4 Way",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "(75170030AA) ต้องใช้ที่โมดิฟาร์ยช่องแล้ว"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st4-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Interior Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "12 Way"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st4-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Neutral Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "2+14 Way"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st4-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของ Warning Label ติดระหว่าง เลข 5 กับ 6",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st5",
+      "title": "Station: 5",
+      "items": [
+        {
+          "item_id": "st5-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ BASE 4 WAY ADD ON",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "(75170031AA)"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st5-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Neutral busbar และ Busbar 2+12 Assy (NNZ94478) ต้องมี Clinching nut",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st6",
+      "title": "Station: 6",
+      "items": [
+        {
+          "item_id": "st6-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Neutral Terminal",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "14 Way (755040067GA)X2"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st6-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Screw",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "75503762AA",
+          "photo": false
+        },
+        {
+          "item_id": "st6-3",
+          "text_th": "3. ตรวจสอบการมาร์คสีเพื่อยืนยันความถูกต้อง 3 ตำแหน่ง",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "Neutral terminal",
+              "Busbar",
+              "Main Base"
+            ]
+          },
+          "photo": false
+        },
+        {
+          "item_id": "st6-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของ IP2 Cover 4 WAY ADD ON ถูกรุ่นและจำนวนครบ",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st8",
+      "title": "Station: 8",
+      "items": [
+        {
+          "item_id": "st8-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ IP2 Cover 2+4 ถูกต้องตามรุ่นที่กำลังผลิต",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st8-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Screw M5",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "NNZ94483",
+          "photo": false
+        },
+        {
+          "item_id": "st8-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของสายไฟ",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "checkboxes": [
+              "สาย Neutral NNZ94482",
+              "สาย LIVE NNZ97074"
+            ]
+          },
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st10",
+      "title": "Station: 10",
+      "items": [
+        {
+          "item_id": "st10-1",
+          "text_th": "1. Version Verify",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st11",
+      "title": "Station: 11",
+      "items": [
+        {
+          "item_id": "st11-1",
+          "text_th": "1. Version Dielectric",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st13",
+      "title": "Station: 13",
+      "items": [
+        {
+          "item_id": "st13-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Breaker",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "SDQO263C10RCBO30TS",
+          "photo": false
+        },
+        {
+          "item_id": "st13-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ TIS QR-Code label Rocket",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st14",
+      "title": "Station: 14",
+      "items": [
+        {
+          "item_id": "st14-1",
+          "text_th": "1. Version and GTP Verify",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st15",
+      "title": "Station: 15",
+      "items": [
+        {
+          "item_id": "st15-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Circuit Identification Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "HRB44151X2",
+          "photo": false
+        },
+        {
+          "item_id": "st15-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Filler Plate จำนวนครบ 8 Pcs",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st15-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Trim cover",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st15-4",
+          "text_th": "4. ตรวจสอบความถูกต้องของ ON-OFF LABEL",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "S1B87330 X2",
+          "photo": false
+        },
+        {
+          "item_id": "st15-5",
+          "text_th": "5. ตรวจสอบความถูกต้องของ Way Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "way_select": [
+              "JYT21447",
+              "JYT21448"
+            ]
+          },
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st16",
+      "title": "Station: 16",
+      "items": [
+        {
+          "item_id": "st16-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Receptical (Flat) (Curve)",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st16-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Receptical (Filler)",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "RAL9010",
+          "photo": false
+        },
+        {
+          "item_id": "st16-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Screw",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "21594-14100",
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st17",
+      "title": "Station: 17",
+      "items": [
+        {
+          "item_id": "st17-1",
+          "text_th": "1. ตรวจสอบความถูกต้อง Continuity",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st18",
+      "title": "Station: 18",
+      "items": [
+        {
+          "item_id": "st18-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Door Catch (Cuve Door)",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st18-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Logo Plate Schneider",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st18-3",
+          "text_th": "3. ตรวจสอบความถูกต้องของ Logo Plate Square D",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st18-4",
+          "text_th": "4. ตรวจสอบความถูกต้อง Wiring Diagram Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "note_th": "RCBO (NNZ94492)",
+          "photo": false
+        },
+        {
+          "item_id": "st18-5",
+          "text_th": "5. ตรวจสอบความถูกต้อง Rating Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "texts": [
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
+            ]
+          },
+          "photo": {
+            "required": true,
+            "label": "ติด Rating Label"
+          }
+        },
+        {
+          "item_id": "st18-6",
+          "text_th": "6. ตรวจสอบความถูกต้องของ Grounding Cable Assembly",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st18-7",
+          "text_th": "7. ตรวจสอบความถูกต้องของ Ground Label",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st19",
+      "title": "Station: 19",
+      "items": [
+        {
+          "item_id": "st19-1",
+          "text_th": "1. Version Verify",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        }
+      ]
+    },
+    {
+      "section_id": "st20-21",
+      "title": "Station: 20-21",
+      "items": [
+        {
+          "item_id": "st20-21-1",
+          "text_th": "1. ตรวจสอบความถูกต้องของ Carton Box ตรงตามรุ่น",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "photo": false
+        },
+        {
+          "item_id": "st20-21-2",
+          "text_th": "2. ตรวจสอบความถูกต้องของ Carton Label ถูกต้องตามรุ่นที่กำลังผลิต",
+          "answer_type": "acc_rej",
+          "critical": false,
+          "recorder": true,
+          "time": true,
+          "options_extra": {
+            "texts": [
+              {
+                "key": "label_model",
+                "label": "ระบุรุ่นบน Label"
+              },
+              {
+                "key": "date_code",
+                "label": "Date Code"
+              }
+            ],
+            "checkboxes": [
+              "TH"
+            ]
+          },
+          "photo": {
+            "required": true,
+            "label": "ติด Carton Label"
+          }
+        }
+      ]
+    }
+  ],
+  "photo_boxes": [
+    {
+      "item_id": "st18-5",
+      "station_label": "Station18:",
+      "box_label": "ติด Rating Label"
+    },
+    {
+      "item_id": "st20-21-2",
+      "station_label": "Station20-21:",
+      "box_label": "ติด Carton Label"
+    }
+  ],
+  "signatures": [
+    {
+      "key": "operator",
+      "label": "Production Operator",
+      "role": "Operator"
+    },
+    {
+      "key": "leader",
+      "label": "Prod. Leader",
+      "role": "Leader"
+    },
+    {
+      "key": "qi",
+      "label": "QI",
+      "role": "QI"
+    }
+  ]
+}

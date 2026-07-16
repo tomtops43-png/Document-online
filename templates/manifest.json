@@ -1,6 +1,24 @@
 {
   "templates": [
     {
+      "form_id": "2row-splitbus-first-piece",
+      "path": "templates/2row-splitbus-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: 2 Row Split bus",
+      "doc_no": "THPLSTL-ME-FRM0-3208",
+      "mode": "single-record",
+      "rev_no": "Rev01",
+      "family_id": ""
+    },
+    {
+      "form_id": "2row-singlebus-first-piece",
+      "path": "templates/2row-singlebus-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: 2 Row Single bus",
+      "doc_no": "THPLSTL-ME-FRM0-3208",
+      "mode": "single-record",
+      "rev_no": "Rev01",
+      "family_id": ""
+    },
+    {
       "form_id": "cu-beauty-first-piece",
       "path": "templates/cu-beauty-first-piece-rev1.json",
       "title": "FIRST PIECE CHECK LIST: Consumer Unit (CU Beauty / CU Beauty Split bus)",
