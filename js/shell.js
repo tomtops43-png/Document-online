@@ -116,6 +116,52 @@ const AppShell = {
 
     // โหลดจำนวนแจ้งเตือนแบบเงียบๆ (ไม่ block หน้า)
     this.loadNotifications(true);
+
+    // โหลดป้ายแจ้งเตือนของเมนู (คิวรออนุมัติ / ฟอร์มค้างลงทะเบียน) ทุกหน้า
+    // ไม่ใช่แค่หน้า records.html / admin.html — กันป้ายหายตอนสลับไปหน้าอื่น
+    this.loadBadgeCounts(user);
+  },
+
+  // สถานะที่รออนุมัติจาก role ของผู้ใช้ (เหมือน records.html) — generic: role อะไรก็ได้ที่ workflow กำหนด (PENDING_<ROLE>)
+  pendingStatusForRole(user) {
+    if (!user || user.role === 'Admin') return ''; // Admin เห็นทั้งหมด
+    return 'PENDING_' + String(user.role).toUpperCase();
+  },
+  isPendingStatus(s) {
+    return String(s || '').indexOf('PENDING_') === 0;
+  },
+
+  // ป้ายแจ้งเตือน sidebar — โหลดทุกหน้าที่มี shell (ไม่ใช่แค่ตอนอยู่หน้า records/admin เอง)
+  // เพื่อให้เห็นเลขค้างได้จากทุกที่ในแอป เหมือนแบดจ์แอป LINE
+  async loadBadgeCounts(user) {
+    // คิวรออนุมัติ — เฉพาะ role ที่ไม่ใช่ Operator (role ผู้อนุมัติในสาย workflow)
+    if (user && user.role !== 'Operator') {
+      try {
+        const res = await API.get('getRecords', { status: this.pendingStatusForRole(user) });
+        let records = res.records || [];
+        if (user.role === 'Admin') records = records.filter((r) => this.isPendingStatus(r.status));
+        this.setBadge('records', records.length);
+      } catch (e) { /* เงียบ — ไม่ block หน้าอื่น */ }
+    }
+
+    // ฟอร์มที่ Claude แปลงไว้แต่ยังไม่ได้ลงทะเบียนเข้า Master — เฉพาะ role ที่เห็นเมนูนี้
+    if (user && (user.role === 'Admin' || user.role === 'DocControl')) {
+      try {
+        const [manifestRes] = await Promise.all([
+          fetch('templates/manifest.json', { cache: 'no-cache' }),
+          Master.load()
+        ]);
+        const data = await manifestRes.json();
+        const activeDocIds = {};
+        (Master.data.M_Document || []).forEach((d) => { activeDocIds[d.doc_id] = true; });
+        const registeredPaths = {};
+        (Master.data.M_Revision || []).forEach((r) => {
+          if (activeDocIds[r.doc_id]) registeredPaths[r.content_ref] = true;
+        });
+        const pending = (data.templates || []).filter((t) => !registeredPaths[t.path]);
+        this.setBadge('admin', pending.length);
+      } catch (e) { /* เงียบ */ }
+    }
   },
 
   toggleSidebar(open) {
