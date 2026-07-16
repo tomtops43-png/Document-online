@@ -444,7 +444,10 @@ const FormRender = {
           // Recovery Plan ไม่เห็น modal ที่เพิ่งเด้งขึ้นมา)
           if (item.critical && (ans.value === 'NOK' || ans.value === 'REJ')) {
             self.openRecoveryModal(item);
-          } else {
+          } else if (self.isItemAnswered(item)) {
+            // เลื่อนต่อเฉพาะตอนข้อนี้ "ครบจริง" แล้วเท่านั้น — ถ้าข้อนี้ยังต้องแนบรูปบังคับ (photo.required)
+            // อยู่ด้านล่าง Acc/Rej ในการ์ดเดียวกัน ห้ามเลื่อนหนีไปก่อน ไม่งั้น user กด Acc ปุ๊บจะโดนเลื่อน
+            // ข้ามช่องแนบรูปที่ยังไม่ได้แนบไปเลย (ไปโผล่ที่ข้อ/ลายเซ็นถัดไปแทน)
             self.scrollToNextStep(el);
           }
         });
@@ -508,6 +511,9 @@ const FormRender = {
           // อัปโหลดรูปนี้ขึ้น Drive เบื้องหลังทันที เหมือนลายเซ็น Station — ไม่ต้องรอไปอัปโหลดตอน
           // submit ท้ายฟอร์ม (ฟอร์มที่มีหลายช่องแนบรูปเดิมต้องรออัปโหลดหลายรูปติดกันตอนกด Submit)
           self.backgroundUploadPhoto(item.item_id, shot);
+          // ถ้ารูปที่เพิ่งแนบคือสิ่งสุดท้ายที่ข้อนี้ขาด (ตอบ Acc/Rej ไปแล้วรอแค่รูปบังคับ) ค่อยเลื่อนต่อ
+          // ตรงนี้เอง — กันกรณีกด Acc ก่อนแล้วค่อยแนบรูปทีหลัง ก็ยังเลื่อนให้ถูกจังหวะ
+          if (self.isItemAnswered(item)) self.scrollToNextStep(el);
         } catch (err) {
           showToast('ถ่ายรูปไม่สำเร็จ: ' + err.message, 'error');
         }
