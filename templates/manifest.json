@@ -145,6 +145,15 @@
       "family_id": "NMS"
     },
     {
+      "form_id": "nms-line5-first-piece",
+      "path": "templates/nms-line5-first-piece-rev1.json",
+      "title": "FIRST PIECE CHECK LIST: NMS — Line 5",
+      "doc_no": "",
+      "mode": "single-record",
+      "rev_no": "Rev01",
+      "family_id": "NMS"
+    },
+    {
       "form_id": "ok-1st-part-nlc",
       "path": "templates/ok-1st-part-nlc-rev0.json",
       "title": "Ok 1st Part Workstation Check list",
