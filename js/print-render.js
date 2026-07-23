@@ -16,11 +16,13 @@ if (typeof esc === 'undefined') {
 }
 // ans.recorder อาจเป็นลายเซ็น (data:image ฝังตรงๆ ของเก่า, หรือ "drive:<fileId>" ของใหม่) หรือชื่อ
 // (ข้อความ — จากบันทึกเก่าก่อนเปลี่ยนเป็นลายเซ็น)
-function recorderCellHtml(recorder) {
+// name (ถ้ามี — เลือกจาก dropdown รายชื่อพนักงานตอนเซ็น) โชว์เป็นวงเล็บใต้ลายเซ็น
+function recorderCellHtml(recorder, name) {
   if (typeof recorder === 'string' && isSignatureImage(recorder)) {
-    return '<img src="' + signatureImgSrc(recorder) + '" class="sig-img-inline" alt="signature">';
+    return '<img src="' + signatureImgSrc(recorder) + '" class="sig-img-inline" alt="signature">' +
+      (name ? '<div class="sig-name-inline">(' + esc(name) + ')</div>' : '');
   }
-  return esc(recorder || '');
+  return esc(recorder || name || '');
 }
 
 const PrintRender = {
@@ -103,7 +105,8 @@ const PrintRender = {
     }
     // Inject signature styling
     const style = document.createElement('style');
-    style.innerHTML = '.sig-img-inline { max-height: 8mm; max-width: 100%; display: block; margin: 0 auto; }';
+    style.innerHTML = '.sig-img-inline { max-height: 8mm; max-width: 100%; display: block; margin: 0 auto; }' +
+      '.sig-name-inline { font-size: 2.4mm; color: #333; text-align: center; margin-top: 0.5mm; white-space: nowrap; }';
     document.head.appendChild(style);
   },
 
@@ -120,13 +123,19 @@ const PrintRender = {
     // ของแต่ละ Station แล้วใช้กับทุกข้อใน Station นั้น (รองรับ record เก่าที่เคยเก็บซ้ำทุกข้อด้วย
     // เพราะ fallback ใช้ ans.recorder ของตัวเองก่อนเสมอถ้ามี)
     const sectionRecorderByItem = {};
+    const sectionRecorderNameByItem = {};
     (template.sections || []).forEach(function (section) {
       let sig = '';
+      let name = '';
       section.items.forEach(function (item) {
         const a = answers[item.item_id] || {};
         if (a.recorder) sig = a.recorder;
+        if (a.recorder_name) name = a.recorder_name;
       });
-      section.items.forEach(function (item) { sectionRecorderByItem[item.item_id] = sig; });
+      section.items.forEach(function (item) {
+        sectionRecorderByItem[item.item_id] = sig;
+        sectionRecorderNameByItem[item.item_id] = name;
+      });
     });
 
     let html = '<div class="sheet sheet-nms">';
@@ -201,7 +210,7 @@ const PrintRender = {
         html += '<td class="cell-acc">Acc <span class="tickbox">' + (decision === 'ACC' ? '✓' : '&nbsp;') + '</span></td>';
         html += '<td class="cell-rej">Rej <span class="tickbox">' + (decision === 'REJ' ? '✓' : '&nbsp;') + '</span></td>';
         if (idx === 0) {
-          html += '<td class="cell-recorder" rowspan="' + section.items.length + '">' + recorderCellHtml(sectionRecorderByItem[item.item_id]) + '</td>';
+          html += '<td class="cell-recorder" rowspan="' + section.items.length + '">' + recorderCellHtml(sectionRecorderByItem[item.item_id], sectionRecorderNameByItem[item.item_id]) + '</td>';
         }
         html += '<td class="cell-time">' + esc(ans.time || '') + '</td>';
         html += '</tr>';
@@ -216,7 +225,7 @@ const PrintRender = {
       html += '<div class="photo-section">' +
         '<div class="photo-section-head">' + esc(box.station_label) +
         ' <span class="ps-role">Production Operator</span>' +
-        ' <span class="ps-name">Recorder: ' + recorderCellHtml(ans.recorder || sectionRecorderByItem[box.item_id]) + '</span></div>' +
+        ' <span class="ps-name">Recorder: ' + recorderCellHtml(ans.recorder || sectionRecorderByItem[box.item_id], ans.recorder_name || sectionRecorderNameByItem[box.item_id]) + '</span></div>' +
         '<div class="photo-frame">';
       if (list.length) {
         list.forEach(function (p) {

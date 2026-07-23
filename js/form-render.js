@@ -189,7 +189,22 @@ const FormRender = {
     const wrap = document.createElement('div');
     wrap.className = 'station-sig-block';
     wrap.dataset.stationKey = key;
+    // รายชื่อพนักงาน (M_Employee ผ่าน Master.load() — เรียกไว้ก่อน FormRender.init ใน fill.html) ถ้ามี
+    // ให้เลือกจาก dropdown กันพิมพ์ชื่อผิด/สะกดไม่ตรงกัน ถ้ายังไม่ได้ seed ชีท M_Employee (Master ว่าง)
+    // ก็ตกไปใช้ช่องพิมพ์ชื่อเองแทน ไม่บล็อกการกรอกฟอร์ม
+    const employees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
+    let nameFieldHtml;
+    if (employees.length) {
+      let opts = '<option value="">— เลือกชื่อผู้บันทึก —</option>';
+      employees.forEach(function (e) {
+        opts += '<option value="' + escAttr(e.name) + '">' + esc(e.name) + '</option>';
+      });
+      nameFieldHtml = '<select class="station-sig-name-field" data-role="station-sig-name">' + opts + '</select>';
+    } else {
+      nameFieldHtml = '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก">';
+    }
     wrap.innerHTML = '<div class="station-sig-label">ลงชื่อผู้บันทึก (Recorder) — เซ็นครั้งเดียวสำหรับ ' + esc(title) + ' *</div>' +
+      '<div class="station-sig-name-wrap">' + nameFieldHtml + '</div>' +
       '<div class="station-sig-pad-wrap"><canvas class="station-sig-canvas" data-role="station-sig-canvas"></canvas>' +
       '<button type="button" class="btn-small station-sig-clear" data-role="station-sig-clear">ล้าง</button></div>';
     return wrap;
@@ -214,6 +229,18 @@ const FormRender = {
       const img = new Image();
       img.onload = function () { canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); };
       img.src = firstAns.recorder;
+    }
+
+    // ชื่อผู้บันทึก (dropdown/ช่องพิมพ์เอง) — เก็บคู่กับลายเซ็นที่ item แรกของ Station เดียวกัน
+    const nameField = wrap.querySelector('[data-role="station-sig-name"]');
+    if (nameField) {
+      if (firstAns.recorder_name) nameField.value = firstAns.recorder_name;
+      const saveName = function () {
+        self.getAnswer(s.itemIds[0]).recorder_name = nameField.value;
+        self.saveDraft();
+      };
+      nameField.addEventListener('change', saveName);
+      nameField.addEventListener('input', saveName);
     }
 
     // เก็บลายเซ็นไว้แค่ที่ item แรกของ Station (ไม่ยัดซ้ำทุกข้อ) — validate()/submit() อ่านแค่

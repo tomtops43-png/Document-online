@@ -73,6 +73,11 @@ const Master = {
     return this._sorted(this.data.M_Line, 'sequence');
   },
 
+  // รายชื่อพนักงานสำหรับ dropdown "เลือกชื่อผู้บันทึก (Recorder)" ก่อนเซ็นลายเซ็น (fill.html)
+  employees() {
+    return this._sorted(this.data.M_Employee, 'sequence');
+  },
+
   line(lineId) {
     return (this.data.M_Line || []).find(function (l) { return String(l.line_id) === String(lineId); });
   },

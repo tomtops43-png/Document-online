@@ -324,6 +324,15 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .station-sig-block { margin: 16px 0 4px; padding-top: 14px; border-top: 1.5px dashed var(--border); }
 .station-sig-block.highlight-missing { background: #fdf0e3; border-radius: 10px; padding: 14px; }
 .station-sig-label { font-size: 13px; color: var(--text-faint); font-weight: 600; margin-bottom: 6px; }
+.station-sig-name-wrap { margin-bottom: 8px; }
+.station-sig-name-field {
+  width: 100%; min-height: 44px; font-family: inherit; font-size: 16px;
+  padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text);
+}
+.station-sig-name-field:focus {
+  outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 3px var(--brand-100);
+}
 .station-sig-pad-wrap {
   position: relative; height: 100px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
   background: #fbfcfd;

@@ -1010,7 +1010,11 @@ var MASTER_SHEET_DEFS = {
   M_Permission: ['perm_id', 'role_id', 'action', 'scope_line', 'scope_doctype'],
   M_ProductFamily: ['family_id', 'family_name', 'display_name', 'sequence', 'status'],
   M_Model: ['model_id', 'family_id', 'model_name', 'status', 'series_tag', 'model_group'],
-  M_Shift: ['shift_id', 'shift_name', 'time_range', 'status']
+  M_Shift: ['shift_id', 'shift_name', 'time_range', 'status'],
+  // รายชื่อพนักงาน — ใช้เติม dropdown "เลือกชื่อผู้บันทึก (Recorder)" ก่อนเซ็นลายเซ็นใน fill.html
+  // (แยกจาก SHEET_USERS ซึ่งเป็นบัญชี login — ชีทนี้แค่รายชื่อให้เลือก ไม่มี pin/role) แก้ไข/เพิ่มชื่อ
+  // ได้ตรงในชีท M_Employee ของ ENC-MASTER เลย ไม่ต้องมี UI แยก
+  M_Employee: ['employee_id', 'name', 'sequence', 'status']
 };
 
 // ---------- เปิด/สร้าง spreadsheet ENC-MASTER ----------
