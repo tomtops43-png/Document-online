@@ -31,6 +31,7 @@
     <button type="button" class="tab" id="tab-rev" onclick="switchTab('rev')">🔄 เพิ่ม Revision</button>
     <button type="button" class="tab" id="tab-assign" onclick="switchTab('assign')">🔗 ผูกเอกสาร↔Station</button>
     <button type="button" class="tab" id="tab-manage" onclick="switchTab('manage')">🗑 จัดการ/ลบเอกสาร</button>
+    <button type="button" class="tab" id="tab-employee" onclick="switchTab('employee')">👤 จัดการพนักงาน</button>
   </div>
 
   <!-- ===== ลงทะเบียนฟอร์ม (จาก template ที่ Claude แปลงและ push ไว้แล้ว) ===== -->
@@ -165,6 +166,26 @@
     </div>
   </section>
 
+  <!-- ===== จัดการรายชื่อพนักงาน (M_Employee — dropdown "เลือกชื่อผู้บันทึก" ตอนเซ็น Recorder) ===== -->
+  <section id="pane-employee" class="card" style="display:none">
+    <h2>จัดการรายชื่อพนักงาน</h2>
+    <p class="modal-hint">รายชื่อที่เพิ่มที่นี่จะขึ้นเป็นตัวเลือกใน dropdown "เลือกชื่อผู้บันทึก (Recorder)"
+      ก่อนเซ็นลายเซ็นทุก Station ของทุกฟอร์ม First Piece ทันที (ต้องรัน <code>setupMasterSheets()</code>
+      ใน Apps Script editor ครั้งเดียวก่อน ถ้ายังไม่เคยรัน)</p>
+
+    <div class="filter-grid">
+      <label class="field"><span>ชื่อพนักงาน *</span><input type="text" id="emp-name" placeholder="เช่น สมชาย ใจดี"></label>
+    </div>
+    <button type="button" class="btn-primary btn-block" id="btn-add-employee">✔ เพิ่มพนักงาน</button>
+
+    <div class="table-scroll" style="margin-top:18px">
+      <table class="record-table">
+        <thead><tr><th>ชื่อ</th><th>ลำดับ</th><th></th></tr></thead>
+        <tbody id="employee-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- Modal: แก้ไขข้อมูลเอกสาร -->
   <div id="edit-modal" class="modal-overlay" style="display:none">
     <div class="modal-box">
@@ -220,11 +241,12 @@ if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
 let upMode = { new: 'file', rev: 'file' };
 
 function switchTab(t) {
-  ['formreg', 'new', 'rev', 'assign', 'manage'].forEach(function (x) {
+  ['formreg', 'new', 'rev', 'assign', 'manage', 'employee'].forEach(function (x) {
     document.getElementById('tab-' + x).classList.toggle('active', x === t);
     document.getElementById('pane-' + x).style.display = x === t ? 'block' : 'none';
   });
   if (t === 'manage') renderManageList();
+  if (t === 'employee') renderEmployeeList();
 }
 function setUpMode(pane, mode) {
   upMode[pane] = mode;
@@ -669,6 +691,83 @@ async function deleteDoc(d) {
     renderManageList();
     fillDocSelect('r-doc'); fillDocSelect('a-doc');
     await loadManifest();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+// ---------- จัดการรายชื่อพนักงาน (M_Employee — dropdown Recorder ใน fill.html) ----------
+function renderEmployeeList() {
+  const tbody = document.getElementById('employee-rows');
+  const rows = (typeof Master.employees === 'function') ? Master.employees() : [];
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty-hint">ยังไม่มีรายชื่อพนักงาน — เพิ่มด้านบนได้เลย</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  rows.forEach(function (e) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><b>' + e.name + '</b></td>' +
+      '<td>' + (e.sequence || '-') + '</td>' +
+      '<td class="manage-actions">' +
+      '<button type="button" class="btn-small btn-edit-emp">✏️ แก้ไข</button>' +
+      '<button type="button" class="btn-small btn-delete-emp">🗑 ลบ</button></td>';
+    tr.querySelector('.btn-edit-emp').addEventListener('click', function () { editEmployee(e); });
+    tr.querySelector('.btn-delete-emp').addEventListener('click', function () { deleteEmployee(e); });
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('btn-add-employee').addEventListener('click', async function () {
+  const nameInput = document.getElementById('emp-name');
+  const name = nameInput.value.trim();
+  if (!name) { showToast('กรุณากรอกชื่อพนักงาน', 'error'); return; }
+  Loading.show('กำลังเพิ่ม...');
+  try {
+    await API.post('employee.create', { name: name });
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('เพิ่มพนักงานสำเร็จ', 'success');
+    nameInput.value = '';
+    renderEmployeeList();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+});
+
+async function editEmployee(e) {
+  const name = prompt('แก้ไขชื่อพนักงาน:', e.name);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === e.name) return;
+  Loading.show('กำลังบันทึก...');
+  try {
+    await API.post('employee.update', { employee_id: e.employee_id, name: trimmed });
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('แก้ไขสำเร็จ', 'success');
+    renderEmployeeList();
+  } catch (err) {
+    Loading.hide();
+    showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function deleteEmployee(e) {
+  if (!confirm('ลบพนักงาน "' + e.name + '" ใช่หรือไม่?\nจะหายจาก dropdown ทันที (กู้คืนได้เองที่ชีท M_Employee)')) return;
+  Loading.show('กำลังลบ...');
+  try {
+    await API.post('employee.delete', { employee_id: e.employee_id });
+    Master.data = null; localStorage.removeItem(Master.LS_KEY);
+    await Master.load();
+    Loading.hide();
+    showToast('ลบสำเร็จ', 'success');
+    renderEmployeeList();
   } catch (err) {
     Loading.hide();
     showToast('ไม่สำเร็จ: ' + err.message, 'error');

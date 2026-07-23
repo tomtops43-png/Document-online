@@ -87,6 +87,11 @@ function handleRequest(e, method) {
       case 'doc.delete':      return jsonOut(actionDocDelete(params, user));
       case 'doc.update':      return jsonOut(actionDocUpdate(params, user));
 
+      // ---- Admin: จัดการรายชื่อพนักงาน (M_Employee — dropdown Recorder) ----
+      case 'employee.create': return jsonOut(actionEmployeeCreate(params, user));
+      case 'employee.update': return jsonOut(actionEmployeeUpdate(params, user));
+      case 'employee.delete': return jsonOut(actionEmployeeDelete(params, user));
+
       // ---- Dashboard / Notification / User management ----
       case 'stats.dashboard': return jsonOut(actionDashboardStats(params, user));
       case 'notif.list':      return jsonOut(actionNotifList(params, user));
@@ -1371,6 +1376,83 @@ function actionDocUpdate(params, user) {
 
   bumpMasterVersion();
   auditLog(user, 'doc.update', 'M_Document', docId, before, JSON.stringify(fields));
+  return { success: true };
+}
+
+// ========================================================
+// Admin: จัดการรายชื่อพนักงาน (M_Employee) — เติม dropdown "เลือกชื่อผู้บันทึก (Recorder)"
+// ใช้สิทธิ์ document.manage ร่วมกับเมนู Admin อื่นๆ ในหน้าเดียวกัน ไม่แยก permission ใหม่
+// (M_Employee ต้องมีอยู่แล้ว — รัน setupMasterSheets() ครั้งเดียวก่อนใช้งานเมนูนี้)
+// ========================================================
+function actionEmployeeCreate(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
+  }
+  var name = String(params.name || '').trim();
+  if (!name) return { success: false, error: 'กรุณากรอกชื่อพนักงาน' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var ss = getMasterSS();
+    var sheet = ss.getSheetByName('M_Employee');
+    if (!sheet) return { success: false, error: 'ยังไม่มีชีท M_Employee — รัน setupMasterSheets() ใน Apps Script editor ก่อน' };
+    var rows = readMaster('M_Employee');
+    var employeeId = 'EMP-' + Date.now().toString(36).toUpperCase();
+    var nextSeq = rows.reduce(function (max, r) { return Math.max(max, Number(r.sequence) || 0); }, 0) + 1;
+    sheet.appendRow([employeeId, name, nextSeq, 'ACTIVE']);
+    bumpMasterVersion();
+    auditLog(user, 'employee.create', 'M_Employee', employeeId, '', name);
+    return { success: true, employee_id: employeeId };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function actionEmployeeUpdate(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ' };
+  }
+  var employeeId = String(params.employee_id || '');
+  var name = String(params.name || '').trim();
+  if (!employeeId || !name) return { success: false, error: 'ข้อมูลไม่ครบ' };
+  var ss = getMasterSS();
+  var sheet = ss.getSheetByName('M_Employee');
+  if (!sheet) return { success: false, error: 'ไม่พบชีท M_Employee' };
+  var data = sheet.getDataRange().getValues();
+  var header = data[0];
+  var nameCol = header.indexOf('name') + 1;
+  var rowIdx = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === employeeId) { rowIdx = i + 1; break; }
+  }
+  if (rowIdx < 0) return { success: false, error: 'ไม่พบพนักงานนี้: ' + employeeId };
+  var before = String(data[rowIdx - 1][nameCol - 1]);
+  sheet.getRange(rowIdx, nameCol).setValue(name);
+  bumpMasterVersion();
+  auditLog(user, 'employee.update', 'M_Employee', employeeId, before, name);
+  return { success: true };
+}
+
+function actionEmployeeDelete(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ' };
+  }
+  var employeeId = String(params.employee_id || '');
+  if (!employeeId) return { success: false, error: 'ต้องระบุ employee_id' };
+  var ss = getMasterSS();
+  var sheet = ss.getSheetByName('M_Employee');
+  if (!sheet) return { success: false, error: 'ไม่พบชีท M_Employee' };
+  var data = sheet.getDataRange().getValues();
+  var header = data[0];
+  var statusCol = header.indexOf('status') + 1;
+  var rowIdx = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === employeeId) { rowIdx = i + 1; break; }
+  }
+  if (rowIdx < 0) return { success: false, error: 'ไม่พบพนักงานนี้: ' + employeeId };
+  sheet.getRange(rowIdx, statusCol).setValue('DELETED');
+  bumpMasterVersion();
+  auditLog(user, 'employee.delete', 'M_Employee', employeeId, 'ACTIVE', 'DELETED');
   return { success: true };
 }
 
