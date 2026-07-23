@@ -200,7 +200,9 @@ const PrintRender = {
         const decision = ans.value;
         html += '<td class="cell-acc">Acc <span class="tickbox">' + (decision === 'ACC' ? '✓' : '&nbsp;') + '</span></td>';
         html += '<td class="cell-rej">Rej <span class="tickbox">' + (decision === 'REJ' ? '✓' : '&nbsp;') + '</span></td>';
-        html += '<td class="cell-recorder">' + recorderCellHtml(ans.recorder || sectionRecorderByItem[item.item_id]) + '</td>';
+        if (idx === 0) {
+          html += '<td class="cell-recorder" rowspan="' + section.items.length + '">' + recorderCellHtml(sectionRecorderByItem[item.item_id]) + '</td>';
+        }
         html += '<td class="cell-time">' + esc(ans.time || '') + '</td>';
         html += '</tr>';
       });
