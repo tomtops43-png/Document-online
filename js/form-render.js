@@ -190,16 +190,16 @@ const FormRender = {
     wrap.className = 'station-sig-block';
     wrap.dataset.stationKey = key;
     // รายชื่อพนักงาน (M_Employee ผ่าน Master.load() — เรียกไว้ก่อน FormRender.init ใน fill.html) ถ้ามี
-    // ให้เลือกจาก dropdown กันพิมพ์ชื่อผิด/สะกดไม่ตรงกัน ถ้ายังไม่ได้ seed ชีท M_Employee (Master ว่าง)
+    // ให้ค้นหา-เลือกจาก combobox (พิมพ์กรองรายชื่อ) กันพิมพ์ชื่อผิด/สะกดไม่ตรงกัน แต่ยังใช้งานได้ลื่นแม้
+    // มีพนักงานเป็นร้อยคน (select ธรรมดาจะเลื่อนหายาก) ถ้ายังไม่ได้ seed ชีท M_Employee (Master ว่าง)
     // ก็ตกไปใช้ช่องพิมพ์ชื่อเองแทน ไม่บล็อกการกรอกฟอร์ม
     const employees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
     let nameFieldHtml;
     if (employees.length) {
-      let opts = '<option value="">— เลือกชื่อผู้บันทึก (จำเป็น) —</option>';
-      employees.forEach(function (e) {
-        opts += '<option value="' + escAttr(e.name) + '">' + esc(e.name) + '</option>';
-      });
-      nameFieldHtml = '<select class="station-sig-name-field" data-role="station-sig-name" required>' + opts + '</select>';
+      nameFieldHtml = '<div class="emp-combo" data-role="station-sig-name-combo">' +
+        '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="พิมพ์ค้นหาชื่อผู้บันทึก (จำเป็น)" autocomplete="off" required>' +
+        '<div class="emp-combo-list" data-role="station-sig-name-list"></div>' +
+        '</div>';
     } else {
       nameFieldHtml = '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก (จำเป็น)" required>';
     }
@@ -231,9 +231,71 @@ const FormRender = {
       img.src = firstAns.recorder;
     }
 
-    // ชื่อผู้บันทึก (dropdown/ช่องพิมพ์เอง) — เก็บคู่กับลายเซ็นที่ item แรกของ Station เดียวกัน
+    // ชื่อผู้บันทึก — เก็บคู่กับลายเซ็นที่ item แรกของ Station เดียวกัน
     const nameField = wrap.querySelector('[data-role="station-sig-name"]');
-    if (nameField) {
+    const nameList = wrap.querySelector('[data-role="station-sig-name-list"]');
+    if (nameField && nameList) {
+      // โหมด combobox (มีรายชื่อพนักงานจาก Master) — พิมพ์กรอง แล้วต้อง "เลือก" จริงเท่านั้น
+      // (คลิก/Enter ตอนมีตัวเลือก highlight อยู่) ค่าจะถูกบันทึกเป็น recorder_name กันพิมพ์เพี้ยน/
+      // ตั้งชื่อเองมั่ว — ถ้าพิมพ์แล้วไม่ตรงใครเลย ถือว่ายังไม่ได้เลือก (validate() จะ block เอง)
+      const employees = Master.employees();
+      let activeIdx = -1;
+      if (firstAns.recorder_name) nameField.value = firstAns.recorder_name;
+
+      function renderList(filtered) {
+        activeIdx = -1;
+        if (!filtered.length) { nameList.style.display = 'none'; nameList.innerHTML = ''; return; }
+        nameList.innerHTML = filtered.map(function (emp, i) {
+          return '<div class="emp-combo-item" data-idx="' + i + '">' + esc(emp.name) + '</div>';
+        }).join('');
+        nameList.style.display = 'block';
+      }
+      function currentFiltered() {
+        const q = nameField.value.trim().toLowerCase();
+        return q ? employees.filter(function (e) { return e.name.toLowerCase().indexOf(q) > -1; }) : employees;
+      }
+      function select(emp) {
+        nameField.value = emp.name;
+        nameList.style.display = 'none';
+        self.getAnswer(s.itemIds[0]).recorder_name = emp.name;
+        self.saveDraft();
+      }
+      function highlight(idx, items) {
+        const nodes = nameList.querySelectorAll('.emp-combo-item');
+        nodes.forEach(function (n) { n.classList.remove('active'); });
+        if (idx >= 0 && nodes[idx]) { nodes[idx].classList.add('active'); nodes[idx].scrollIntoView({ block: 'nearest' }); }
+        activeIdx = idx;
+      }
+
+      nameField.addEventListener('input', function () {
+        // พิมพ์แก้ = ยกเลิกค่าที่เคยเลือกไว้ จนกว่าจะเลือกใหม่จริง
+        self.getAnswer(s.itemIds[0]).recorder_name = '';
+        renderList(currentFiltered());
+      });
+      nameField.addEventListener('focus', function () { renderList(currentFiltered()); });
+      nameField.addEventListener('keydown', function (ev) {
+        const items = currentFiltered();
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); highlight(Math.min(activeIdx + 1, items.length - 1), items); }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(Math.max(activeIdx - 1, 0), items); }
+        else if (ev.key === 'Enter') { ev.preventDefault(); if (items[activeIdx]) select(items[activeIdx]); else if (items.length === 1) select(items[0]); }
+        else if (ev.key === 'Escape') { nameList.style.display = 'none'; }
+      });
+      // ใช้ mousedown แทน click — กันปัญหา blur ของ input ยิงก่อนแล้วซ่อนลิสต์ทัน จนคลิกไม่ทัน
+      nameList.addEventListener('mousedown', function (ev) {
+        const item = ev.target.closest('.emp-combo-item');
+        if (!item) return;
+        ev.preventDefault();
+        const items = currentFiltered();
+        select(items[Number(item.dataset.idx)]);
+      });
+      nameField.addEventListener('blur', function () {
+        setTimeout(function () { nameList.style.display = 'none'; }, 150);
+        // ออกจากช่องโดยพิมพ์ไม่ตรงใครเลย (หรือไม่ได้กดเลือก) — เคลียร์ข้อความทิ้ง กันดูเหมือนเลือกแล้ว
+        // ทั้งที่ยังไม่ได้ยืนยันจริง
+        if (nameField.value !== (self.getAnswer(s.itemIds[0]).recorder_name || '')) nameField.value = '';
+      });
+    } else if (nameField) {
+      // โหมดพิมพ์เอง (ยังไม่มี Master.employees()) — เหมือนเดิม
       if (firstAns.recorder_name) nameField.value = firstAns.recorder_name;
       const saveName = function () {
         self.getAnswer(s.itemIds[0]).recorder_name = nameField.value;
