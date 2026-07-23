@@ -195,13 +195,13 @@ const FormRender = {
     const employees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
     let nameFieldHtml;
     if (employees.length) {
-      let opts = '<option value="">— เลือกชื่อผู้บันทึก —</option>';
+      let opts = '<option value="">— เลือกชื่อผู้บันทึก (จำเป็น) —</option>';
       employees.forEach(function (e) {
         opts += '<option value="' + escAttr(e.name) + '">' + esc(e.name) + '</option>';
       });
-      nameFieldHtml = '<select class="station-sig-name-field" data-role="station-sig-name">' + opts + '</select>';
+      nameFieldHtml = '<select class="station-sig-name-field" data-role="station-sig-name" required>' + opts + '</select>';
     } else {
-      nameFieldHtml = '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก">';
+      nameFieldHtml = '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก (จำเป็น)" required>';
     }
     wrap.innerHTML = '<div class="station-sig-label">ลงชื่อผู้บันทึก (Recorder) — เซ็นครั้งเดียวสำหรับ ' + esc(title) + ' *</div>' +
       '<div class="station-sig-name-wrap">' + nameFieldHtml + '</div>' +
@@ -668,6 +668,9 @@ const FormRender = {
     (this.stationSections || []).forEach(function (s) {
       const ans = self.getAnswer(s.itemIds[0]);
       if (!ans.recorder) errors.push('กรุณาเซ็นชื่อผู้บันทึก (Recorder) ให้ ' + s.title);
+      // บังคับเลือก/กรอกชื่อผู้บันทึกทุก Station เสมอ (แม้เป็นลายเซ็นที่ยกมาจาก record เดิมตอน
+      // "แก้ไขและส่งใหม่") กันเคสลืมเลือกชื่อแล้วพิมพ์ออกมามีแต่ลายเซ็นไม่มีชื่อกำกับ
+      if (!ans.recorder_name) errors.push('กรุณาเลือก/กรอกชื่อผู้บันทึกให้ ' + s.title);
     });
     return errors;
   },
@@ -691,9 +694,12 @@ const FormRender = {
         const el = document.querySelector('[data-item-id="' + firstMissing.item_id + '"]');
         if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-missing'); }
       } else {
-        // ไม่มีข้อคำถามค้าง แต่ยังขาดลายเซ็น Recorder ของบาง Station — เลื่อนไปช่องเซ็นที่ขาดจริงๆ
+        // ไม่มีข้อคำถามค้าง แต่ยังขาดลายเซ็น หรือชื่อผู้บันทึก ของบาง Station — เลื่อนไปช่องที่ขาดจริงๆ
         // (ไม่ใช่แค่บอกชื่อ Station ทาง toast อย่างเดียว ซึ่งหาเจอยากในฟอร์มที่มีหลาย Station)
-        const firstMissingSection = (this.stationSections || []).find(function (s) { return !FormRender.getAnswer(s.itemIds[0]).recorder; });
+        const firstMissingSection = (this.stationSections || []).find(function (s) {
+          const a = FormRender.getAnswer(s.itemIds[0]);
+          return !a.recorder || !a.recorder_name;
+        });
         if (firstMissingSection) {
           const el = document.querySelector('[data-station-key="' + firstMissingSection.key + '"]');
           if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-missing'); }

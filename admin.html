@@ -174,13 +174,14 @@
       ใน Apps Script editor ครั้งเดียวก่อน ถ้ายังไม่เคยรัน)</p>
 
     <div class="filter-grid">
+      <label class="field"><span>รหัสพนักงาน (ถ้ามี)</span><input type="text" id="emp-id" placeholder="เช่น E001 — ไม่กรอก = ให้ระบบสร้างให้"></label>
       <label class="field"><span>ชื่อพนักงาน *</span><input type="text" id="emp-name" placeholder="เช่น สมชาย ใจดี"></label>
     </div>
     <button type="button" class="btn-primary btn-block" id="btn-add-employee">✔ เพิ่มพนักงาน</button>
 
     <div class="table-scroll" style="margin-top:18px">
       <table class="record-table">
-        <thead><tr><th>ชื่อ</th><th>ลำดับ</th><th></th></tr></thead>
+        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ลำดับ</th><th></th></tr></thead>
         <tbody id="employee-rows"></tbody>
       </table>
     </div>
@@ -702,13 +703,14 @@ function renderEmployeeList() {
   const tbody = document.getElementById('employee-rows');
   const rows = (typeof Master.employees === 'function') ? Master.employees() : [];
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="3" class="empty-hint">ยังไม่มีรายชื่อพนักงาน — เพิ่มด้านบนได้เลย</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-hint">ยังไม่มีรายชื่อพนักงาน — เพิ่มด้านบนได้เลย</td></tr>';
     return;
   }
   tbody.innerHTML = '';
   rows.forEach(function (e) {
     const tr = document.createElement('tr');
     tr.innerHTML =
+      '<td>' + e.employee_id + '</td>' +
       '<td><b>' + e.name + '</b></td>' +
       '<td>' + (e.sequence || '-') + '</td>' +
       '<td class="manage-actions">' +
@@ -721,16 +723,18 @@ function renderEmployeeList() {
 }
 
 document.getElementById('btn-add-employee').addEventListener('click', async function () {
+  const idInput = document.getElementById('emp-id');
   const nameInput = document.getElementById('emp-name');
   const name = nameInput.value.trim();
   if (!name) { showToast('กรุณากรอกชื่อพนักงาน', 'error'); return; }
   Loading.show('กำลังเพิ่ม...');
   try {
-    await API.post('employee.create', { name: name });
+    await API.post('employee.create', { employee_id: idInput.value.trim(), name: name });
     Master.data = null; localStorage.removeItem(Master.LS_KEY);
     await Master.load();
     Loading.hide();
     showToast('เพิ่มพนักงานสำเร็จ', 'success');
+    idInput.value = '';
     nameInput.value = '';
     renderEmployeeList();
   } catch (err) {

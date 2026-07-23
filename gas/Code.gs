@@ -1397,7 +1397,14 @@ function actionEmployeeCreate(params, user) {
     var sheet = ss.getSheetByName('M_Employee');
     if (!sheet) return { success: false, error: 'ยังไม่มีชีท M_Employee — รัน setupMasterSheets() ใน Apps Script editor ก่อน' };
     var rows = readMaster('M_Employee');
-    var employeeId = 'EMP-' + Date.now().toString(36).toUpperCase();
+    // ใช้เลข ID ที่กรอกเอง (เช่น รหัสพนักงานจริงของโรงงาน) ถ้ามี — ไม่งั้น auto-generate ให้
+    var employeeId = String(params.employee_id || '').trim();
+    if (employeeId) {
+      var dup = rows.some(function (r) { return String(r.employee_id) === employeeId; });
+      if (dup) return { success: false, error: 'มีรหัสพนักงาน "' + employeeId + '" อยู่แล้ว' };
+    } else {
+      employeeId = 'EMP-' + Date.now().toString(36).toUpperCase();
+    }
     var nextSeq = rows.reduce(function (max, r) { return Math.max(max, Number(r.sequence) || 0); }, 0) + 1;
     sheet.appendRow([employeeId, name, nextSeq, 'ACTIVE']);
     bumpMasterVersion();
