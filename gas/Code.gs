@@ -1415,6 +1415,7 @@ function actionEmployeeCreate(params, user) {
   }
 }
 
+// params.employee_id = รหัสเดิม (ใช้หาแถว) / params.new_employee_id = รหัสใหม่ที่จะเปลี่ยนเป็น (ถ้าจะแก้รหัสด้วย)
 function actionEmployeeUpdate(params, user) {
   if (!can(user, 'document.manage', {})) {
     return { success: false, error: 'สิทธิ์ไม่พอ' };
@@ -1422,22 +1423,41 @@ function actionEmployeeUpdate(params, user) {
   var employeeId = String(params.employee_id || '');
   var name = String(params.name || '').trim();
   if (!employeeId || !name) return { success: false, error: 'ข้อมูลไม่ครบ' };
-  var ss = getMasterSS();
-  var sheet = ss.getSheetByName('M_Employee');
-  if (!sheet) return { success: false, error: 'ไม่พบชีท M_Employee' };
-  var data = sheet.getDataRange().getValues();
-  var header = data[0];
-  var nameCol = header.indexOf('name') + 1;
-  var rowIdx = -1;
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === employeeId) { rowIdx = i + 1; break; }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var ss = getMasterSS();
+    var sheet = ss.getSheetByName('M_Employee');
+    if (!sheet) return { success: false, error: 'ไม่พบชีท M_Employee' };
+    var data = sheet.getDataRange().getValues();
+    var header = data[0];
+    var idCol = header.indexOf('employee_id') + 1;
+    var nameCol = header.indexOf('name') + 1;
+    var rowIdx = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === employeeId) { rowIdx = i + 1; break; }
+    }
+    if (rowIdx < 0) return { success: false, error: 'ไม่พบพนักงานนี้: ' + employeeId };
+    var before = JSON.stringify({ employee_id: employeeId, name: String(data[rowIdx - 1][nameCol - 1]) });
+
+    var newEmployeeId = String(params.new_employee_id || '').trim();
+    if (newEmployeeId && newEmployeeId !== employeeId) {
+      var dup = false;
+      for (var j = 1; j < data.length; j++) {
+        if (j !== rowIdx - 1 && String(data[j][0]) === newEmployeeId) { dup = true; break; }
+      }
+      if (dup) return { success: false, error: 'มีรหัสพนักงาน "' + newEmployeeId + '" อยู่แล้ว' };
+      sheet.getRange(rowIdx, idCol).setValue(newEmployeeId);
+      employeeId = newEmployeeId;
+    }
+    sheet.getRange(rowIdx, nameCol).setValue(name);
+
+    bumpMasterVersion();
+    auditLog(user, 'employee.update', 'M_Employee', employeeId, before, JSON.stringify({ employee_id: employeeId, name: name }));
+    return { success: true, employee_id: employeeId };
+  } finally {
+    lock.releaseLock();
   }
-  if (rowIdx < 0) return { success: false, error: 'ไม่พบพนักงานนี้: ' + employeeId };
-  var before = String(data[rowIdx - 1][nameCol - 1]);
-  sheet.getRange(rowIdx, nameCol).setValue(name);
-  bumpMasterVersion();
-  auditLog(user, 'employee.update', 'M_Employee', employeeId, before, name);
-  return { success: true };
 }
 
 function actionEmployeeDelete(params, user) {
