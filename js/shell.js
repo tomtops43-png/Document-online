@@ -85,8 +85,8 @@ const AppShell = {
       '</div>';
     document.body.insertBefore(topbar, nav.nextSibling);
 
-    // ---------- Sidebar เป็น off-canvas drawer บนมือถือ (<=640px) ----------
-    // จอ tablet/desktop ยังเป็น icon-rail ถาวรเหมือนเดิม — ปุ่มแฮมเบอร์เกอร์โผล่เฉพาะจอแคบผ่าน CSS
+    // ---------- Sidebar เป็น off-canvas drawer บนแท็บเล็ต+มือถือ (<=900px) ----------
+    // จอ >900px เมนูติดขอบซ้ายถาวร — ปุ่มแฮมเบอร์เกอร์โผล่เฉพาะจอ <=900px ผ่าน CSS
     const sidebarBackdrop = document.createElement('div');
     sidebarBackdrop.className = 'sidebar-backdrop';
     sidebarBackdrop.id = 'sidebar-backdrop';
@@ -95,6 +95,11 @@ const AppShell = {
     document.getElementById('sidebar-menu-btn').addEventListener('click', () => this.toggleSidebar(true));
     sidebarBackdrop.addEventListener('click', () => this.toggleSidebar(false));
     nav.querySelectorAll('a.sidebar-link').forEach((a) => a.addEventListener('click', () => this.toggleSidebar(false)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.toggleSidebar(false); });
+    // หมุนแท็บเล็ตเป็นแนวนอน (>900px) แล้วเมนูกลายเป็นแบบติดขอบ — ต้องเก็บฉากหลังสีดำที่ค้างอยู่
+    window.matchMedia('(min-width: 901px)').addEventListener('change', (e) => {
+      if (e.matches) this.toggleSidebar(false);
+    });
 
     // ---------- Notification Drawer ----------
     const backdrop = document.createElement('div');
