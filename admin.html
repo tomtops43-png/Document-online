@@ -597,6 +597,16 @@ document.getElementById('btn-save-assign').addEventListener('click', async funct
   }
 });
 
+// กดตรงไหนของแถวก็เปิดหน้าแก้ไขได้ ไม่ต้องเล็งปุ่ม ✏️ เล็กๆ (สำคัญมากตอนใช้บนแท็บเล็ต) —
+// เว้นปุ่ม/ลิงก์ในแถว (✏️ แก้ไข, 🗑 ลบ) ที่ต้องทำงานของตัวเอง ไม่ให้ยิงซ้อนกัน
+function makeRowClickable(tr, onOpen) {
+  tr.className = (tr.className ? tr.className + ' ' : '') + 'record-row-clickable';
+  tr.addEventListener('click', function (e) {
+    if (e.target.closest('button, a')) return;
+    onOpen();
+  });
+}
+
 // ---------- จัดการ/ลบเอกสาร ----------
 function renderManageList() {
   const lineFilter = document.getElementById('m-line-filter').value;
@@ -630,6 +640,7 @@ function renderManageList() {
       '<button type="button" class="btn-small btn-delete-doc">🗑 ลบ</button></td>';
     tr.querySelector('.btn-edit-doc').addEventListener('click', function () { openEditModal(d); });
     tr.querySelector('.btn-delete-doc').addEventListener('click', function () { deleteDoc(d); });
+    makeRowClickable(tr, function () { openEditModal(d); });
     tbody.appendChild(tr);
   });
 }
@@ -766,6 +777,7 @@ function renderEmployeeList() {
       '<button type="button" class="btn-small btn-delete-emp">🗑 ลบ</button></td>';
     tr.querySelector('.btn-edit-emp').addEventListener('click', function () { editEmployee(e); });
     tr.querySelector('.btn-delete-emp').addEventListener('click', function () { deleteEmployee(e); });
+    makeRowClickable(tr, function () { editEmployee(e); });
     tbody.appendChild(tr);
   });
 }
