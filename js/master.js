@@ -78,6 +78,32 @@ const Master = {
     return this._sorted(this.data.M_Employee, 'sequence');
   },
 
+  // กะทั้งหมด (M_Shift) — ใช้เติมตัวเลือกกะในหน้า admin
+  shifts() {
+    return (this.data.M_Shift || []).slice().sort(function (a, b) {
+      return String(a.shift_id).localeCompare(String(b.shift_id));
+    });
+  },
+
+  // กะของพนักงาน 1 คน — ว่าง/*/ALL = ขึ้นได้ทุกกะ (แถวเก่าที่ยังไม่เคยตั้งค่าก็ถือเป็น ALL)
+  employeeShift(emp) {
+    const s = String((emp && emp.shift) || '').trim().toUpperCase();
+    return (!s || s === '*' || s === 'ALL') ? 'ALL' : s;
+  },
+
+  // รายชื่อพนักงานเฉพาะกะที่ระบุ — คนที่ตั้งเป็น ALL จะติดมาด้วยเสมอ (หัวหน้า/QC ที่เดินข้ามกะ)
+  // ไม่ระบุกะ หรือระบุ ALL = คืนทุกคน
+  employeesInShift(shift) {
+    const want = String(shift || '').trim().toUpperCase();
+    const all = this.employees();
+    if (!want || want === 'ALL') return all;
+    const self = this;
+    return all.filter(function (e) {
+      const s = self.employeeShift(e);
+      return s === 'ALL' || s === want;
+    });
+  },
+
   line(lineId) {
     return (this.data.M_Line || []).find(function (l) { return String(l.line_id) === String(lineId); });
   },

@@ -185,6 +185,23 @@ const FormRender = {
     });
   },
 
+  // กะที่เลือกไว้ตอนเปิดฟอร์ม (header field key = "shift") — ใช้กรองรายชื่อผู้บันทึกให้เหลือเฉพาะ
+  // คนที่ขึ้นกะนั้น ฟอร์มที่ไม่มีช่องกะก็คืนค่าว่าง = ไม่กรอง
+  headerShift() {
+    return String((this.context.header && this.context.header.shift) || '').trim().toUpperCase();
+  },
+
+  // รายชื่อที่จะให้เลือกเป็นผู้บันทึก — กรองตามกะใน header (คนที่ตั้งกะเป็น ALL ติดมาด้วยเสมอ)
+  // showAllShifts = true เมื่อ user กด "แสดงทุกกะ" เอง (คนกะอื่นมาเซ็นแทน/ทำ OT ข้ามกะ)
+  employeesForRecorder(showAllShifts) {
+    if (typeof Master === 'undefined' || !Master.data) return [];
+    const shift = this.headerShift();
+    if (showAllShifts || !shift || typeof Master.employeesInShift !== 'function') return Master.employees();
+    const list = Master.employeesInShift(shift);
+    // กะนี้ยังไม่มีใครถูกตั้งค่าไว้เลย — แสดงทุกคนแทนการโชว์ลิสต์ว่าง ไม่งั้นกรอกฟอร์มต่อไม่ได้
+    return list.length ? list : Master.employees();
+  },
+
   buildStationSignatureBlock(key, title) {
     const wrap = document.createElement('div');
     wrap.className = 'station-sig-block';
@@ -194,12 +211,21 @@ const FormRender = {
     // มีพนักงานเป็นร้อยคน (select ธรรมดาจะเลื่อนหายาก) ถ้ายังไม่ได้ seed ชีท M_Employee (Master ว่าง)
     // ก็ตกไปใช้ช่องพิมพ์ชื่อเองแทน ไม่บล็อกการกรอกฟอร์ม
     const employees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
+    const shift = this.headerShift();
     let nameFieldHtml;
     if (employees.length) {
+      const inShift = this.employeesForRecorder();
       nameFieldHtml = '<div class="emp-combo" data-role="station-sig-name-combo">' +
         '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="พิมพ์ค้นหาชื่อผู้บันทึก (จำเป็น)" autocomplete="off" required>' +
         '<div class="emp-combo-list" data-role="station-sig-name-list"></div>' +
         '</div>';
+      // บอกให้ชัดว่ารายชื่อถูกกรองด้วยกะไหนอยู่ + ปุ่มปลดกรองเผื่อคนกะอื่นมาเซ็นแทน
+      if (shift) {
+        nameFieldHtml += '<div class="emp-combo-hint">' +
+          'แสดงเฉพาะพนักงานกะ <b>' + esc(shift) + '</b> (' + inShift.length + ' คน) รวมคนที่ตั้งเป็นทุกกะ' +
+          ' <button type="button" class="link-btn" data-role="station-sig-name-allshift">แสดงทุกกะ</button>' +
+          '</div>';
+      }
     } else {
       nameFieldHtml = '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก (จำเป็น)" required>';
     }
@@ -240,8 +266,12 @@ const FormRender = {
       // โหมด combobox (มีรายชื่อพนักงานจาก Master) — พิมพ์กรอง แล้วต้อง "เลือก" จริงเท่านั้น
       // (คลิก/Enter ตอนมีตัวเลือก highlight อยู่) ค่าจะถูกบันทึกเป็น recorder_name กันพิมพ์เพี้ยน/
       // ตั้งชื่อเองมั่ว — ถ้าพิมพ์แล้วไม่ตรงใครเลย ถือว่ายังไม่ได้เลือก (validate() จะ block เอง)
+      // employees = รายชื่อ "ทั้งหมด" ใช้เป็นฐาน index ของ data-emp เท่านั้น ส่วนรายชื่อที่เอามาโชว์จริง
+      // มาจาก employeesForRecorder() ซึ่งกรองตามกะใน header แล้ว
       const employees = Master.employees();
       const combo = wrap.querySelector('[data-role="station-sig-name-combo"]');
+      const allShiftBtn = wrap.querySelector('[data-role="station-sig-name-allshift"]');
+      let showAllShifts = false;
       let activeIdx = -1;
       if (firstAns.recorder_name) nameField.value = firstAns.recorder_name;
 
@@ -272,16 +302,22 @@ const FormRender = {
         nameList.style.maxHeight = Math.max(132, Math.min(260, useAbove ? above : below)) + 'px';
       }
       function currentFiltered() {
+        const pool = self.employeesForRecorder(showAllShifts);
         const q = nameField.value.trim().toLowerCase();
-        return q ? employees.filter(function (e) { return e.name.toLowerCase().indexOf(q) > -1; }) : employees;
+        return q ? pool.filter(function (e) { return String(e.name).toLowerCase().indexOf(q) > -1; }) : pool;
       }
       function select(emp) {
         if (!emp) return;
         nameField.value = emp.name;
         closeList();
-        self.getAnswer(s.itemIds[0]).recorder_name = emp.name;
+        const ans = self.getAnswer(s.itemIds[0]);
+        ans.recorder_name = emp.name;
         self.saveDraft();
-        nameField.blur(); // เก็บคีย์บอร์ดจอสัมผัสลง จะได้เซ็นต่อได้เลย
+        self.updateProgress();
+        nameField.blur(); // เก็บคีย์บอร์ดจอสัมผัสลง
+        // ครบทั้งลายเซ็นและชื่อแล้ว = จบ Station นี้ ค่อยเลื่อนไปต่อ (ถ้าเลือกชื่อก่อนเซ็น ให้อยู่ที่เดิม
+        // รอเซ็นก่อน — ตัวเลื่อนของฝั่งลายเซ็นจะพามาต่อเอง)
+        if (ans.recorder) setTimeout(function () { self.scrollToNextStep(wrap); }, 250);
       }
       // ออกจากช่องโดยพิมพ์ไม่ตรงใครเลย (หรือไม่ได้กดเลือก) — คืนค่าเป็นชื่อที่เลือกไว้จริง (ว่างถ้ายัง
       // ไม่ได้เลือก) กันดูเหมือนเลือกแล้วทั้งที่ยังไม่ได้ยืนยัน
@@ -332,6 +368,15 @@ const FormRender = {
       nameField.addEventListener('focusout', function (ev) {
         if (ev.relatedTarget && combo && !combo.contains(ev.relatedTarget)) { closeList(); syncField(); }
       });
+      // "แสดงทุกกะ" — คนกะอื่นมาเซ็นแทน/ทำ OT ข้ามกะ ต้องยังหาชื่อเจอ ไม่ใช่ตันเพราะโดนกรองกะ
+      if (allShiftBtn) {
+        allShiftBtn.addEventListener('click', function () {
+          showAllShifts = !showAllShifts;
+          allShiftBtn.textContent = showAllShifts ? 'กลับไปกรองเฉพาะกะนี้' : 'แสดงทุกกะ';
+          nameField.focus();
+          renderList(currentFiltered());
+        });
+      }
       // คีย์บอร์ดจอสัมผัสเด้งขึ้น/ยุบลง = พื้นที่ว่างเปลี่ยน ต้องคำนวณตำแหน่งลิสต์ใหม่
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', function () { if (isOpen()) positionList(); });
@@ -365,6 +410,12 @@ const FormRender = {
         // กันจอกระโดดหนีระหว่าง user ยังขีดๆ ลบๆ ลายเซ็นอยู่)
         uploadDebounceTimer = setTimeout(function () {
           self.backgroundUploadSignature(s.itemIds[0], dataUrl);
+          // เซ็นเสร็จแล้วแต่ยังไม่ได้เลือกชื่อผู้บันทึก (ช่องชื่ออยู่ใต้ช่องเซ็น) — ห้ามเลื่อนหนีไป
+          // Station ถัดไป ให้พาไปที่ช่องเลือกชื่อของ Station นี้ก่อน แล้วค่อยเลื่อนต่อตอนเลือกชื่อเสร็จ
+          if (nameField && !(self.getAnswer(s.itemIds[0]).recorder_name || '')) {
+            wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
           self.scrollToNextStep(wrap);
         }, 1200);
       }

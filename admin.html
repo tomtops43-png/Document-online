@@ -176,12 +176,16 @@
     <div class="filter-grid">
       <label class="field"><span>รหัสพนักงาน (ถ้ามี)</span><input type="text" id="emp-id" placeholder="เช่น E001 — ไม่กรอก = ให้ระบบสร้างให้"></label>
       <label class="field"><span>ชื่อพนักงาน *</span><input type="text" id="emp-name" placeholder="เช่น สมชาย ใจดี"></label>
+      <label class="field"><span>กะ</span><select id="emp-shift"></select></label>
     </div>
     <button type="button" class="btn-primary btn-block" id="btn-add-employee">✔ เพิ่มพนักงาน</button>
 
-    <div class="table-scroll" style="margin-top:18px">
+    <div class="filter-grid" style="margin-top:18px">
+      <label class="field"><span>กรองตามกะ</span><select id="emp-shift-filter"></select></label>
+    </div>
+    <div class="table-scroll">
       <table class="record-table sticky-actions">
-        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ลำดับ</th><th></th></tr></thead>
+        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>กะ</th><th>ลำดับ</th><th></th></tr></thead>
         <tbody id="employee-rows"></tbody>
       </table>
     </div>
@@ -196,6 +200,7 @@
       </div>
       <label class="field"><span>รหัสพนักงาน *</span><input type="text" id="ee-id"></label>
       <label class="field"><span>ชื่อพนักงาน *</span><input type="text" id="ee-name"></label>
+      <label class="field"><span>กะ</span><select id="ee-shift"></select></label>
       <button type="button" class="btn-primary btn-block" id="btn-save-emp-edit">💾 บันทึกการแก้ไข</button>
     </div>
   </div>
@@ -712,19 +717,49 @@ async function deleteDoc(d) {
 }
 
 // ---------- จัดการรายชื่อพนักงาน (M_Employee — dropdown Recorder ใน fill.html) ----------
+// กะ (M_Shift) + ALL — ALL = พนักงานคนนี้ขึ้นได้ทุกกะ จะโผล่ในรายชื่อของทุกกะเสมอ
+function shiftOptions() {
+  const ids = (typeof Master.shifts === 'function' ? Master.shifts() : [])
+    .map(function (s) { return String(s.shift_id || '').trim().toUpperCase(); })
+    .filter(function (id) { return id && id !== 'ALL'; });
+  return ['ALL'].concat(ids);
+}
+function fillShiftSelect(id, selected, allLabel) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = shiftOptions().map(function (s) {
+    const label = s === 'ALL' ? (allLabel || 'ALL (ทุกกะ)') : ('กะ ' + s);
+    return '<option value="' + s + '"' + (s === String(selected || 'ALL') ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+}
+
 function renderEmployeeList() {
   const tbody = document.getElementById('employee-rows');
-  const rows = (typeof Master.employees === 'function') ? Master.employees() : [];
+  const filterEl = document.getElementById('emp-shift-filter');
+  if (filterEl && !filterEl.options.length) {
+    fillShiftSelect('emp-shift-filter', 'ALL', '— ทุกกะ —');
+    filterEl.addEventListener('change', renderEmployeeList);
+  }
+  fillShiftSelect('emp-shift', document.getElementById('emp-shift').value || 'ALL');
+
+  const filter = filterEl ? filterEl.value : 'ALL';
+  // กรองแบบตรงตัวในหน้า admin (ไม่ใช้ employeesInShift ที่ดึงคน ALL ติดมาด้วย) — ที่นี่ต้องเห็นว่า
+  // "ใครถูกตั้งเป็นกะอะไร" จริงๆ เพื่อไล่แก้ ไม่ใช่มุมมองตอนเลือกชื่อผู้บันทึก
+  const rows = (typeof Master.employees === 'function' ? Master.employees() : []).filter(function (e) {
+    return !filter || filter === 'ALL' || Master.employeeShift(e) === filter;
+  });
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-hint">ยังไม่มีรายชื่อพนักงาน — เพิ่มด้านบนได้เลย</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-hint">ยังไม่มีรายชื่อพนักงานในกะนี้</td></tr>';
     return;
   }
   tbody.innerHTML = '';
   rows.forEach(function (e) {
+    const shift = Master.employeeShift(e);
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td>' + e.employee_id + '</td>' +
       '<td><b>' + e.name + '</b></td>' +
+      '<td>' + (shift === 'ALL' ? 'ทุกกะ' : 'กะ ' + shift) + '</td>' +
       '<td>' + (e.sequence || '-') + '</td>' +
       '<td class="manage-actions">' +
       '<button type="button" class="btn-small btn-edit-emp">✏️ แก้ไข</button>' +
@@ -738,11 +773,14 @@ function renderEmployeeList() {
 document.getElementById('btn-add-employee').addEventListener('click', async function () {
   const idInput = document.getElementById('emp-id');
   const nameInput = document.getElementById('emp-name');
+  const shiftInput = document.getElementById('emp-shift');
   const name = nameInput.value.trim();
   if (!name) { showToast('กรุณากรอกชื่อพนักงาน', 'error'); return; }
   Loading.show('กำลังเพิ่ม...');
   try {
-    await API.post('employee.create', { employee_id: idInput.value.trim(), name: name });
+    await API.post('employee.create', {
+      employee_id: idInput.value.trim(), name: name, shift: shiftInput.value || 'ALL'
+    });
     Master.data = null; localStorage.removeItem(Master.LS_KEY);
     await Master.load();
     Loading.hide();
@@ -761,6 +799,7 @@ function editEmployee(e) {
   editingEmployee = e;
   document.getElementById('ee-id').value = e.employee_id;
   document.getElementById('ee-name').value = e.name;
+  fillShiftSelect('ee-shift', Master.employeeShift(e));
   document.getElementById('emp-edit-modal').style.display = 'flex';
 }
 function closeEmpEditModal() {
@@ -780,7 +819,8 @@ document.getElementById('btn-save-emp-edit').addEventListener('click', async fun
     await API.post('employee.update', {
       employee_id: editingEmployee.employee_id,
       new_employee_id: newId,
-      name: newName
+      name: newName,
+      shift: document.getElementById('ee-shift').value || 'ALL'
     });
     Master.data = null; localStorage.removeItem(Master.LS_KEY);
     await Master.load();

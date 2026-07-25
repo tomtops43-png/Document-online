@@ -1019,7 +1019,9 @@ var MASTER_SHEET_DEFS = {
   // รายชื่อพนักงาน — ใช้เติม dropdown "เลือกชื่อผู้บันทึก (Recorder)" ก่อนเซ็นลายเซ็นใน fill.html
   // (แยกจาก SHEET_USERS ซึ่งเป็นบัญชี login — ชีทนี้แค่รายชื่อให้เลือก ไม่มี pin/role) แก้ไข/เพิ่มชื่อ
   // ได้ตรงในชีท M_Employee ของ ENC-MASTER เลย ไม่ต้องมี UI แยก
-  M_Employee: ['employee_id', 'name', 'sequence', 'status']
+  // shift = กะที่พนักงานคนนี้ประจำอยู่ (ค่าจาก M_Shift เช่น A/B) หรือ ALL = ขึ้นได้ทุกกะ
+  // — ต่อท้ายคอลัมน์เดิมเสมอ เพื่อให้ชีทที่มีข้อมูลอยู่แล้วไม่ต้องย้ายคอลัมน์ แค่รัน setupMasterSheets() ซ้ำ
+  M_Employee: ['employee_id', 'name', 'sequence', 'status', 'shift']
 };
 
 // ---------- เปิด/สร้าง spreadsheet ENC-MASTER ----------
@@ -1384,12 +1386,29 @@ function actionDocUpdate(params, user) {
 // ใช้สิทธิ์ document.manage ร่วมกับเมนู Admin อื่นๆ ในหน้าเดียวกัน ไม่แยก permission ใหม่
 // (M_Employee ต้องมีอยู่แล้ว — รัน setupMasterSheets() ครั้งเดียวก่อนใช้งานเมนูนี้)
 // ========================================================
+// กะของพนักงาน — ว่าง/*/ALL ถือว่า "ขึ้นได้ทุกกะ" (หัวหน้า/QC ที่เดินข้ามกะ และแถวเก่าที่ยังไม่เคย
+// ตั้งค่าก่อนมีคอลัมน์นี้) นอกนั้นเก็บเป็นตัวพิมพ์ใหญ่ให้ตรงกับ shift_id ในชีท M_Shift
+function normEmployeeShift_(v) {
+  var s = String(v == null ? '' : v).trim().toUpperCase();
+  return (!s || s === '*' || s === 'ALL') ? 'ALL' : s;
+}
+
+// เขียนแถวใหม่โดยอ้างชื่อคอลัมน์จาก header จริงของชีท (ไม่ใช่ลำดับตายตัว) — ชีทของแต่ละที่อาจมี
+// คอลัมน์ไม่ครบ/สลับลำดับหลังเพิ่มฟิลด์ใหม่ appendRow แบบ positional จะเขียนผิดช่อง
+function appendMasterRowByHeader_(sheet, obj) {
+  var header = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+  sheet.appendRow(header.map(function (h) {
+    return Object.prototype.hasOwnProperty.call(obj, h) ? obj[h] : '';
+  }));
+}
+
 function actionEmployeeCreate(params, user) {
   if (!can(user, 'document.manage', {})) {
     return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
   }
   var name = String(params.name || '').trim();
   if (!name) return { success: false, error: 'กรุณากรอกชื่อพนักงาน' };
+  var shift = normEmployeeShift_(params.shift);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -1406,9 +1425,11 @@ function actionEmployeeCreate(params, user) {
       employeeId = 'EMP-' + Date.now().toString(36).toUpperCase();
     }
     var nextSeq = rows.reduce(function (max, r) { return Math.max(max, Number(r.sequence) || 0); }, 0) + 1;
-    sheet.appendRow([employeeId, name, nextSeq, 'ACTIVE']);
+    appendMasterRowByHeader_(sheet, {
+      employee_id: employeeId, name: name, sequence: nextSeq, status: 'ACTIVE', shift: shift
+    });
     bumpMasterVersion();
-    auditLog(user, 'employee.create', 'M_Employee', employeeId, '', name);
+    auditLog(user, 'employee.create', 'M_Employee', employeeId, '', name + ' / กะ ' + shift);
     return { success: true, employee_id: employeeId };
   } finally {
     lock.releaseLock();
@@ -1433,12 +1454,17 @@ function actionEmployeeUpdate(params, user) {
     var header = data[0];
     var idCol = header.indexOf('employee_id') + 1;
     var nameCol = header.indexOf('name') + 1;
+    var shiftCol = header.indexOf('shift') + 1; // 0 = ชีทยังไม่มีคอลัมน์นี้ (ยังไม่ได้รัน setupMasterSheets ใหม่)
     var rowIdx = -1;
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === employeeId) { rowIdx = i + 1; break; }
     }
     if (rowIdx < 0) return { success: false, error: 'ไม่พบพนักงานนี้: ' + employeeId };
-    var before = JSON.stringify({ employee_id: employeeId, name: String(data[rowIdx - 1][nameCol - 1]) });
+    var before = JSON.stringify({
+      employee_id: employeeId,
+      name: String(data[rowIdx - 1][nameCol - 1]),
+      shift: shiftCol ? normEmployeeShift_(data[rowIdx - 1][shiftCol - 1]) : ''
+    });
 
     var newEmployeeId = String(params.new_employee_id || '').trim();
     if (newEmployeeId && newEmployeeId !== employeeId) {
@@ -1451,9 +1477,17 @@ function actionEmployeeUpdate(params, user) {
       employeeId = newEmployeeId;
     }
     sheet.getRange(rowIdx, nameCol).setValue(name);
+    // ส่ง shift มาเมื่อไหร่ค่อยเขียนทับ — ไม่ส่งมา = ไม่แตะค่าเดิม (กันหน้าจอเก่าที่ยังไม่รู้จักฟิลด์นี้
+    // เผลอล้างกะของทุกคนทิ้ง)
+    var shift = '';
+    if (shiftCol && params.shift !== undefined && params.shift !== null && String(params.shift) !== '') {
+      shift = normEmployeeShift_(params.shift);
+      sheet.getRange(rowIdx, shiftCol).setValue(shift);
+    }
 
     bumpMasterVersion();
-    auditLog(user, 'employee.update', 'M_Employee', employeeId, before, JSON.stringify({ employee_id: employeeId, name: name }));
+    auditLog(user, 'employee.update', 'M_Employee', employeeId, before,
+      JSON.stringify({ employee_id: employeeId, name: name, shift: shift }));
     return { success: true, employee_id: employeeId };
   } finally {
     lock.releaseLock();
@@ -1689,9 +1723,46 @@ function setupMasterSheets() {
   if (s1 && s1.getLastRow() <= 1 && ss.getSheets().length > 1) ss.deleteSheet(s1);
 
   setupModelSheetValidation(ss);
+  setupEmployeeShiftColumn(ss);
 
   Logger.log('ชีท Master ครบแล้ว — รัน seedMaster() ต่อ');
   return ss.getUrl();
+}
+
+// คอลัมน์ shift ของ M_Employee: เติม ALL ให้แถวเก่าที่ยังว่าง (แถวที่มีอยู่ก่อนจะมีฟีเจอร์กะ ต้องขึ้น
+// ได้ทุกกะไว้ก่อน ไม่งั้นรายชื่อจะหายไปจากทุก dropdown ทันทีที่เปิดใช้การกรองกะ) + ใส่ dropdown ให้
+// เลือกได้เฉพาะกะที่มีจริงในชีท M_Shift หรือ ALL เวลาแก้ในชีทด้วยมือ — รันซ้ำได้ปลอดภัย
+function setupEmployeeShiftColumn(ss) {
+  var sheet = ss.getSheetByName('M_Employee');
+  if (!sheet) return;
+  var lastCol = Math.max(1, sheet.getLastColumn());
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var shiftCol = header.indexOf('shift') + 1;
+  if (!shiftCol) return;
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var range = sheet.getRange(2, shiftCol, lastRow - 1, 1);
+    var vals = range.getValues();
+    var changed = false;
+    for (var i = 0; i < vals.length; i++) {
+      var norm = normEmployeeShift_(vals[i][0]);
+      if (String(vals[i][0]).trim() !== norm) { vals[i][0] = norm; changed = true; }
+    }
+    if (changed) range.setValues(vals);
+  }
+
+  var options = ['ALL'];
+  readMaster('M_Shift').forEach(function (s) {
+    var id = String(s.shift_id || '').trim().toUpperCase();
+    if (id && String(s.status).toUpperCase() !== 'INACTIVE' && options.indexOf(id) === -1) options.push(id);
+  });
+  sheet.getRange(2, shiftCol, Math.max(500, lastRow), 1).setDataValidation(
+    SpreadsheetApp.newDataValidation()
+      .requireValueInList(options, true).setAllowInvalid(false)
+      .setHelpText('เลือกกะจาก M_Shift หรือ ALL = ขึ้นได้ทุกกะ')
+      .build()
+  );
 }
 
 // ป้องกันพิมพ์ผิดตอนกรอกชีท M_Model ด้วยมือ:
