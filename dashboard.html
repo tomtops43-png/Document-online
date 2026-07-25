@@ -558,6 +558,9 @@ document.getElementById('btn-start-fill').addEventListener('click', function () 
     doc_id: pendingDoc.doc_id,
     doctype_id: pendingDoc.doctype_id,
     station: pendingTemplate.mode === 'log-sheet' ? stationNo() : null,
+    // กรอกเสร็จแล้วให้กลับมาหน้านี้ ณ ไลน์/หมวด/Station เดิม (URL มี query ครบอยู่แล้วจาก pushState)
+    // ไม่ใช่เด้งไปหน้าแรกแล้วต้องไล่เลือกไลน์→Station ใหม่ทุกใบ
+    return_url: location.href,
     header: header
   }));
   location.href = 'fill.html';

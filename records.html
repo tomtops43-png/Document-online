@@ -316,6 +316,11 @@ function cropCanvas(canvas) {
     auto = true;
   }
   if (auto) doSearch();
+
+  // กลับมาจากหน้ากรอก (ส่งใหม่) แล้วต้องอยู่แท็บเดิมที่กดเข้าไป ไม่ใช่เด้งกลับแท็บค้นหาทุกครั้ง
+  if (qp.get('tab') === 'approve' && document.getElementById('tab-approve').style.display !== 'none') {
+    switchTab('approve');
+  }
 })();
 
 function switchTab(tab) {
@@ -323,6 +328,12 @@ function switchTab(tab) {
   document.getElementById('tab-search').classList.toggle('active', tab === 'search');
   document.getElementById('tab-approve').classList.toggle('active', tab === 'approve');
   document.getElementById('filter-card').style.display = tab === 'search' ? 'block' : 'none';
+  // ติดแท็บไว้ใน URL — return_url ที่ส่งไปหน้ากรอกจะได้พากลับมาแท็บนี้
+  try {
+    const p = new URLSearchParams(location.search);
+    if (tab === 'approve') p.set('tab', 'approve'); else p.delete('tab');
+    history.replaceState({}, '', 'records.html' + (p.toString() ? '?' + p.toString() : ''));
+  } catch (e) { /* ไม่รองรับ history API — ข้าม ไม่กระทบการใช้งาน */ }
   if (tab === 'approve') loadApproveQueue();
 }
 
@@ -690,6 +701,8 @@ function resubmitRejectedRecord() {
     template_file: detailTemplateFile || undefined,
     doctype_id: record.doctype_id || '',
     station: template.mode === 'log-sheet' ? (record.station || '') : null,
+    // ส่งใหม่เสร็จแล้วกลับมาหน้ารายการบันทึกหน้าเดิม (แท็บ/ตัวกรองที่ค้างไว้)
+    return_url: location.href,
     header: header
   }));
 

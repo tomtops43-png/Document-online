@@ -20,7 +20,7 @@
 <body>
 
 <header class="app-bar app-bar-fill">
-  <a href="index.html" class="btn-small">◀ หน้าแรก</a>
+  <a href="index.html" id="btn-fill-back" class="btn-small">◀ กลับ</a>
   <div class="progress-wrap">
     <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
     <div class="progress-text" id="progress-label"></div>
@@ -66,7 +66,7 @@
     <div class="success-icon">✔</div>
     <h3>บันทึกสำเร็จ</h3>
     <p>เลขที่บันทึก: <b id="success-record-id"></b></p>
-    <a href="dashboard.html" class="btn-primary btn-block">🏭 กลับ Document Center</a>
+    <a href="dashboard.html" id="btn-success-back" class="btn-primary btn-block">◀ กลับหน้าเดิม</a>
     <a href="records.html" class="btn-secondary btn-block">📋 ดูบันทึกทั้งหมด</a>
   </div>
 </div>
@@ -164,6 +164,21 @@ function canvasIsBlank(canvas) {
     location.href = 'index.html';
     return;
   }
+
+  // กรอกเสร็จ/กดย้อนกลับ ให้กลับไปหน้าที่กดเข้ามากรอก (Document Center ณ ไลน์-Station เดิม หรือหน้า
+  // บันทึกกรณีส่งใหม่) — ไม่เด้งไปหน้าแรกจนต้องไล่เลือกใหม่ทุกใบ context เก่าที่ยังไม่มี return_url
+  // (draft ค้างจากเวอร์ชันก่อน) ถอยไปใช้ dashboard.html เหมือนเดิม
+  // รับเฉพาะ path ภายในเว็บเดียวกัน กัน URL แปลกปลอมที่หลุดมาใน sessionStorage พาผู้ใช้ออกนอกระบบ
+  let returnUrl = 'dashboard.html';
+  try {
+    const u = new URL(context.return_url || '', location.href);
+    if (u.origin === location.origin) returnUrl = u.href;
+  } catch (e) { /* return_url เพี้ยน — ใช้ค่า default */ }
+  const backLink = document.getElementById('btn-fill-back');
+  if (backLink) backLink.href = returnUrl;
+  const successBack = document.getElementById('btn-success-back');
+  if (successBack) successBack.href = returnUrl;
+
   Loading.show('กำลังโหลดฟอร์ม...');
   try {
     // context.template_file มีเมื่อเข้าจาก Document Center (data-driven)
