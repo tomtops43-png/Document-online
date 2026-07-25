@@ -332,7 +332,7 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .station-sig-block { margin: 16px 0 4px; padding-top: 14px; border-top: 1.5px dashed var(--border); }
 .station-sig-block.highlight-missing { background: #fdf0e3; border-radius: 10px; padding: 14px; }
 .station-sig-label { font-size: 13px; color: var(--text-faint); font-weight: 600; margin-bottom: 6px; }
-.station-sig-name-wrap { margin-bottom: 8px; }
+.station-sig-name-wrap { margin-top: 10px; }
 .station-sig-name-field {
   width: 100%; min-height: 44px; font-family: inherit; font-size: 16px;
   padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
@@ -344,10 +344,17 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .emp-combo { position: relative; }
 .emp-combo-list {
   display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
-  max-height: 240px; overflow-y: auto; background: var(--surface); border: 1.5px solid var(--border);
+  max-height: 240px; background: var(--surface); border: 1.5px solid var(--border);
   border-radius: var(--radius-sm); box-shadow: 0 8px 20px rgba(15,35,60,.12);
+  /* จอสัมผัส: ให้ลากนิ้วเลื่อนในลิสต์ได้ลื่น และไม่ลากทะลุไปเลื่อนหน้าข้างหลัง */
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
 }
-.emp-combo-item { padding: 11px 14px; font-size: 15.5px; cursor: pointer; }
+/* กางขึ้นด้านบนแทน เมื่อที่ว่างใต้ช่องไม่พอ (คีย์บอร์ดจอสัมผัสเด้งขึ้นมาบัง) */
+.emp-combo-list.open-up { top: auto; bottom: calc(100% + 4px); }
+.emp-combo-item {
+  padding: 11px 14px; font-size: 15.5px; cursor: pointer;
+  min-height: 44px; display: flex; align-items: center;
+}
 .emp-combo-item.active, .emp-combo-item:hover { background: var(--brand-100); }
 .station-sig-pad-wrap {
   position: relative; height: 100px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
