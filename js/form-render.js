@@ -202,40 +202,194 @@ const FormRender = {
     return list.length ? list : Master.employees();
   },
 
+  // มีรายชื่อพนักงานให้เลือกไหม — ถ้าชีท M_Employee ยังว่าง/โหลด Master ไม่ได้ ทุกที่ที่ใช้ combobox
+  // จะตกไปใช้ช่องพิมพ์ชื่อเองแทน ไม่บล็อกการกรอกฟอร์ม
+  hasEmployeeList() {
+    return typeof Master !== 'undefined' && !!Master.data && Master.employees().length > 0;
+  },
+
+  // markup ของช่อง "เลือกชื่อผู้บันทึก" — ใช้ร่วมกันทั้งลายเซ็นท้าย Station (First Piece) และลายเซ็นรวม
+  // ท้ายฟอร์ม (OK 1st Part / log-sheet) จะได้ทำงานเหมือนกันทุกที่ ไม่ต้องมีสองพฤติกรรม
+  // ให้ค้นหา-เลือกจาก combobox (พิมพ์กรองรายชื่อ) กันพิมพ์ชื่อผิด/สะกดไม่ตรงกัน แต่ยังใช้งานได้ลื่นแม้
+  // มีพนักงานเป็นร้อยคน (select ธรรมดาจะเลื่อนหายาก)
+  employeeComboHtml() {
+    if (!this.hasEmployeeList()) {
+      return '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก (จำเป็น)" required>';
+    }
+    let html = '<div class="emp-combo" data-role="station-sig-name-combo">' +
+      '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="พิมพ์ค้นหาชื่อผู้บันทึก (จำเป็น)" autocomplete="off" required>' +
+      '<div class="emp-combo-list" data-role="station-sig-name-list"></div>' +
+      '</div>';
+    // บอกให้ชัดว่ารายชื่อถูกกรองด้วยกะไหนอยู่ + ปุ่มปลดกรองเผื่อคนกะอื่นมาเซ็นแทน
+    const shift = this.headerShift();
+    if (shift) {
+      html += '<div class="emp-combo-hint">' +
+        'แสดงเฉพาะพนักงานกะ <b>' + esc(shift) + '</b> (' + this.employeesForRecorder().length + ' คน) รวมคนที่ตั้งเป็นทุกกะ' +
+        ' <button type="button" class="link-btn" data-role="station-sig-name-allshift">แสดงทุกกะ</button>' +
+        '</div>';
+    }
+    return html;
+  },
+
   buildStationSignatureBlock(key, title) {
     const wrap = document.createElement('div');
     wrap.className = 'station-sig-block';
     wrap.dataset.stationKey = key;
-    // รายชื่อพนักงาน (M_Employee ผ่าน Master.load() — เรียกไว้ก่อน FormRender.init ใน fill.html) ถ้ามี
-    // ให้ค้นหา-เลือกจาก combobox (พิมพ์กรองรายชื่อ) กันพิมพ์ชื่อผิด/สะกดไม่ตรงกัน แต่ยังใช้งานได้ลื่นแม้
-    // มีพนักงานเป็นร้อยคน (select ธรรมดาจะเลื่อนหายาก) ถ้ายังไม่ได้ seed ชีท M_Employee (Master ว่าง)
-    // ก็ตกไปใช้ช่องพิมพ์ชื่อเองแทน ไม่บล็อกการกรอกฟอร์ม
-    const employees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
-    const shift = this.headerShift();
-    let nameFieldHtml;
-    if (employees.length) {
-      const inShift = this.employeesForRecorder();
-      nameFieldHtml = '<div class="emp-combo" data-role="station-sig-name-combo">' +
-        '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="พิมพ์ค้นหาชื่อผู้บันทึก (จำเป็น)" autocomplete="off" required>' +
-        '<div class="emp-combo-list" data-role="station-sig-name-list"></div>' +
-        '</div>';
-      // บอกให้ชัดว่ารายชื่อถูกกรองด้วยกะไหนอยู่ + ปุ่มปลดกรองเผื่อคนกะอื่นมาเซ็นแทน
-      if (shift) {
-        nameFieldHtml += '<div class="emp-combo-hint">' +
-          'แสดงเฉพาะพนักงานกะ <b>' + esc(shift) + '</b> (' + inShift.length + ' คน) รวมคนที่ตั้งเป็นทุกกะ' +
-          ' <button type="button" class="link-btn" data-role="station-sig-name-allshift">แสดงทุกกะ</button>' +
-          '</div>';
-      }
-    } else {
-      nameFieldHtml = '<input type="text" class="station-sig-name-field" data-role="station-sig-name" placeholder="ชื่อผู้บันทึก (จำเป็น)" required>';
-    }
     // ลำดับ: เซ็นลายเซ็นก่อน แล้วค่อยเลือกชื่อ — ช่องชื่ออยู่ล่างสุด ลิสต์รายชื่อจึงกางขึ้นด้านบน
     // ไม่โดนคีย์บอร์ดจอสัมผัสบัง และเซ็นเสร็จแล้วมือไม่ต้องย้อนขึ้นไปข้างบน
     wrap.innerHTML = '<div class="station-sig-label">ลงชื่อผู้บันทึก (Recorder) — เซ็นครั้งเดียวสำหรับ ' + esc(title) + ' *</div>' +
       '<div class="station-sig-pad-wrap"><canvas class="station-sig-canvas" data-role="station-sig-canvas"></canvas>' +
       '<button type="button" class="btn-small station-sig-clear" data-role="station-sig-clear">ล้าง</button></div>' +
-      '<div class="station-sig-name-wrap">' + nameFieldHtml + '</div>';
+      '<div class="station-sig-name-wrap">' + this.employeeComboHtml() + '</div>';
     return wrap;
+  },
+
+  // ผูกพฤติกรรม combobox เลือกชื่อผู้บันทึกเข้ากับ markup จาก employeeComboHtml()
+  //   root      = element ที่ครอบช่องชื่อ (station-sig-block หรือการ์ดลายเซ็นรวม)
+  //   opts.get  = อ่านชื่อที่เลือกไว้ / opts.set = เก็บชื่อที่เลือก / opts.onSelect = ทำอะไรต่อหลังเลือก
+  // ต้อง "เลือก" จริงเท่านั้น (แตะรายการ/Enter ตอนมีตัวเลือก highlight) ค่าถึงจะถูกเก็บ กันพิมพ์เพี้ยน/
+  // ตั้งชื่อเองมั่ว — พิมพ์แล้วไม่ตรงใครเลยถือว่ายังไม่ได้เลือก (validate() จะ block เอง)
+  attachEmployeeCombo(root, opts) {
+    const self = this;
+    const nameField = root.querySelector('[data-role="station-sig-name"]');
+    const nameList = root.querySelector('[data-role="station-sig-name-list"]');
+    if (!nameField) return null;
+
+    if (!nameList) {
+      // โหมดพิมพ์เอง (ยังไม่มี Master.employees()) — เก็บทุกตัวอักษรที่พิมพ์ตรงๆ
+      nameField.value = opts.get() || '';
+      const saveName = function () { opts.set(nameField.value); };
+      nameField.addEventListener('change', saveName);
+      nameField.addEventListener('input', saveName);
+      return nameField;
+    }
+
+    // employees = รายชื่อ "ทั้งหมด" ใช้เป็นฐาน index ของ data-emp เท่านั้น ส่วนรายชื่อที่เอามาโชว์จริง
+    // มาจาก employeesForRecorder() ซึ่งกรองตามกะใน header แล้ว
+    const employees = Master.employees();
+    const combo = root.querySelector('[data-role="station-sig-name-combo"]');
+    const allShiftBtn = root.querySelector('[data-role="station-sig-name-allshift"]');
+    let showAllShifts = false;
+    let activeIdx = -1;
+    nameField.value = opts.get() || '';
+
+    function isOpen() { return nameList.style.display === 'block'; }
+    function closeList() { nameList.style.display = 'none'; }
+    function itemNodes() { return nameList.querySelectorAll('.emp-combo-item'); }
+
+    // เก็บ index ของ "employees ทั้งชุด" ไว้บน node เลย (ไม่ใช่ index ของผลกรอง) — ตอนแตะเลือก
+    // ค่าในช่องอาจถูกแก้/เคลียร์ไปแล้ว การไปคำนวณผลกรองใหม่ตอนนั้นจะได้คนละคน
+    function renderList(filtered) {
+      activeIdx = -1;
+      if (!filtered.length) { closeList(); nameList.innerHTML = ''; return; }
+      nameList.innerHTML = filtered.map(function (emp) {
+        return '<div class="emp-combo-item" data-emp="' + employees.indexOf(emp) + '">' + esc(emp.name) + '</div>';
+      }).join('');
+      nameList.style.display = 'block';
+      positionList();
+    }
+    // กางลิสต์ขึ้นด้านบนถ้าที่ว่างข้างล่างไม่พอ และตัดความสูงตามที่ว่างจริง — บนแท็บเล็ต คีย์บอร์ด
+    // จอสัมผัสเด้งขึ้นมาบังครึ่งจอ ลิสต์ที่กางลงล่างจะจมอยู่ใต้คีย์บอร์ดจนเลื่อนหาชื่อไม่ได้
+    function positionList() {
+      const r = nameField.getBoundingClientRect();
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const below = vh - r.bottom - 12;
+      const above = r.top - 12;
+      const useAbove = below < 170 && above > below;
+      nameList.classList.toggle('open-up', useAbove);
+      nameList.style.maxHeight = Math.max(132, Math.min(260, useAbove ? above : below)) + 'px';
+    }
+    function currentFiltered() {
+      const pool = self.employeesForRecorder(showAllShifts);
+      const q = nameField.value.trim().toLowerCase();
+      return q ? pool.filter(function (e) { return String(e.name).toLowerCase().indexOf(q) > -1; }) : pool;
+    }
+    function select(emp) {
+      if (!emp) return;
+      nameField.value = emp.name;
+      closeList();
+      opts.set(emp.name);
+      nameField.blur(); // เก็บคีย์บอร์ดจอสัมผัสลง
+      if (opts.onSelect) opts.onSelect(emp);
+    }
+    // ออกจากช่องโดยพิมพ์ไม่ตรงใครเลย (หรือไม่ได้กดเลือก) — คืนค่าเป็นชื่อที่เลือกไว้จริง (ว่างถ้ายัง
+    // ไม่ได้เลือก) กันดูเหมือนเลือกแล้วทั้งที่ยังไม่ได้ยืนยัน
+    function syncField() {
+      const chosen = opts.get() || '';
+      if (nameField.value !== chosen) nameField.value = chosen;
+    }
+    function highlight(idx) {
+      const nodes = itemNodes();
+      nodes.forEach(function (n) { n.classList.remove('active'); });
+      if (idx >= 0 && nodes[idx]) { nodes[idx].classList.add('active'); nodes[idx].scrollIntoView({ block: 'nearest' }); }
+      activeIdx = idx;
+    }
+
+    nameField.addEventListener('input', function () {
+      // พิมพ์แก้ = ยกเลิกค่าที่เคยเลือกไว้ จนกว่าจะเลือกใหม่จริง
+      opts.set('');
+      renderList(currentFiltered());
+    });
+    nameField.addEventListener('focus', function () { renderList(currentFiltered()); });
+    nameField.addEventListener('keydown', function (ev) {
+      const nodes = itemNodes();
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); highlight(Math.min(activeIdx + 1, nodes.length - 1)); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(Math.max(activeIdx - 1, 0)); }
+      else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        const node = nodes[activeIdx] || (nodes.length === 1 ? nodes[0] : null);
+        if (node) select(employees[Number(node.dataset.emp)]);
+      } else if (ev.key === 'Escape') { closeList(); }
+    });
+
+    // เลือกด้วย click (ครอบทั้งเมาส์และการแตะจอ) — mousedown บนจอสัมผัสจะไม่ยิงเมื่อผู้ใช้ "ลากนิ้ว
+    // เพื่อเลื่อนหาชื่อ" เลยต้องไปพึ่ง blur ซึ่งเป็นต้นเหตุที่ลิสต์หายกลางคัน
+    nameList.addEventListener('click', function (ev) {
+      const item = ev.target.closest('.emp-combo-item');
+      if (item) select(employees[Number(item.dataset.emp)]);
+    });
+
+    // ปิดลิสต์เมื่อแตะ/คลิก "นอกกล่อง" เท่านั้น — ไม่ผูกกับ blur ของ input เพราะบนแท็บเล็ตการเอานิ้ว
+    // แตะลิสต์เพื่อเลื่อน ทำให้ input หลุดโฟกัสทันที ลิสต์เลยถูกซ่อนกลางการเลื่อน
+    document.addEventListener('pointerdown', function (ev) {
+      if (!isOpen() || (combo && combo.contains(ev.target))) return;
+      closeList();
+      syncField();
+    });
+    // ย้ายโฟกัสด้วยคีย์บอร์ด (Tab) ไปนอกกล่อง — แตะจอจะได้ relatedTarget = null จึงไม่โดนปิด
+    nameField.addEventListener('focusout', function (ev) {
+      if (ev.relatedTarget && combo && !combo.contains(ev.relatedTarget)) { closeList(); syncField(); }
+    });
+    // "แสดงทุกกะ" — คนกะอื่นมาเซ็นแทน/ทำ OT ข้ามกะ ต้องยังหาชื่อเจอ ไม่ใช่ตันเพราะโดนกรองกะ
+    if (allShiftBtn) {
+      allShiftBtn.addEventListener('click', function () {
+        showAllShifts = !showAllShifts;
+        allShiftBtn.textContent = showAllShifts ? 'กลับไปกรองเฉพาะกะนี้' : 'แสดงทุกกะ';
+        nameField.focus();
+        renderList(currentFiltered());
+      });
+    }
+    // คีย์บอร์ดจอสัมผัสเด้งขึ้น/ยุบลง = พื้นที่ว่างเปลี่ยน ต้องคำนวณตำแหน่งลิสต์ใหม่
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () { if (isOpen()) positionList(); });
+    }
+    return nameField;
+  },
+
+  // ช่องเลือกชื่อผู้บันทึกของฟอร์มที่เซ็นรวมท้ายฟอร์มครั้งเดียว (OK 1st Part / log-sheet ทั่วไป) —
+  // เดิมมีแต่ช่องเซ็น ไม่มีช่องชื่อเลย ชื่อบนใบพิมพ์เลยได้แค่บัญชีที่ login ไม่ใช่คนที่เซ็นจริง
+  initGlobalRecorderName() {
+    const holder = document.getElementById('global-recorder-name');
+    if (!holder) return;
+    holder.innerHTML = this.employeeComboHtml();
+    const self = this;
+    this.attachEmployeeCombo(holder, {
+      get: function () { return self.answers._operator_name || ''; },
+      set: function (v) {
+        self.answers._operator_name = v;
+        self.saveDraft();
+      }
+    });
   },
 
   initStationSignature(s) {
@@ -259,138 +413,23 @@ const FormRender = {
       img.src = firstAns.recorder;
     }
 
-    // ชื่อผู้บันทึก — เก็บคู่กับลายเซ็นที่ item แรกของ Station เดียวกัน
-    const nameField = wrap.querySelector('[data-role="station-sig-name"]');
-    const nameList = wrap.querySelector('[data-role="station-sig-name-list"]');
-    if (nameField && nameList) {
-      // โหมด combobox (มีรายชื่อพนักงานจาก Master) — พิมพ์กรอง แล้วต้อง "เลือก" จริงเท่านั้น
-      // (คลิก/Enter ตอนมีตัวเลือก highlight อยู่) ค่าจะถูกบันทึกเป็น recorder_name กันพิมพ์เพี้ยน/
-      // ตั้งชื่อเองมั่ว — ถ้าพิมพ์แล้วไม่ตรงใครเลย ถือว่ายังไม่ได้เลือก (validate() จะ block เอง)
-      // employees = รายชื่อ "ทั้งหมด" ใช้เป็นฐาน index ของ data-emp เท่านั้น ส่วนรายชื่อที่เอามาโชว์จริง
-      // มาจาก employeesForRecorder() ซึ่งกรองตามกะใน header แล้ว
-      const employees = Master.employees();
-      const combo = wrap.querySelector('[data-role="station-sig-name-combo"]');
-      const allShiftBtn = wrap.querySelector('[data-role="station-sig-name-allshift"]');
-      let showAllShifts = false;
-      let activeIdx = -1;
-      if (firstAns.recorder_name) nameField.value = firstAns.recorder_name;
-
-      function isOpen() { return nameList.style.display === 'block'; }
-      function closeList() { nameList.style.display = 'none'; }
-      function itemNodes() { return nameList.querySelectorAll('.emp-combo-item'); }
-
-      // เก็บ index ของ "employees ทั้งชุด" ไว้บน node เลย (ไม่ใช่ index ของผลกรอง) — ตอนแตะเลือก
-      // ค่าในช่องอาจถูกแก้/เคลียร์ไปแล้ว การไปคำนวณผลกรองใหม่ตอนนั้นจะได้คนละคน
-      function renderList(filtered) {
-        activeIdx = -1;
-        if (!filtered.length) { closeList(); nameList.innerHTML = ''; return; }
-        nameList.innerHTML = filtered.map(function (emp) {
-          return '<div class="emp-combo-item" data-emp="' + employees.indexOf(emp) + '">' + esc(emp.name) + '</div>';
-        }).join('');
-        nameList.style.display = 'block';
-        positionList();
-      }
-      // กางลิสต์ขึ้นด้านบนถ้าที่ว่างข้างล่างไม่พอ และตัดความสูงตามที่ว่างจริง — บนแท็บเล็ต คีย์บอร์ด
-      // จอสัมผัสเด้งขึ้นมาบังครึ่งจอ ลิสต์ที่กางลงล่างจะจมอยู่ใต้คีย์บอร์ดจนเลื่อนหาชื่อไม่ได้
-      function positionList() {
-        const r = nameField.getBoundingClientRect();
-        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const below = vh - r.bottom - 12;
-        const above = r.top - 12;
-        const useAbove = below < 170 && above > below;
-        nameList.classList.toggle('open-up', useAbove);
-        nameList.style.maxHeight = Math.max(132, Math.min(260, useAbove ? above : below)) + 'px';
-      }
-      function currentFiltered() {
-        const pool = self.employeesForRecorder(showAllShifts);
-        const q = nameField.value.trim().toLowerCase();
-        return q ? pool.filter(function (e) { return String(e.name).toLowerCase().indexOf(q) > -1; }) : pool;
-      }
-      function select(emp) {
-        if (!emp) return;
-        nameField.value = emp.name;
-        closeList();
-        const ans = self.getAnswer(s.itemIds[0]);
-        ans.recorder_name = emp.name;
+    // ชื่อผู้บันทึก — เก็บคู่กับลายเซ็นที่ item แรกของ Station เดียวกัน (ใช้ combobox ตัวเดียวกับ
+    // ฟอร์มที่เซ็นรวมท้ายฟอร์ม)
+    const nameField = this.attachEmployeeCombo(wrap, {
+      get: function () { return self.getAnswer(s.itemIds[0]).recorder_name || ''; },
+      set: function (v) {
+        self.getAnswer(s.itemIds[0]).recorder_name = v;
         self.saveDraft();
+      },
+      onSelect: function () {
+        const ans = self.getAnswer(s.itemIds[0]);
         self.updateProgress();
-        nameField.blur(); // เก็บคีย์บอร์ดจอสัมผัสลง
         // ครบทั้งลายเซ็นและชื่อแล้ว = จบ Station นี้ ค่อยเลื่อนไปต่อ (ถ้าเลือกชื่อก่อนเซ็น ให้อยู่ที่เดิม
         // รอเซ็นก่อน — ตัวเลื่อนของฝั่งลายเซ็นจะพามาต่อเอง)
         if (ans.recorder) setTimeout(function () { self.scrollToNextStep(wrap); }, 250);
       }
-      // ออกจากช่องโดยพิมพ์ไม่ตรงใครเลย (หรือไม่ได้กดเลือก) — คืนค่าเป็นชื่อที่เลือกไว้จริง (ว่างถ้ายัง
-      // ไม่ได้เลือก) กันดูเหมือนเลือกแล้วทั้งที่ยังไม่ได้ยืนยัน
-      function syncField() {
-        const chosen = self.getAnswer(s.itemIds[0]).recorder_name || '';
-        if (nameField.value !== chosen) nameField.value = chosen;
-      }
-      function highlight(idx) {
-        const nodes = itemNodes();
-        nodes.forEach(function (n) { n.classList.remove('active'); });
-        if (idx >= 0 && nodes[idx]) { nodes[idx].classList.add('active'); nodes[idx].scrollIntoView({ block: 'nearest' }); }
-        activeIdx = idx;
-      }
+    });
 
-      nameField.addEventListener('input', function () {
-        // พิมพ์แก้ = ยกเลิกค่าที่เคยเลือกไว้ จนกว่าจะเลือกใหม่จริง
-        self.getAnswer(s.itemIds[0]).recorder_name = '';
-        renderList(currentFiltered());
-      });
-      nameField.addEventListener('focus', function () { renderList(currentFiltered()); });
-      nameField.addEventListener('keydown', function (ev) {
-        const nodes = itemNodes();
-        if (ev.key === 'ArrowDown') { ev.preventDefault(); highlight(Math.min(activeIdx + 1, nodes.length - 1)); }
-        else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(Math.max(activeIdx - 1, 0)); }
-        else if (ev.key === 'Enter') {
-          ev.preventDefault();
-          const node = nodes[activeIdx] || (nodes.length === 1 ? nodes[0] : null);
-          if (node) select(employees[Number(node.dataset.emp)]);
-        } else if (ev.key === 'Escape') { closeList(); }
-      });
-
-      // เลือกด้วย click (ครอบทั้งเมาส์และการแตะจอ) — ของเดิมใช้ mousedown ซึ่งบนจอสัมผัสจะไม่ยิง
-      // เมื่อผู้ใช้ "ลากนิ้วเพื่อเลื่อนหาชื่อ" เลยต้องไปพึ่ง blur ซึ่งเป็นต้นเหตุที่ลิสต์หายกลางคัน
-      nameList.addEventListener('click', function (ev) {
-        const item = ev.target.closest('.emp-combo-item');
-        if (item) select(employees[Number(item.dataset.emp)]);
-      });
-
-      // ปิดลิสต์เมื่อแตะ/คลิก "นอกกล่อง" เท่านั้น — ไม่ผูกกับ blur ของ input อีกแล้ว เพราะบนแท็บเล็ต
-      // การเอานิ้วแตะลิสต์เพื่อเลื่อน ทำให้ input หลุดโฟกัสทันที ลิสต์เลยถูกซ่อนกลางการเลื่อน
-      // (อาการ "บางทีเลื่อนหาชื่อไม่ได้ พิมพ์ได้อย่างเดียว")
-      document.addEventListener('pointerdown', function (ev) {
-        if (!isOpen() || (combo && combo.contains(ev.target))) return;
-        closeList();
-        syncField();
-      });
-      // ย้ายโฟกัสด้วยคีย์บอร์ด (Tab) ไปนอกกล่อง — แตะจอจะได้ relatedTarget = null จึงไม่โดนปิด
-      nameField.addEventListener('focusout', function (ev) {
-        if (ev.relatedTarget && combo && !combo.contains(ev.relatedTarget)) { closeList(); syncField(); }
-      });
-      // "แสดงทุกกะ" — คนกะอื่นมาเซ็นแทน/ทำ OT ข้ามกะ ต้องยังหาชื่อเจอ ไม่ใช่ตันเพราะโดนกรองกะ
-      if (allShiftBtn) {
-        allShiftBtn.addEventListener('click', function () {
-          showAllShifts = !showAllShifts;
-          allShiftBtn.textContent = showAllShifts ? 'กลับไปกรองเฉพาะกะนี้' : 'แสดงทุกกะ';
-          nameField.focus();
-          renderList(currentFiltered());
-        });
-      }
-      // คีย์บอร์ดจอสัมผัสเด้งขึ้น/ยุบลง = พื้นที่ว่างเปลี่ยน ต้องคำนวณตำแหน่งลิสต์ใหม่
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', function () { if (isOpen()) positionList(); });
-      }
-    } else if (nameField) {
-      // โหมดพิมพ์เอง (ยังไม่มี Master.employees()) — เหมือนเดิม
-      if (firstAns.recorder_name) nameField.value = firstAns.recorder_name;
-      const saveName = function () {
-        self.getAnswer(s.itemIds[0]).recorder_name = nameField.value;
-        self.saveDraft();
-      };
-      nameField.addEventListener('change', saveName);
-      nameField.addEventListener('input', saveName);
-    }
 
     // เก็บลายเซ็นไว้แค่ที่ item แรกของ Station (ไม่ยัดซ้ำทุกข้อ) — validate()/submit() อ่านแค่
     // itemIds[0] อยู่แล้ว ส่วนตอนพิมพ์ print-render.js จะดึงค่านี้ไปโชว์ซ้ำทุกแถวของ Station เอง
@@ -872,6 +911,18 @@ const FormRender = {
         : (canvas.toDataURL() === document.createElement('canvas').toDataURL());
       if (isBlank) {
         showToast('กรุณาเซ็นชื่อผู้ตรวจสอบก่อนส่ง', 'error');
+        return;
+      }
+      // ต้องเลือกชื่อผู้บันทึกด้วย (บังคับเฉพาะตอนมีรายชื่อพนักงานให้เลือกจริง — ชีท M_Employee ว่าง
+      // อยู่ก็ยังส่งได้เหมือนเดิม ไม่ล็อกคนใช้งาน)
+      if (this.hasEmployeeList() && !this.answers._operator_name) {
+        showToast('กรุณาเลือกชื่อผู้บันทึกก่อนส่ง', 'error');
+        const holder = document.getElementById('global-recorder-name');
+        if (holder) {
+          holder.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const f = holder.querySelector('[data-role="station-sig-name"]');
+          if (f) f.focus();
+        }
         return;
       }
       this.answers._operator_sign = cropCanvas(canvas).toDataURL('image/png');

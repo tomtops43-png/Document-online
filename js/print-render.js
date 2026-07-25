@@ -315,7 +315,9 @@ const PrintRender = {
         html += '<td class="c-mark">' + PrintRender.markPO(ans[i.item_id]) + '</td>';
       });
       // สรุปผล: ลงชื่อผู้ตรวจสอบ / หัวหน้างานยืนยัน
-      let opSign = esc(rec ? (rec.operator_name || '') : '');
+      // ชื่อผู้บันทึกที่ "เลือกจากรายชื่อพนักงาน" ตอนกรอก มาก่อนชื่อบัญชีที่ login เสมอ — คนกรอกกับ
+      // เจ้าของบัญชีที่เปิดเครื่องไว้มักไม่ใช่คนเดียวกันในไลน์ผลิต
+      let opSign = esc(rec ? (ans._operator_name || rec.operator_name || '') : '');
       if (rec && ans._operator_sign) {
         opSign = '<img src="' + signatureImgSrc(ans._operator_sign) + '" class="sig-img-inline">';
       }
