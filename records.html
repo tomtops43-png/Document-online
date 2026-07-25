@@ -507,7 +507,11 @@ function renderRows(records, opts) {
       '<td>' + statusBadge(r.status) + '</td>' +
       '<td>' + (String(r.has_nok) === 'true' ? '<span class="nok-flag">NOK</span>' : '') + '</td>' +
       '<td><a class="btn-small" target="_blank" href="' + printUrl + '">🖨 พิมพ์</a></td>';
-    tr.querySelector('.record-link').addEventListener('click', function (e) {
+    // กดตรงไหนของแถวก็เปิดรายละเอียดได้ ไม่ต้องเล็งลิงก์สีฟ้าเล็กๆ (สำคัญมากตอนใช้บนแท็บเล็ต)
+    // ยกเว้นปุ่ม/ลิงก์อื่นในแถว เช่น "🖨 พิมพ์" ที่ต้องทำงานของตัวเอง
+    tr.className = 'record-row-clickable';
+    tr.addEventListener('click', function (e) {
+      if (e.target.closest('a:not(.record-link), button')) return;
       e.preventDefault();
       openDetail(r.record_id);
     });

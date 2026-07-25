@@ -458,6 +458,9 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 .record-table th, .record-table td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
 .record-table th { background: var(--canvas); font-weight: 700; color: var(--text-soft); font-size: 13px; text-transform: uppercase; letter-spacing: .3px; }
 .record-table tbody tr:hover { background: var(--brand-100); }
+/* แถวที่กดได้ทั้งแถว — ให้เห็นชัดว่าแตะตรงไหนก็ได้ ไม่ต้องเล็งลิงก์ */
+.record-row-clickable { cursor: pointer; }
+.record-row-clickable:active { background: var(--brand-100); }
 /* ตรึงหัวตารางไว้ด้านบนขณะเลื่อนดูแถวล่าง ๆ (ใช้ inset shadow แทน border เพราะ border จะหายเมื่อ sticky) */
 .record-table thead th { position: sticky; top: 0; z-index: 3; box-shadow: inset 0 -1px 0 var(--border); }
 
