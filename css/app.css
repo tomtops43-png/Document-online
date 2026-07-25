@@ -426,11 +426,29 @@ button, .btn-primary, .btn-secondary { font-family: inherit; }
 }
 .tab-badge.on { display: flex; }
 .filter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
-.table-scroll { overflow-x: auto; border-radius: var(--radius-sm); }
+/* กรอบตาราง: จำกัดความสูงไว้ ~2 ใน 3 ของจอ เลื่อนขึ้น-ลงในกรอบแทนการเลื่อนทั้งหน้า
+   ทำให้แถบเลื่อนแนวนอนติดอยู่ขอบล่างของกรอบเสมอ ไม่ต้องเลื่อนหน้าลงไปสุดตารางเพื่อหาแถบเลื่อน */
+.table-scroll {
+  overflow: auto; border-radius: var(--radius-sm);
+  max-height: min(68vh, 620px); overscroll-behavior-x: contain;
+}
 .record-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 .record-table th, .record-table td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
 .record-table th { background: var(--canvas); font-weight: 700; color: var(--text-soft); font-size: 13px; text-transform: uppercase; letter-spacing: .3px; }
 .record-table tbody tr:hover { background: var(--brand-100); }
+/* ตรึงหัวตารางไว้ด้านบนขณะเลื่อนดูแถวล่าง ๆ (ใช้ inset shadow แทน border เพราะ border จะหายเมื่อ sticky) */
+.record-table thead th { position: sticky; top: 0; z-index: 3; box-shadow: inset 0 -1px 0 var(--border); }
+
+/* ตรึงคอลัมน์ปุ่มจัดการไว้ขวาสุด — กด "แก้ไข / ลบ" ได้ทันทีโดยไม่ต้องเลื่อนตารางไปทางขวา */
+.record-table.sticky-actions th:last-child,
+.record-table.sticky-actions td:not(.empty-hint):last-child {
+  position: sticky; right: 0; z-index: 2; background: var(--surface);
+  box-shadow: inset 1px 0 0 var(--border), -8px 0 14px -8px rgba(15, 35, 60, .22);
+}
+.record-table.sticky-actions thead th:last-child { z-index: 4; background: var(--canvas); }
+.record-table.sticky-actions tbody tr:hover td:not(.empty-hint):last-child { background: var(--brand-100); }
+/* ชื่อเอกสารยาวมาก — ให้ตัดบรรทัดได้ ตารางจึงแคบลงจนแทบไม่ต้องเลื่อนแนวนอน */
+.record-table.wrap-first td:first-child { white-space: normal; min-width: 220px; max-width: 420px; }
 .manage-actions { display: flex; gap: 6px; flex-wrap: nowrap; }
 .record-link { color: var(--brand-600); font-weight: 700; text-decoration: none; }
 .status-badge { color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
