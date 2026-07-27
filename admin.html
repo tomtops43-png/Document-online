@@ -170,22 +170,25 @@
   <section id="pane-employee" class="card" style="display:none">
     <h2>จัดการรายชื่อพนักงาน</h2>
     <p class="modal-hint">รายชื่อที่เพิ่มที่นี่จะขึ้นเป็นตัวเลือกใน dropdown "เลือกชื่อผู้บันทึก (Recorder)"
-      ก่อนเซ็นลายเซ็นทุก Station ของทุกฟอร์ม First Piece ทันที (ต้องรัน <code>setupMasterSheets()</code>
-      ใน Apps Script editor ครั้งเดียวก่อน ถ้ายังไม่เคยรัน)</p>
+      ก่อนเซ็นลายเซ็นทุก Station ของทุกฟอร์ม First Piece และ dropdown "เลือกชื่อผู้อนุมัติ" ตอน Leader/QI
+      อนุมัติทันที — ตำแหน่งใช้กรองไม่ให้รายชื่อ 3 ตำแหน่งปนกัน (ไม่ระบุ/ALL = ขึ้นทุก dropdown)
+      (ต้องรัน <code>setupMasterSheets()</code> ใน Apps Script editor ครั้งเดียวก่อน ถ้ายังไม่เคยรัน)</p>
 
     <div class="filter-grid">
       <label class="field"><span>รหัสพนักงาน (ถ้ามี)</span><input type="text" id="emp-id" placeholder="เช่น E001 — ไม่กรอก = ให้ระบบสร้างให้"></label>
       <label class="field"><span>ชื่อพนักงาน *</span><input type="text" id="emp-name" placeholder="เช่น สมชาย ใจดี"></label>
       <label class="field"><span>กะ</span><select id="emp-shift"></select></label>
+      <label class="field"><span>ตำแหน่ง</span><select id="emp-position"></select></label>
     </div>
     <button type="button" class="btn-primary btn-block" id="btn-add-employee">✔ เพิ่มพนักงาน</button>
 
     <div class="filter-grid" style="margin-top:18px">
       <label class="field"><span>กรองตามกะ</span><select id="emp-shift-filter"></select></label>
+      <label class="field"><span>กรองตามตำแหน่ง</span><select id="emp-position-filter"></select></label>
     </div>
     <div class="table-scroll">
       <table class="record-table sticky-actions">
-        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>กะ</th><th>ลำดับ</th><th></th></tr></thead>
+        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>กะ</th><th>ตำแหน่ง</th><th>ลำดับ</th><th></th></tr></thead>
         <tbody id="employee-rows"></tbody>
       </table>
     </div>
@@ -201,6 +204,7 @@
       <label class="field"><span>รหัสพนักงาน *</span><input type="text" id="ee-id"></label>
       <label class="field"><span>ชื่อพนักงาน *</span><input type="text" id="ee-name"></label>
       <label class="field"><span>กะ</span><select id="ee-shift"></select></label>
+      <label class="field"><span>ตำแหน่ง</span><select id="ee-position"></select></label>
       <button type="button" class="btn-primary btn-block" id="btn-save-emp-edit">💾 บันทึกการแก้ไข</button>
     </div>
   </div>
@@ -744,6 +748,17 @@ function fillShiftSelect(id, selected, allLabel) {
   }).join('');
 }
 
+// ตำแหน่ง — ใช้กรองไม่ให้รายชื่อ Operator/Leader/QI ปนกันตอนเลือกชื่อผู้บันทึก/ผู้อนุมัติ
+const POSITION_OPTIONS = ['ALL', 'Operator', 'Leader', 'QI'];
+function fillPositionSelect(id, selected, allLabel) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = POSITION_OPTIONS.map(function (p) {
+    const label = p === 'ALL' ? (allLabel || 'ALL (ทุกตำแหน่ง)') : p;
+    return '<option value="' + p + '"' + (p === String(selected || 'ALL') ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+}
+
 function renderEmployeeList() {
   const tbody = document.getElementById('employee-rows');
   const filterEl = document.getElementById('emp-shift-filter');
@@ -751,26 +766,36 @@ function renderEmployeeList() {
     fillShiftSelect('emp-shift-filter', 'ALL', '— ทุกกะ —');
     filterEl.addEventListener('change', renderEmployeeList);
   }
+  const positionFilterEl = document.getElementById('emp-position-filter');
+  if (positionFilterEl && !positionFilterEl.options.length) {
+    fillPositionSelect('emp-position-filter', 'ALL', '— ทุกตำแหน่ง —');
+    positionFilterEl.addEventListener('change', renderEmployeeList);
+  }
   fillShiftSelect('emp-shift', document.getElementById('emp-shift').value || 'ALL');
+  fillPositionSelect('emp-position', document.getElementById('emp-position').value || 'ALL');
 
   const filter = filterEl ? filterEl.value : 'ALL';
-  // กรองแบบตรงตัวในหน้า admin (ไม่ใช้ employeesInShift ที่ดึงคน ALL ติดมาด้วย) — ที่นี่ต้องเห็นว่า
-  // "ใครถูกตั้งเป็นกะอะไร" จริงๆ เพื่อไล่แก้ ไม่ใช่มุมมองตอนเลือกชื่อผู้บันทึก
+  const positionFilter = positionFilterEl ? positionFilterEl.value : 'ALL';
+  // กรองแบบตรงตัวในหน้า admin (ไม่ใช้ employeesInShift/employeesByPosition ที่ดึงคน ALL ติดมาด้วย) —
+  // ที่นี่ต้องเห็นว่า "ใครถูกตั้งเป็นกะ/ตำแหน่งอะไร" จริงๆ เพื่อไล่แก้ ไม่ใช่มุมมองตอนเลือกชื่อ
   const rows = (typeof Master.employees === 'function' ? Master.employees() : []).filter(function (e) {
-    return !filter || filter === 'ALL' || Master.employeeShift(e) === filter;
+    return (!filter || filter === 'ALL' || Master.employeeShift(e) === filter) &&
+      (!positionFilter || positionFilter === 'ALL' || Master.employeePosition(e) === positionFilter);
   });
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-hint">ยังไม่มีรายชื่อพนักงานในกะนี้</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-hint">ยังไม่มีรายชื่อพนักงานในเงื่อนไขนี้</td></tr>';
     return;
   }
   tbody.innerHTML = '';
   rows.forEach(function (e) {
     const shift = Master.employeeShift(e);
+    const position = Master.employeePosition(e);
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td>' + e.employee_id + '</td>' +
       '<td><b>' + e.name + '</b></td>' +
       '<td>' + (shift === 'ALL' ? 'ทุกกะ' : 'กะ ' + shift) + '</td>' +
+      '<td>' + (position === 'ALL' ? 'ทุกตำแหน่ง' : position) + '</td>' +
       '<td>' + (e.sequence || '-') + '</td>' +
       '<td class="manage-actions">' +
       '<button type="button" class="btn-small btn-edit-emp">✏️ แก้ไข</button>' +
@@ -786,12 +811,13 @@ document.getElementById('btn-add-employee').addEventListener('click', async func
   const idInput = document.getElementById('emp-id');
   const nameInput = document.getElementById('emp-name');
   const shiftInput = document.getElementById('emp-shift');
+  const positionInput = document.getElementById('emp-position');
   const name = nameInput.value.trim();
   if (!name) { showToast('กรุณากรอกชื่อพนักงาน', 'error'); return; }
   Loading.show('กำลังเพิ่ม...');
   try {
     await API.post('employee.create', {
-      employee_id: idInput.value.trim(), name: name, shift: shiftInput.value || 'ALL'
+      employee_id: idInput.value.trim(), name: name, shift: shiftInput.value || 'ALL', position: positionInput.value || 'ALL'
     });
     Master.data = null; localStorage.removeItem(Master.LS_KEY);
     await Master.load();
@@ -812,6 +838,7 @@ function editEmployee(e) {
   document.getElementById('ee-id').value = e.employee_id;
   document.getElementById('ee-name').value = e.name;
   fillShiftSelect('ee-shift', Master.employeeShift(e));
+  fillPositionSelect('ee-position', Master.employeePosition(e));
   document.getElementById('emp-edit-modal').style.display = 'flex';
 }
 function closeEmpEditModal() {
@@ -832,7 +859,8 @@ document.getElementById('btn-save-emp-edit').addEventListener('click', async fun
       employee_id: editingEmployee.employee_id,
       new_employee_id: newId,
       name: newName,
-      shift: document.getElementById('ee-shift').value || 'ALL'
+      shift: document.getElementById('ee-shift').value || 'ALL',
+      position: document.getElementById('ee-position').value || 'ALL'
     });
     Master.data = null; localStorage.removeItem(Master.LS_KEY);
     await Master.load();

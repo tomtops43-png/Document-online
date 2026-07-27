@@ -210,9 +210,12 @@ function bindApproverNameCombo() {
 }
 bindApproverNameCombo();
 
+// กรองรายชื่อเฉพาะตำแหน่งของ step ที่รออนุมัติอยู่ (PENDING_LEADER → Leader, PENDING_QI → QI) กันรายชื่อ
+// ของทุกตำแหน่งมาปนกันตอนค้นหา — คนที่ตั้งตำแหน่งเป็น ALL ใน M_Employee จะติดมาด้วยเสมอ
 function initApproverNameCombo() {
   approverName = '';
-  approverEmployees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
+  const stepRole = String((detailRecord && detailRecord.status) || '').replace(/^PENDING_/, '');
+  approverEmployees = (typeof Master !== 'undefined' && Master.data) ? Master.employeesByPosition(stepRole) : [];
   const field = document.getElementById('approver-name-field');
   const list = document.getElementById('approver-name-list');
   if (!field || !list) return;

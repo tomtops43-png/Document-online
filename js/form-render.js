@@ -191,15 +191,17 @@ const FormRender = {
     return String((this.context.header && this.context.header.shift) || '').trim().toUpperCase();
   },
 
-  // รายชื่อที่จะให้เลือกเป็นผู้บันทึก — กรองตามกะใน header (คนที่ตั้งกะเป็น ALL ติดมาด้วยเสมอ)
+  // รายชื่อที่จะให้เลือกเป็นผู้บันทึก — กรองตามตำแหน่ง Operator ก่อน (คนที่ตั้งตำแหน่งเป็น ALL ติดมาด้วย
+  // เสมอ) แล้วค่อยกรองซ้อนตามกะใน header (คนที่ตั้งกะเป็น ALL ติดมาด้วยเสมอเช่นกัน)
   // showAllShifts = true เมื่อ user กด "แสดงทุกกะ" เอง (คนกะอื่นมาเซ็นแทน/ทำ OT ข้ามกะ)
   employeesForRecorder(showAllShifts) {
     if (typeof Master === 'undefined' || !Master.data) return [];
+    const byPosition = typeof Master.employeesByPosition === 'function' ? Master.employeesByPosition('Operator') : Master.employees();
     const shift = this.headerShift();
-    if (showAllShifts || !shift || typeof Master.employeesInShift !== 'function') return Master.employees();
-    const list = Master.employeesInShift(shift);
-    // กะนี้ยังไม่มีใครถูกตั้งค่าไว้เลย — แสดงทุกคนแทนการโชว์ลิสต์ว่าง ไม่งั้นกรอกฟอร์มต่อไม่ได้
-    return list.length ? list : Master.employees();
+    if (showAllShifts || !shift || typeof Master.employeesInShift !== 'function') return byPosition;
+    const list = Master.employeesInShift(shift, byPosition);
+    // กะนี้ยังไม่มีใครถูกตั้งค่าไว้เลย — แสดงทุกคนของตำแหน่งนี้แทนการโชว์ลิสต์ว่าง ไม่งั้นกรอกฟอร์มต่อไม่ได้
+    return list.length ? list : byPosition;
   },
 
   // มีรายชื่อพนักงานให้เลือกไหม — ถ้าชีท M_Employee ยังว่าง/โหลด Master ไม่ได้ ทุกที่ที่ใช้ combobox

@@ -1014,8 +1014,10 @@ var MASTER_SHEET_DEFS = {
   // (แยกจาก SHEET_USERS ซึ่งเป็นบัญชี login — ชีทนี้แค่รายชื่อให้เลือก ไม่มี pin/role) แก้ไข/เพิ่มชื่อ
   // ได้ตรงในชีท M_Employee ของ ENC-MASTER เลย ไม่ต้องมี UI แยก
   // shift = กะที่พนักงานคนนี้ประจำอยู่ (ค่าจาก M_Shift เช่น A/B) หรือ ALL = ขึ้นได้ทุกกะ
+  // position = ตำแหน่ง (Operator/Leader/QI) หรือ ALL = ขึ้นในทุก dropdown เลือกชื่อ — ใช้กรองไม่ให้ชื่อ
+  // ของทั้ง 3 ตำแหน่งมาปนกันตอนเลือกชื่อผู้บันทึก/ผู้อนุมัติ (รายชื่อเยอะจะหายากถ้าไม่กรอง)
   // — ต่อท้ายคอลัมน์เดิมเสมอ เพื่อให้ชีทที่มีข้อมูลอยู่แล้วไม่ต้องย้ายคอลัมน์ แค่รัน setupMasterSheets() ซ้ำ
-  M_Employee: ['employee_id', 'name', 'sequence', 'status', 'shift']
+  M_Employee: ['employee_id', 'name', 'sequence', 'status', 'shift', 'position']
 };
 
 // ---------- เปิด/สร้าง spreadsheet ENC-MASTER ----------
@@ -1387,6 +1389,19 @@ function normEmployeeShift_(v) {
   return (!s || s === '*' || s === 'ALL') ? 'ALL' : s;
 }
 
+// ตำแหน่งของพนักงาน — ว่าง/*/ALL ถือว่า "ขึ้นทุก dropdown" (แถวเก่าที่ยังไม่เคยตั้งค่าก่อนมีคอลัมน์นี้
+// ต้องไม่หายไปจากรายชื่อไหนเลย) ค่าที่รู้จัก (Operator/Leader/QI) normalize เป็นตัวพิมพ์มาตรฐานให้อ่านง่าย
+// ในชีท ส่วนค่าที่พิมพ์เองนอกเหนือจากนี้ยังเก็บได้ตามที่กรอก ไม่บล็อก
+function normEmployeePosition_(v) {
+  var s = String(v == null ? '' : v).trim();
+  var up = s.toUpperCase();
+  if (!s || up === '*' || up === 'ALL') return 'ALL';
+  if (up === 'OPERATOR') return 'Operator';
+  if (up === 'LEADER') return 'Leader';
+  if (up === 'QI') return 'QI';
+  return s;
+}
+
 // เขียนแถวใหม่โดยอ้างชื่อคอลัมน์จาก header จริงของชีท (ไม่ใช่ลำดับตายตัว) — ชีทของแต่ละที่อาจมี
 // คอลัมน์ไม่ครบ/สลับลำดับหลังเพิ่มฟิลด์ใหม่ appendRow แบบ positional จะเขียนผิดช่อง
 function appendMasterRowByHeader_(sheet, obj) {
@@ -1403,6 +1418,7 @@ function actionEmployeeCreate(params, user) {
   var name = String(params.name || '').trim();
   if (!name) return { success: false, error: 'กรุณากรอกชื่อพนักงาน' };
   var shift = normEmployeeShift_(params.shift);
+  var position = normEmployeePosition_(params.position);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -1420,10 +1436,10 @@ function actionEmployeeCreate(params, user) {
     }
     var nextSeq = rows.reduce(function (max, r) { return Math.max(max, Number(r.sequence) || 0); }, 0) + 1;
     appendMasterRowByHeader_(sheet, {
-      employee_id: employeeId, name: name, sequence: nextSeq, status: 'ACTIVE', shift: shift
+      employee_id: employeeId, name: name, sequence: nextSeq, status: 'ACTIVE', shift: shift, position: position
     });
     bumpMasterVersion();
-    auditLog(user, 'employee.create', 'M_Employee', employeeId, '', name + ' / กะ ' + shift);
+    auditLog(user, 'employee.create', 'M_Employee', employeeId, '', name + ' / กะ ' + shift + ' / ตำแหน่ง ' + position);
     return { success: true, employee_id: employeeId };
   } finally {
     lock.releaseLock();
@@ -1449,6 +1465,7 @@ function actionEmployeeUpdate(params, user) {
     var idCol = header.indexOf('employee_id') + 1;
     var nameCol = header.indexOf('name') + 1;
     var shiftCol = header.indexOf('shift') + 1; // 0 = ชีทยังไม่มีคอลัมน์นี้ (ยังไม่ได้รัน setupMasterSheets ใหม่)
+    var positionCol = header.indexOf('position') + 1; // 0 = ชีทยังไม่มีคอลัมน์นี้
     var rowIdx = -1;
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === employeeId) { rowIdx = i + 1; break; }
@@ -1457,7 +1474,8 @@ function actionEmployeeUpdate(params, user) {
     var before = JSON.stringify({
       employee_id: employeeId,
       name: String(data[rowIdx - 1][nameCol - 1]),
-      shift: shiftCol ? normEmployeeShift_(data[rowIdx - 1][shiftCol - 1]) : ''
+      shift: shiftCol ? normEmployeeShift_(data[rowIdx - 1][shiftCol - 1]) : '',
+      position: positionCol ? normEmployeePosition_(data[rowIdx - 1][positionCol - 1]) : ''
     });
 
     var newEmployeeId = String(params.new_employee_id || '').trim();
@@ -1478,10 +1496,15 @@ function actionEmployeeUpdate(params, user) {
       shift = normEmployeeShift_(params.shift);
       sheet.getRange(rowIdx, shiftCol).setValue(shift);
     }
+    var position = '';
+    if (positionCol && params.position !== undefined && params.position !== null && String(params.position) !== '') {
+      position = normEmployeePosition_(params.position);
+      sheet.getRange(rowIdx, positionCol).setValue(position);
+    }
 
     bumpMasterVersion();
     auditLog(user, 'employee.update', 'M_Employee', employeeId, before,
-      JSON.stringify({ employee_id: employeeId, name: name, shift: shift }));
+      JSON.stringify({ employee_id: employeeId, name: name, shift: shift, position: position }));
     return { success: true, employee_id: employeeId };
   } finally {
     lock.releaseLock();
@@ -1718,6 +1741,7 @@ function setupMasterSheets() {
 
   setupModelSheetValidation(ss);
   setupEmployeeShiftColumn(ss);
+  setupEmployeePositionColumn(ss);
 
   Logger.log('ชีท Master ครบแล้ว — รัน seedMaster() ต่อ');
   return ss.getUrl();
@@ -1755,6 +1779,37 @@ function setupEmployeeShiftColumn(ss) {
     SpreadsheetApp.newDataValidation()
       .requireValueInList(options, true).setAllowInvalid(false)
       .setHelpText('เลือกกะจาก M_Shift หรือ ALL = ขึ้นได้ทุกกะ')
+      .build()
+  );
+}
+
+// คอลัมน์ position ของ M_Employee: เติม ALL ให้แถวเก่าที่ยังว่าง (ก่อนมีฟีเจอร์นี้ ทุกคนต้องขึ้นได้ทุก
+// dropdown เหมือนเดิมไว้ก่อน ไม่งั้นรายชื่อจะหายไปจากทุก dropdown ทันทีที่เปิดใช้การกรองตำแหน่ง) + ใส่
+// dropdown ให้เลือกได้เฉพาะ ALL/Operator/Leader/QI เวลาแก้ในชีทด้วยมือ — รันซ้ำได้ปลอดภัย
+function setupEmployeePositionColumn(ss) {
+  var sheet = ss.getSheetByName('M_Employee');
+  if (!sheet) return;
+  var lastCol = Math.max(1, sheet.getLastColumn());
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var positionCol = header.indexOf('position') + 1;
+  if (!positionCol) return;
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var range = sheet.getRange(2, positionCol, lastRow - 1, 1);
+    var vals = range.getValues();
+    var changed = false;
+    for (var i = 0; i < vals.length; i++) {
+      var norm = normEmployeePosition_(vals[i][0]);
+      if (String(vals[i][0]).trim() !== norm) { vals[i][0] = norm; changed = true; }
+    }
+    if (changed) range.setValues(vals);
+  }
+
+  sheet.getRange(2, positionCol, Math.max(500, lastRow), 1).setDataValidation(
+    SpreadsheetApp.newDataValidation()
+      .requireValueInList(['ALL', 'Operator', 'Leader', 'QI'], true).setAllowInvalid(false)
+      .setHelpText('เลือกตำแหน่ง หรือ ALL = ขึ้นในทุก dropdown เลือกชื่อ')
       .build()
   );
 }

@@ -93,14 +93,35 @@ const Master = {
 
   // รายชื่อพนักงานเฉพาะกะที่ระบุ — คนที่ตั้งเป็น ALL จะติดมาด้วยเสมอ (หัวหน้า/QC ที่เดินข้ามกะ)
   // ไม่ระบุกะ หรือระบุ ALL = คืนทุกคน
-  employeesInShift(shift) {
+  // pool = ฐานรายชื่อที่จะกรองต่อ (ไม่ระบุ = ทุกคน) — ใช้ต่อกับ employeesByPosition() ได้เพื่อกรองทั้งกะ
+  // และตำแหน่งพร้อมกัน
+  employeesInShift(shift, pool) {
     const want = String(shift || '').trim().toUpperCase();
-    const all = this.employees();
+    const all = pool || this.employees();
     if (!want || want === 'ALL') return all;
     const self = this;
     return all.filter(function (e) {
       const s = self.employeeShift(e);
       return s === 'ALL' || s === want;
+    });
+  },
+
+  // ตำแหน่งของพนักงาน 1 คน — ว่าง/*/ALL = ขึ้นในทุก dropdown (แถวเก่าที่ยังไม่เคยตั้งค่าก็ถือเป็น ALL)
+  employeePosition(emp) {
+    const p = String((emp && emp.position) || '').trim();
+    return p || 'ALL';
+  },
+
+  // รายชื่อพนักงานเฉพาะตำแหน่งที่ระบุ (Operator/Leader/QI) — คนที่ตั้งเป็น ALL จะติดมาด้วยเสมอ
+  // ไม่ระบุตำแหน่ง หรือระบุ ALL = คืนทุกคน — กันรายชื่อทั้ง 3 ตำแหน่งมาปนกันตอนเลือกชื่อผู้บันทึก/ผู้อนุมัติ
+  employeesByPosition(position) {
+    const want = String(position || '').trim().toUpperCase();
+    const all = this.employees();
+    if (!want || want === 'ALL') return all;
+    const self = this;
+    return all.filter(function (e) {
+      const p = String(self.employeePosition(e)).toUpperCase();
+      return p === 'ALL' || p === want;
     });
   },
 
