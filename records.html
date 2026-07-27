@@ -100,6 +100,13 @@
           <canvas id="approve-signature-canvas" style="width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair;"></canvas>
           <button type="button" class="btn-small" id="btn-clear-approve-sig" style="position: absolute; right: 10px; bottom: 10px; z-index: 10; font-size: 12px; padding: 4px 10px; min-height: 28px;">ล้าง</button>
         </div>
+        <div style="margin-top: 10px;">
+          <span style="font-weight: 700; display: block; margin-bottom: 6px; color: var(--ink-800);">ชื่อผู้อนุมัติ *</span>
+          <div class="emp-combo" id="approver-name-combo">
+            <input type="text" id="approver-name-field" class="station-sig-name-field" placeholder="พิมพ์ค้นหาชื่อผู้อนุมัติ (จำเป็น)" autocomplete="off">
+            <div class="emp-combo-list" id="approver-name-list"></div>
+          </div>
+        </div>
       </div>
       <label class="field"><span>เหตุผล (กรณีตีกลับ)</span>
         <input type="text" id="reject-reason"></label>
@@ -121,6 +128,99 @@ const user = Auth.requireLogin();
 AppShell.init('records');
 let currentTab = 'search';
 let templatesCache = {};
+let approverName = ''; // ชื่อผู้อนุมัติที่เลือกจาก combobox — reset ทุกครั้งที่เปิด record ใหม่
+
+// ช่องเลือกชื่อผู้อนุมัติ — บัญชี Leader/QI ที่ล็อกอินมักเป็นบัญชีกลางของแผนก ไม่ใช่ตัวคนที่กดอนุมัติ
+// จริงเสมอ (เหมือนปัญหาเดิมของ Recorder ใน fill.html) เลยต้องมีช่องให้เลือกชื่อจริงแยกจากบัญชี login
+// องค์ประกอบ DOM ของ combobox นี้เป็น markup คงที่ (ไม่ถูกสร้างใหม่ทุกครั้งที่เปิด record) — ผูก event
+// แค่ครั้งเดียวตอนโหลดหน้า (bindApproverNameCombo) ส่วน initApproverNameCombo() ที่เรียกทุกครั้งที่เปิด
+// record ใหม่มีหน้าที่แค่ล้างค่าที่เลือกไว้ ไม่ใช่ผูก listener ซ้ำ (ไม่งั้น listener จะพอกพูนทุกครั้งที่เปิด)
+let approverEmployees = [];
+function bindApproverNameCombo() {
+  const field = document.getElementById('approver-name-field');
+  const list = document.getElementById('approver-name-list');
+  const combo = document.getElementById('approver-name-combo');
+  if (!field || !list) return;
+
+  let activeIdx = -1;
+
+  function isOpen() { return list.style.display === 'block'; }
+  function closeList() { list.style.display = 'none'; }
+  function itemNodes() { return list.querySelectorAll('.emp-combo-item'); }
+
+  function renderList(filtered) {
+    activeIdx = -1;
+    if (!filtered.length) { closeList(); list.innerHTML = ''; return; }
+    list.innerHTML = filtered.map(function (emp) {
+      return '<div class="emp-combo-item" data-emp="' + approverEmployees.indexOf(emp) + '">' + esc(emp.name) + '</div>';
+    }).join('');
+    list.style.display = 'block';
+  }
+  function currentFiltered() {
+    const q = field.value.trim().toLowerCase();
+    return q ? approverEmployees.filter(function (e) { return String(e.name).toLowerCase().indexOf(q) > -1; }) : approverEmployees;
+  }
+  function select(emp) {
+    if (!emp) return;
+    field.value = emp.name;
+    approverName = emp.name;
+    closeList();
+    field.blur();
+  }
+  function syncField() {
+    if (field.value !== approverName) field.value = approverName;
+  }
+  function highlight(idx) {
+    const nodes = itemNodes();
+    nodes.forEach(function (n) { n.classList.remove('active'); });
+    if (idx >= 0 && nodes[idx]) { nodes[idx].classList.add('active'); nodes[idx].scrollIntoView({ block: 'nearest' }); }
+    activeIdx = idx;
+  }
+
+  field.addEventListener('input', function () {
+    // ไม่มีรายชื่อให้เลือก (M_Employee ว่าง/โหลดไม่ได้) — ตกไปพิมพ์ชื่อเองแทน เก็บทุกตัวอักษรตรงๆ
+    if (!approverEmployees.length) { approverName = field.value.trim(); return; }
+    approverName = ''; // พิมพ์แก้ = ยกเลิกค่าที่เคยเลือกไว้ จนกว่าจะเลือกใหม่จริง
+    renderList(currentFiltered());
+  });
+  field.addEventListener('focus', function () { if (approverEmployees.length) renderList(currentFiltered()); });
+  field.addEventListener('keydown', function (ev) {
+    if (!approverEmployees.length) return;
+    const nodes = itemNodes();
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); highlight(Math.min(activeIdx + 1, nodes.length - 1)); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(Math.max(activeIdx - 1, 0)); }
+    else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      const node = nodes[activeIdx] || (nodes.length === 1 ? nodes[0] : null);
+      if (node) select(approverEmployees[Number(node.dataset.emp)]);
+    } else if (ev.key === 'Escape') { closeList(); }
+  });
+  list.addEventListener('click', function (ev) {
+    const item = ev.target.closest('.emp-combo-item');
+    if (item) select(approverEmployees[Number(item.dataset.emp)]);
+  });
+  document.addEventListener('pointerdown', function (ev) {
+    if (!isOpen() || (combo && combo.contains(ev.target))) return;
+    closeList();
+    syncField();
+  });
+  field.addEventListener('focusout', function (ev) {
+    if (ev.relatedTarget && combo && !combo.contains(ev.relatedTarget)) { closeList(); syncField(); }
+  });
+}
+bindApproverNameCombo();
+
+function initApproverNameCombo() {
+  approverName = '';
+  approverEmployees = (typeof Master !== 'undefined' && Master.data) ? Master.employees() : [];
+  const field = document.getElementById('approver-name-field');
+  const list = document.getElementById('approver-name-list');
+  if (!field || !list) return;
+  field.value = '';
+  field.placeholder = approverEmployees.length ? 'พิมพ์ค้นหาชื่อผู้อนุมัติ (จำเป็น)' : 'ชื่อผู้อนุมัติ (จำเป็น)';
+  list.innerHTML = '';
+  list.style.display = 'none';
+}
 
 function initSignatureCanvas(canvas, clearBtn) {
   const ctx = canvas.getContext('2d');
@@ -569,6 +669,7 @@ async function openDetail(recordId) {
       if (canvas && clearBtn) {
         initSignatureCanvas(canvas, clearBtn);
       }
+      initApproverNameCombo();
     }
   } catch (err) {
     showToast(err.message, 'error');
@@ -736,13 +837,18 @@ document.getElementById('btn-approve').addEventListener('click', async function 
     showToast('กรุณาเซ็นชื่อก่อนอนุมัติ', 'error');
     return;
   }
+  if (!approverName) {
+    showToast('กรุณาเลือกชื่อผู้อนุมัติ', 'error');
+    return;
+  }
   const sigDataUrl = canvas ? cropCanvas(canvas).toDataURL('image/png') : '';
 
   Loading.show('กำลังอนุมัติ...');
   try {
     await API.post('approveRecord', {
       record_id: detailRecord.record_id,
-      signature: sigDataUrl
+      signature: sigDataUrl,
+      approver_name: approverName
     });
     showToast('อนุมัติแล้ว', 'success');
     closeDetail();

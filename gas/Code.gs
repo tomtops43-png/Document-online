@@ -744,15 +744,18 @@ function actionApproveRecord(params, user) {
     var answers = {};
     try { answers = JSON.parse(r.answers_json || '{}'); } catch (e) { answers = {}; }
     var roleKey = stepRole.toLowerCase();
+    // ชื่อผู้อนุมัติจริง — เลือกจาก dropdown ตอนอนุมัติ (บัญชี login ของ Leader/QI มักเป็นบัญชีกลางของ
+    // แผนก ไม่ใช่ตัวคนที่กดอนุมัติเสมอไป) ถ้าไม่ได้ส่งมา (เรียกจากที่อื่น) fallback เป็นชื่อบัญชี login
+    var approverName = String(params.approver_name || '').trim() || user.name;
     // เก็บลง column เฉพาะ Leader/QI (backward compat กับหน้าจอ/พิมพ์เดิม)
-    if (roleKey === 'leader') { r.leader_id = user.employee_id; r.leader_name = user.name; r.leader_ts = now; }
-    else if (roleKey === 'qi') { r.qi_id = user.employee_id; r.qi_name = user.name; r.qi_ts = now; }
+    if (roleKey === 'leader') { r.leader_id = user.employee_id; r.leader_name = approverName; r.leader_ts = now; }
+    else if (roleKey === 'qi') { r.qi_id = user.employee_id; r.qi_name = approverName; r.qi_ts = now; }
     // ลายเซ็นผู้อนุมัติต้องอัปโหลดขึ้น Drive ก่อนเก็บ (เหมือนตอน createRecord) — ถ้าฝัง data:image
     // ตรงๆ ทับกับลายเซ็น Station ที่มีอยู่แล้วใน answers_json อาจดันยอดรวมเกิน 50,000 ตัวอักษร/เซลล์
     if (params.signature) answers['_' + roleKey + '_sign'] = uploadInlineImage_(String(params.signature), r.record_id, roleKey + '_sign', r.line, normDate(r.date));
     // ประวัติอนุมัติแบบ generic (รองรับ role ใหม่ + เตรียมย้ายเป็น T_Approval ในอนาคต)
     answers._approvals = answers._approvals || [];
-    answers._approvals.push({ step: wf[idx].step || (idx + 1), role: stepRole, user_id: user.employee_id, user_name: user.name, ts: now });
+    answers._approvals.push({ step: wf[idx].step || (idx + 1), role: stepRole, user_id: user.employee_id, user_name: approverName, ts: now });
     r.answers_json = JSON.stringify(answers);
 
     // ไป step ถัดไป หรือจบ
