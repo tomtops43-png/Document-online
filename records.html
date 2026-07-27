@@ -517,7 +517,7 @@ function renderRows(records, opts) {
       '<td>' + (r.shift || '') + '</td>' +
       '<td>' + statusBadge(r.status) + '</td>' +
       '<td>' + (String(r.has_nok) === 'true' ? '<span class="nok-flag">NOK</span>' : '') + '</td>' +
-      '<td><a class="btn-small" target="_blank" href="' + printUrl + '">🖨 พิมพ์</a></td>';
+      '<td><a class="btn-small" href="' + printUrl + '">🖨 พิมพ์</a></td>';
     // กดตรงไหนของแถวก็เปิดรายละเอียดได้ ไม่ต้องเล็งลิงก์สีฟ้าเล็กๆ (สำคัญมากตอนใช้บนแท็บเล็ต)
     // ยกเว้นปุ่ม/ลิงก์อื่นในแถว เช่น "🖨 พิมพ์" ที่ต้องทำงานของตัวเอง
     tr.className = 'record-row-clickable';
