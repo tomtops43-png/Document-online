@@ -368,7 +368,7 @@ M_DocAssign  : assign_id | doc_id | station_id | status
 M_Revision   : rev_id | doc_id | rev_no | content_ref(template path หรือ Drive fileId)
              | effective_date | approved_by | approved_date | reason
              | status(DRAFT|CURRENT|OBSOLETE) | created_at
-M_User       : user_id | employee_id | name | pin_hash | role_id | default_line_id
+M_User       : user_id | employee_id | name | pin | role_id | default_line_id
              | token | token_expiry | status
 M_Role       : role_id | role_name | display_name_th | sequence | status
 M_Permission : perm_id | role_id | action | scope_line(*|line_id) | scope_doctype(*|doctype_id)

@@ -43,7 +43,7 @@ var RECOVERY_HEADER = [
   'operator_sign', 'operator_ts', 'leader_sign', 'leader_ts', 'decision'
 ];
 var USERS_HEADER = [
-  'employee_id', 'name', 'pin_hash', 'role', 'line', 'token', 'token_expiry', 'active'
+  'employee_id', 'name', 'pin', 'role', 'line', 'token', 'token_expiry', 'active'
 ];
 
 // ---------- entry points ----------
@@ -288,14 +288,6 @@ function normDate(v) {
   return String(v || '');
 }
 
-function hashPin(pin) {
-  var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(pin), Utilities.Charset.UTF_8);
-  return raw.map(function (b) {
-    var h = (b < 0 ? b + 256 : b).toString(16);
-    return h.length === 1 ? '0' + h : h;
-  }).join('');
-}
-
 // ---------- auth ----------
 function actionLogin(params) {
   var empId = String(params.employee_id || '').trim();
@@ -303,14 +295,13 @@ function actionLogin(params) {
   if (!empId || !pin) return { success: false, error: 'กรุณากรอกรหัสพนักงานและ PIN' };
 
   var data = readAll(SHEET_USERS);
-  var pinHash = hashPin(pin);
   for (var i = 0; i < data.rows.length; i++) {
     var u = data.rows[i];
     if (String(u.employee_id) === empId) {
       if (String(u.active).toLowerCase() !== 'true' && u.active !== true) {
         return { success: false, error: 'บัญชีถูกปิดใช้งาน' };
       }
-      if (String(u.pin_hash) !== pinHash) {
+      if (String(u.pin) !== pin) {
         return { success: false, error: 'รหัสพนักงานหรือ PIN ไม่ถูกต้อง' };
       }
       // ออก token ใหม่
@@ -982,7 +973,7 @@ function addUser(employeeId, name, pin, role, line) {
   pin = pin || '1234';
   role = role || 'Admin';
   line = line || '';
-  getSheet(SHEET_USERS).appendRow([employeeId, name, hashPin(pin), role, line, '', '', 'true']);
+  getSheet(SHEET_USERS).appendRow([employeeId, name, pin, role, line, '', '', 'true']);
   Logger.log('เพิ่มผู้ใช้ %s (%s) แล้ว', name, role);
 }
 
@@ -2126,7 +2117,7 @@ function actionUserCreate(params, user) {
         return { success: false, error: 'รหัสพนักงาน ' + empId + ' มีอยู่แล้ว' };
       }
     }
-    getSheet(SHEET_USERS).appendRow([empId, name, hashPin(pin), role, String(params.line || ''), '', '', 'true']);
+    getSheet(SHEET_USERS).appendRow([empId, name, pin, role, String(params.line || ''), '', '', 'true']);
     auditLog(user, 'user.create', 'Users', empId, '', JSON.stringify({ name: name, role: role }));
     return { success: true };
   } finally {
@@ -2154,7 +2145,7 @@ function actionUserUpdate(params, user) {
     }
     if (params.new_pin) {
       if (String(params.new_pin).length < 4) return { success: false, error: 'PIN ใหม่ต้องยาวอย่างน้อย 4 หลัก' };
-      u.pin_hash = hashPin(String(params.new_pin));
+      u.pin = String(params.new_pin);
       u.token = ''; u.token_expiry = '';
     }
     writeRow(SHEET_USERS, u._rowIndex, data.header, u);
