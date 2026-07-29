@@ -92,6 +92,9 @@ function handleRequest(e, method) {
       case 'employee.update': return jsonOut(actionEmployeeUpdate(params, user));
       case 'employee.delete': return jsonOut(actionEmployeeDelete(params, user));
 
+      // ---- Admin: จัดการรุ่นสินค้า (M_Model — dropdown "Product Model" ตอนกรอกฟอร์ม) ----
+      case 'model.create': return jsonOut(actionModelCreate(params, user));
+
       // ---- Dashboard / Notification / User management ----
       case 'stats.dashboard': return jsonOut(actionDashboardStats(params, user));
       case 'notif.list':      return jsonOut(actionNotifList(params, user));
@@ -1532,6 +1535,45 @@ function actionEmployeeDelete(params, user) {
   bumpMasterVersion();
   auditLog(user, 'employee.delete', 'M_Employee', employeeId, 'ACTIVE', 'DELETED');
   return { success: true };
+}
+
+// เพิ่มรุ่นย่อยใหม่เข้า M_Model ตรงจากหน้ากรอกฟอร์ม (dashboard.html ปุ่ม "+ เพิ่มรุ่นใหม่") —
+// กันไม่ต้องรอแอดมินไปพิมพ์ในชีทเอง เมื่อ dropdown ยังไม่มีรุ่นที่ต้องการ
+// จำกัดสิทธิ์เท่า document.manage (Admin/DocControl) เหมือนเมนู Admin อื่นๆ กันข้อมูล master มั่ว
+function actionModelCreate(params, user) {
+  if (!can(user, 'document.manage', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
+  }
+  var familyId = String(params.family_id || '').trim();
+  var modelName = String(params.model_name || '').trim();
+  if (!familyId || !modelName) return { success: false, error: 'ข้อมูลไม่ครบ (family_id / model_name)' };
+  var seriesTag = String(params.series_tag || '').trim();
+  var modelGroup = String(params.model_group || '').trim();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var ss = getMasterSS();
+    var sheet = ss.getSheetByName('M_Model');
+    if (!sheet) return { success: false, error: 'ยังไม่มีชีท M_Model — รัน setupMasterSheets() ใน Apps Script editor ก่อน' };
+    var families = readMaster('M_ProductFamily');
+    if (!families.some(function (f) { return String(f.family_id) === familyId; })) {
+      return { success: false, error: 'ไม่พบรุ่นหลัก (family_id): ' + familyId };
+    }
+    var dup = readMaster('M_Model').some(function (m) {
+      return String(m.family_id) === familyId && String(m.model_name).trim().toLowerCase() === modelName.toLowerCase();
+    });
+    if (dup) return { success: false, error: 'รุ่น "' + modelName + '" มีอยู่แล้วใน Family นี้' };
+    var modelId = 'MDL-' + Date.now().toString(36).toUpperCase();
+    appendMasterRowByHeader_(sheet, {
+      model_id: modelId, family_id: familyId, model_name: modelName, status: 'ACTIVE',
+      series_tag: seriesTag, model_group: modelGroup
+    });
+    bumpMasterVersion();
+    auditLog(user, 'model.create', 'M_Model', modelId, '', familyId + ' / ' + modelName);
+    return { success: true, model_id: modelId, model_name: modelName };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // label สถานีสำหรับตั้งชื่อโฟลเดอร์ (เช่น Station12)

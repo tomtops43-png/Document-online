@@ -511,13 +511,7 @@ async function openHeaderModal(d) {
     if (f.key === 'time') return;
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
     if (f.key === 'product_model' && modelOptions.length) {
-      // มีรุ่นย่อยของ Family นี้ในชีท M_Model แล้ว — เปลี่ยนเป็น dropdown กันพิมพ์ผิด
-      // แต่ถ้ารุ่นที่ต้องการยังไม่มีในลิสต์ (ยังไม่ได้เพิ่มใน M_Model) ให้เลือก "อื่นๆ" แล้วพิมพ์เองได้ —
-      // ค่าที่พิมพ์เองจะถูก flag ด้วย ⚠️ ให้แอดมินเห็นตอนไปเพิ่มรุ่นจริงใน M_Model ทีหลัง
-      html += '<select data-hk="' + f.key + '"><option value="">— เลือกรุ่น —</option>' +
-        modelOptions.map(function (m) { return '<option>' + m.model_name + '</option>'; }).join('') +
-        '<option value="__other__">➕ อื่นๆ / พิมพ์เอง (รุ่นยังไม่มีในลิสต์)</option></select>' +
-        '<input type="text" data-hk-other="' + f.key + '" placeholder="พิมพ์ชื่อรุ่น..." style="display:none;margin-top:6px">';
+      html += '<div data-model-control>' + modelControlHtml(modelOptions) + '</div>';
     } else if (f.type === 'select') {
       html += '<select data-hk="' + f.key + '"><option value="">— เลือก —</option>' +
         f.options.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
@@ -531,10 +525,30 @@ async function openHeaderModal(d) {
     html += '</label>';
   });
   fieldsEl.innerHTML = html;
-  // toggle ช่องพิมพ์เองเมื่อเลือก "อื่นๆ" ใน dropdown รุ่น
-  fieldsEl.querySelectorAll('select[data-hk]').forEach(function (sel) {
-    const other = fieldsEl.querySelector('[data-hk-other="' + sel.dataset.hk + '"]');
-    if (!other) return;
+  attachModelControl(fieldsEl);
+  document.getElementById('header-modal').style.display = 'flex';
+}
+
+// dropdown เลือกรุ่นสินค้า + ตัวเลือก "อื่นๆ / พิมพ์เอง" (สำหรับรุ่นที่ยังไม่มีใน M_Model) +
+// ปุ่ม "เพิ่มรุ่นใหม่เข้า Master" (เฉพาะ Admin/DocControl — เขียนเข้า M_Model ทันที ไม่ต้องพิมพ์เองแล้วรอแอดมินตามไปเพิ่ม)
+function modelControlHtml(options) {
+  let out = '<select data-hk="product_model"><option value="">— เลือกรุ่น —</option>' +
+    options.map(function (m) { return '<option>' + m.model_name + '</option>'; }).join('') +
+    '<option value="__other__">➕ อื่นๆ / พิมพ์เอง (รุ่นยังไม่มีในลิสต์)</option></select>' +
+    '<input type="text" data-hk-other="product_model" placeholder="พิมพ์ชื่อรุ่น..." style="display:none;margin-top:6px">';
+  if (pendingDoc.family_id && pendingDoc.family_id !== '*' && Auth.hasRole(['DocControl'])) {
+    out += '<button type="button" class="btn-secondary" data-add-model style="margin-top:6px;font-size:13px">➕ เพิ่มรุ่นใหม่เข้า Master</button>';
+  }
+  return out;
+}
+
+// ผูก event ให้ div[data-model-control] — เรียกซ้ำได้ทุกครั้งที่ regenerate เนื้อหาข้างในใหม่
+function attachModelControl(scopeEl) {
+  const container = scopeEl.querySelector('[data-model-control]');
+  if (!container) return;
+  const sel = container.querySelector('select[data-hk]');
+  const other = container.querySelector('[data-hk-other]');
+  if (sel && other) {
     sel.addEventListener('change', function () {
       if (sel.value === '__other__') {
         other.style.display = '';
@@ -544,8 +558,32 @@ async function openHeaderModal(d) {
         other.value = '';
       }
     });
+  }
+  const addBtn = container.querySelector('[data-add-model]');
+  if (!addBtn) return;
+  addBtn.addEventListener('click', async function () {
+    const modelName = (prompt('พิมพ์ชื่อรุ่นใหม่ (Family: ' + pendingDoc.family_id + '):') || '').trim();
+    if (!modelName) return;
+    addBtn.disabled = true;
+    try {
+      await API.post('model.create', {
+        family_id: pendingDoc.family_id,
+        series_tag: pendingDoc.series_tag || '',
+        model_group: pendingDoc.model_group || '',
+        model_name: modelName
+      });
+      await Master._fetch(); // ดึง master ล่าสุดมาทับ cache ทันที ไม่ต้องรอ background refresh
+      const freshOptions = Master.models(pendingDoc.family_id, pendingDoc.series_tag, pendingDoc.model_group);
+      container.innerHTML = modelControlHtml(freshOptions);
+      attachModelControl(scopeEl);
+      const newSel = container.querySelector('select[data-hk]');
+      if (newSel) newSel.value = modelName;
+      showToast('เพิ่มรุ่น "' + modelName + '" แล้ว', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      addBtn.disabled = false;
+    }
   });
-  document.getElementById('header-modal').style.display = 'flex';
 }
 
 function closeHeaderModal() {
