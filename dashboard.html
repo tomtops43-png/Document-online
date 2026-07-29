@@ -512,8 +512,12 @@ async function openHeaderModal(d) {
     html += '<label class="field"><span>' + f.label + (f.required ? ' *' : '') + '</span>';
     if (f.key === 'product_model' && modelOptions.length) {
       // มีรุ่นย่อยของ Family นี้ในชีท M_Model แล้ว — เปลี่ยนเป็น dropdown กันพิมพ์ผิด
+      // แต่ถ้ารุ่นที่ต้องการยังไม่มีในลิสต์ (ยังไม่ได้เพิ่มใน M_Model) ให้เลือก "อื่นๆ" แล้วพิมพ์เองได้ —
+      // ค่าที่พิมพ์เองจะถูก flag ด้วย ⚠️ ให้แอดมินเห็นตอนไปเพิ่มรุ่นจริงใน M_Model ทีหลัง
       html += '<select data-hk="' + f.key + '"><option value="">— เลือกรุ่น —</option>' +
-        modelOptions.map(function (m) { return '<option>' + m.model_name + '</option>'; }).join('') + '</select>';
+        modelOptions.map(function (m) { return '<option>' + m.model_name + '</option>'; }).join('') +
+        '<option value="__other__">➕ อื่นๆ / พิมพ์เอง (รุ่นยังไม่มีในลิสต์)</option></select>' +
+        '<input type="text" data-hk-other="' + f.key + '" placeholder="พิมพ์ชื่อรุ่น..." style="display:none;margin-top:6px">';
     } else if (f.type === 'select') {
       html += '<select data-hk="' + f.key + '"><option value="">— เลือก —</option>' +
         f.options.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>';
@@ -527,6 +531,20 @@ async function openHeaderModal(d) {
     html += '</label>';
   });
   fieldsEl.innerHTML = html;
+  // toggle ช่องพิมพ์เองเมื่อเลือก "อื่นๆ" ใน dropdown รุ่น
+  fieldsEl.querySelectorAll('select[data-hk]').forEach(function (sel) {
+    const other = fieldsEl.querySelector('[data-hk-other="' + sel.dataset.hk + '"]');
+    if (!other) return;
+    sel.addEventListener('change', function () {
+      if (sel.value === '__other__') {
+        other.style.display = '';
+        other.focus();
+      } else {
+        other.style.display = 'none';
+        other.value = '';
+      }
+    });
+  });
   document.getElementById('header-modal').style.display = 'flex';
 }
 
@@ -546,6 +564,13 @@ document.getElementById('btn-start-fill').addEventListener('click', function () 
   let missing = null;
   document.querySelectorAll('#header-modal-fields [data-hk]').forEach(function (i) {
     header[i.dataset.hk] = i.value.trim();
+  });
+  // ถ้าเลือก "อื่นๆ" ในรุ่นสินค้า ให้ใช้ค่าที่พิมพ์เองแทน พร้อม flag ⚠️ ให้แอดมินเห็นว่าต้องไปเพิ่มใน M_Model
+  document.querySelectorAll('#header-modal-fields [data-hk-other]').forEach(function (i) {
+    if (i.style.display === 'none') return;
+    const key = i.dataset.hkOther;
+    const typed = i.value.trim();
+    header[key] = typed ? ('⚠️ ' + typed + ' (รอเพิ่มใน master)') : '';
   });
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;
