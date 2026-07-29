@@ -48,7 +48,12 @@ const API = {
         if (data && data.success === false) {
           // error จาก backend — ไม่ retry (เป็น error ทาง logic ไม่ใช่ network)
           if (data.error === 'INVALID_TOKEN') {
+            // พาไปหน้า login ให้เลย — ไม่งั้นผู้ใช้ค้างอยู่หน้าเดิมแล้วกดอะไรก็ error ซ้ำๆ หาทางออกไม่เจอ
+            // (ข้อมูลที่กรอกค้างอยู่ถูก saveDraft ลง localStorage ตลอด กลับมากรอกต่อได้หลัง login ใหม่)
             Auth.logout();
+            if (!/index\.html$/.test(location.pathname)) {
+              setTimeout(function () { location.href = 'index.html'; }, 1800);
+            }
             throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
           }
           throw new Error(data.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');

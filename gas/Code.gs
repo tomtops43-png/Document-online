@@ -307,11 +307,15 @@ function actionLogin(params) {
       if (String(u.pin) !== pin) {
         return { success: false, error: 'รหัสพนักงานหรือ PIN ไม่ถูกต้อง' };
       }
-      // ออก token ใหม่
+      // ออก token ใหม่ — เก็บลง T_Session (หลาย session ต่อ 1 บัญชีพร้อมกันได้)
+      // ยังเขียนคอลัมน์ token/token_expiry ใน Users ต่อไปด้วย เพื่อ backward compat กับ session
+      // ที่ออกไปก่อนมี T_Session (คนที่ login ค้างไว้ก่อนอัปเดตจะไม่หลุดกลางคัน)
       var token = Utilities.getUuid();
       var expiry = new Date(Date.now() + TOKEN_LIFETIME_HOURS * 3600 * 1000);
+      var expiryStr = Utilities.formatDate(expiry, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
+      sessionCreate_(token, String(u.employee_id), expiryStr);
       u.token = token;
-      u.token_expiry = Utilities.formatDate(expiry, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
+      u.token_expiry = expiryStr;
       writeRow(SHEET_USERS, u._rowIndex, data.header, u);
       return {
         success: true,
@@ -326,11 +330,128 @@ function actionLogin(params) {
   return { success: false, error: 'รหัสพนักงานหรือ PIN ไม่ถูกต้อง' };
 }
 
+// ---------- session store (T_Session) ----------
+// เดิมเก็บ token ไว้ช่องเดียวในแถว Users → login เครื่องที่ 2 ทับ token เครื่องแรกจนหลุดทันที
+// ซึ่งพังกับการใช้บัญชีกลางของแผนก (Leader/QI) ร่วมกันหลายแท็บเล็ต จึงแยกมาเก็บเป็นแถวละ session
+var SHEET_SESSION = 'T_Session';
+var SESSION_HEADER = ['token', 'employee_id', 'expiry', 'created_at'];
+
+function getSessionSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_SESSION);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_SESSION);
+    sheet.getRange(1, 1, 1, SESSION_HEADER.length).setValues([SESSION_HEADER]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// ตัดแต่ละแถวให้กว้างเท่า SESSION_HEADER เป๊ะ — กันกรณีมีใครเผลอพิมพ์อะไรในคอลัมน์ถัดไปของชีท
+// จนความกว้างของ getDataRange() ไม่ตรงกับตอน setValues แล้วเขียนกลับไม่ได้ทั้งก้อน
+function sessionNormalizeRow_(row) {
+  var out = [];
+  for (var i = 0; i < SESSION_HEADER.length; i++) out.push(row[i] === undefined ? '' : row[i]);
+  return out;
+}
+
+function sessionCreate_(token, employeeId, expiryStr) {
+  var lock = LockService.getScriptLock();
+  var locked = false;
+  try {
+    // login พร้อมกันหลายเครื่องตอนต้นกะเป็นเรื่องปกติของระบบนี้ — ถ้าไม่ล็อก การเขียนชีทรอบเก็บกวาด
+    // อาจทับแถวที่อีก session เพิ่งเพิ่มเข้าไป ทำให้เครื่องนั้นหลุดทันทีที่ login เสร็จ
+    try { lock.waitLock(10000); locked = true; } catch (le) { /* ล็อกไม่ได้ — ยังเขียนต่อได้ แค่เสี่ยงชนกันน้อยมาก */ }
+    var sheet = getSessionSheet_();
+    // อ่าน → คัดที่ยังไม่หมดอายุ → ต่อท้ายด้วย session ใหม่ → เขียนกลับครั้งเดียว
+    // (ไม่ใช้ deleteRow ทีละแถวซึ่งช้ามากตอนมีแถวค้างเยอะ และไม่ใช้ appendRow หลัง clearContent
+    //  ซึ่ง getLastRow() อาจยังไม่อัปเดตภายใน execution เดียวกัน จนเขียนทับแถวที่เพิ่งเก็บไว้)
+    var values = sheet.getDataRange().getValues();
+    var now = Date.now();
+    var rows = [];
+    for (var i = 1; i < values.length; i++) {
+      if (!String(values[i][0] || '').trim()) continue; // แถวว่างจากการเก็บกวาดรอบก่อน
+      var exp = values[i][2] instanceof Date ? values[i][2] : new Date(String(values[i][2]));
+      if (!isNaN(exp.getTime()) && exp.getTime() >= now) rows.push(sessionNormalizeRow_(values[i]));
+    }
+    rows.push([token, employeeId, expiryStr, nowISO()]);
+    var oldRowCount = Math.max(0, values.length - 1);
+    if (oldRowCount) sheet.getRange(2, 1, oldRowCount, SESSION_HEADER.length).clearContent();
+    sheet.getRange(2, 1, rows.length, SESSION_HEADER.length).setValues(rows);
+    try {
+      CacheService.getScriptCache().put('sess_' + token, employeeId, 21600);
+    } catch (ce) { /* cache ล่มไม่เป็นไร — ยังอ่านจากชีทได้ */ }
+  } catch (e) {
+    Logger.log('sessionCreate_ error: ' + e); // ล้มเหลว = ตกไปใช้ token ในแถว Users แบบเดิม
+  } finally {
+    if (locked) lock.releaseLock();
+  }
+}
+
+// คืน employee_id ของ token ถ้ายังไม่หมดอายุ — ไม่เจอ/หมดอายุ = null
+function sessionLookup_(token) {
+  try {
+    var cached = CacheService.getScriptCache().get('sess_' + token);
+    if (cached) return cached; // cache มีอายุ 6 ชม. ซึ่งสั้นกว่าอายุ token เสมอ จึงไม่ค้างเกินจริง
+  } catch (e) { /* อ่าน cache ไม่ได้ — ไปอ่านชีทต่อ */ }
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_SESSION);
+  if (!sheet) return null;
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(token)) {
+      var exp = values[i][2] instanceof Date ? values[i][2] : new Date(String(values[i][2]));
+      if (isNaN(exp.getTime()) || exp.getTime() < Date.now()) return null;
+      var empId = String(values[i][1]);
+      try { CacheService.getScriptCache().put('sess_' + token, empId, 21600); } catch (ce) { /* ข้าม */ }
+      return empId;
+    }
+  }
+  return null;
+}
+
+// ตัดทุก session ของพนักงานคนนี้ (ใช้ตอนปิดบัญชี/รีเซ็ตสิทธิ์)
+function sessionRevokeAllFor_(employeeId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(SHEET_SESSION);
+    if (!sheet) return;
+    var values = sheet.getDataRange().getValues();
+    var cache = CacheService.getScriptCache();
+    for (var i = values.length - 1; i >= 1; i--) {
+      if (String(values[i][1]) === String(employeeId)) {
+        try { cache.remove('sess_' + String(values[i][0])); } catch (ce) { /* ข้าม */ }
+        sheet.deleteRow(i + 1);
+      }
+    }
+  } catch (e) {
+    Logger.log('sessionRevokeAllFor_ error: ' + e);
+  }
+}
+
 function validateToken(token) {
   if (!token) return null;
   var data = readAll(SHEET_USERS);
-  for (var i = 0; i < data.rows.length; i++) {
-    var u = data.rows[i];
+  // 1) session ใหม่ (T_Session) — รองรับ login พร้อมกันหลายเครื่องด้วยบัญชีเดียวกัน
+  var empId = sessionLookup_(token);
+  if (empId) {
+    for (var i = 0; i < data.rows.length; i++) {
+      var su = data.rows[i];
+      if (String(su.employee_id) === empId) {
+        if (String(su.active).toLowerCase() !== 'true' && su.active !== true) return null;
+        return {
+          employee_id: String(su.employee_id),
+          name: String(su.name),
+          role: String(su.role),
+          line: String(su.line || '')
+        };
+      }
+    }
+    return null; // session ชี้ไปยังพนักงานที่ถูกลบออกจากชีท Users แล้ว
+  }
+  // 2) fallback: token เดิมที่ยังเก็บอยู่ในแถว Users (ออกก่อนมี T_Session)
+  for (var j = 0; j < data.rows.length; j++) {
+    var u = data.rows[j];
     if (String(u.token) === String(token)) {
       var expiry = u.token_expiry instanceof Date ? u.token_expiry : new Date(String(u.token_expiry));
       if (isNaN(expiry.getTime()) || expiry.getTime() < Date.now()) return null;
@@ -1541,8 +1662,11 @@ function actionEmployeeDelete(params, user) {
 // กันไม่ต้องรอแอดมินไปพิมพ์ในชีทเอง เมื่อ dropdown ยังไม่มีรุ่นที่ต้องการ
 // จำกัดสิทธิ์เท่า document.manage (Admin/DocControl) เหมือนเมนู Admin อื่นๆ กันข้อมูล master มั่ว
 function actionModelCreate(params, user) {
-  if (!can(user, 'document.manage', {})) {
-    return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
+  // หน้างานต้องเพิ่มรุ่นได้เองตอนเจอรุ่นใหม่กลางกะ ไม่งั้นต้องรอ Admin แล้วตกไปพิมพ์ชื่อรุ่นเอง —
+  // จึงให้ผู้ที่อนุมัติเอกสารได้ (Leader/QI ที่มี record.approve.step) เพิ่มรุ่นได้ด้วย
+  // นอกเหนือจาก Admin/DocControl (document.manage) ที่ดูแล master อยู่แล้ว
+  if (!can(user, 'document.manage', {}) && !can(user, 'record.approve.step', {})) {
+    return { success: false, error: 'สิทธิ์ไม่พอ (ต้องเป็น Leader/QI ขึ้นไป)' };
   }
   var familyId = String(params.family_id || '').trim();
   var modelName = String(params.model_name || '').trim();
@@ -2241,12 +2365,14 @@ function actionUserUpdate(params, user) {
     if (params.line !== undefined) u.line = String(params.line);
     if (params.active !== undefined) {
       u.active = (params.active === true || params.active === 'true') ? 'true' : 'false';
-      if (u.active === 'false') { u.token = ''; u.token_expiry = ''; } // ปิดบัญชี = ตัด session ทันที
+      // ปิดบัญชี = ตัดทุก session ทันที (ทั้ง token เดิมในแถวนี้ และทุกแถวใน T_Session ของคนนี้)
+      if (u.active === 'false') { u.token = ''; u.token_expiry = ''; sessionRevokeAllFor_(empId); }
     }
     if (params.new_pin) {
       if (String(params.new_pin).length < 4) return { success: false, error: 'PIN ใหม่ต้องยาวอย่างน้อย 4 หลัก' };
       u.pin = String(params.new_pin);
       u.token = ''; u.token_expiry = '';
+      sessionRevokeAllFor_(empId); // เปลี่ยน PIN = บังคับ login ใหม่ทุกเครื่อง
     }
     writeRow(SHEET_USERS, u._rowIndex, data.header, u);
     auditLog(user, 'user.update', 'Users', empId, before,

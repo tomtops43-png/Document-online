@@ -536,7 +536,9 @@ function modelControlHtml(options) {
     options.map(function (m) { return '<option>' + m.model_name + '</option>'; }).join('') +
     '<option value="__other__">➕ อื่นๆ / พิมพ์เอง (รุ่นยังไม่มีในลิสต์)</option></select>' +
     '<input type="text" data-hk-other="product_model" placeholder="พิมพ์ชื่อรุ่น..." style="display:none;margin-top:6px">';
-  if (pendingDoc.family_id && pendingDoc.family_id !== '*' && Auth.hasRole(['DocControl'])) {
+  // Leader/QI เพิ่มรุ่นได้ด้วย (ไม่ใช่แค่ Admin/DocControl) — หน้างานเจอรุ่นใหม่กลางกะต้องไปต่อได้เอง
+  // ต้องตรงกับเงื่อนไขสิทธิ์ฝั่ง GAS ใน actionModelCreate
+  if (pendingDoc.family_id && pendingDoc.family_id !== '*' && Auth.hasRole(['DocControl', 'Leader', 'QI'])) {
     out += '<button type="button" class="btn-secondary" data-add-model style="margin-top:6px;font-size:13px">➕ เพิ่มรุ่นใหม่เข้า Master</button>';
   }
   return out;
@@ -603,12 +605,12 @@ document.getElementById('btn-start-fill').addEventListener('click', function () 
   document.querySelectorAll('#header-modal-fields [data-hk]').forEach(function (i) {
     header[i.dataset.hk] = i.value.trim();
   });
-  // ถ้าเลือก "อื่นๆ" ในรุ่นสินค้า ให้ใช้ค่าที่พิมพ์เองแทน พร้อม flag ⚠️ ให้แอดมินเห็นว่าต้องไปเพิ่มใน M_Model
+  // ถ้าเลือก "อื่นๆ" ในรุ่นสินค้า ให้ใช้ค่าที่พิมพ์เองแทน — เก็บชื่อรุ่นสะอาดๆ ไม่ใส่สัญลักษณ์กำกับ
+  // เพราะค่านี้ถูกพิมพ์ลงหัวเอกสารคุณภาพจริง (print-render.js) ข้อความ flag จะติดไปบนเอกสารที่ใช้ audit
+  // การรู้ว่ารุ่นไหนยังไม่อยู่ใน master ดูได้จากที่ชื่อนั้นไม่มีใน M_Model อยู่แล้ว
   document.querySelectorAll('#header-modal-fields [data-hk-other]').forEach(function (i) {
     if (i.style.display === 'none') return;
-    const key = i.dataset.hkOther;
-    const typed = i.value.trim();
-    header[key] = typed ? ('⚠️ ' + typed + ' (รอเพิ่มใน master)') : '';
+    header[i.dataset.hkOther] = i.value.trim();
   });
   (pendingTemplate.header_fields || []).forEach(function (f) {
     if (f.key === 'time') return;

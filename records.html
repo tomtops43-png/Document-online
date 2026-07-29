@@ -178,10 +178,11 @@ function bindApproverNameCombo() {
   }
 
   field.addEventListener('input', function () {
-    // ไม่มีรายชื่อให้เลือก (M_Employee ว่าง/โหลดไม่ได้) — ตกไปพิมพ์ชื่อเองแทน เก็บทุกตัวอักษรตรงๆ
-    if (!approverEmployees.length) { approverName = field.value.trim(); return; }
-    approverName = ''; // พิมพ์แก้ = ยกเลิกค่าที่เคยเลือกไว้ จนกว่าจะเลือกใหม่จริง
-    renderList(currentFiltered());
+    // รับชื่อที่พิมพ์เองเสมอ — เดิมล้างค่าทิ้งจนกว่าจะเลือกจากลิสต์จริง ทำให้คนที่ยังไม่ได้ลงใน
+    // M_Employee (หรือตั้ง position ไม่ตรงกับ step) กดอนุมัติไม่ได้เลย ต้องรอ Admin แก้ชีทก่อน
+    // ยังโชว์ลิสต์ให้เลือกอยู่ (ทางหลัก กันพิมพ์ชื่อไม่ตรงกัน) แค่ไม่บล็อกถ้าไม่มีชื่อในลิสต์
+    approverName = field.value.trim();
+    if (approverEmployees.length) renderList(currentFiltered());
   });
   field.addEventListener('focus', function () { if (approverEmployees.length) renderList(currentFiltered()); });
   field.addEventListener('keydown', function (ev) {
