@@ -1356,6 +1356,14 @@ function actionDocAddRevision(params, user) {
 
     var revNo = String(params.rev_no || '').trim();
     if (!revNo) return { success: false, error: 'ไม่ระบุเลข Revision' };
+    if (!String(params.reason || '').trim()) return { success: false, error: 'กรุณาระบุเหตุผลการแก้ไข' };
+    if (String(doc.status).toUpperCase() !== 'ACTIVE') return { success: false, error: 'เอกสารนี้ถูกยกเลิกแล้ว' };
+    var revisions = readMaster('M_Revision');
+    for (var ri = 0; ri < revisions.length; ri++) {
+      if (String(revisions[ri].doc_id) === docId && String(revisions[ri].rev_no).trim().toLowerCase() === revNo.toLowerCase()) {
+        return { success: false, error: 'เลข Revision นี้มีอยู่แล้ว กรุณาใช้เลขใหม่' };
+      }
+    }
 
     var contentRef = '';
     if (params.template_path) {
@@ -1371,6 +1379,9 @@ function actionDocAddRevision(params, user) {
       contentRef = file.getId();
     } else if (params.drive_id) {
       contentRef = extractDriveId(params.drive_id);
+      try {
+        DriveApp.getFileById(contentRef).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) { /* สิทธิ์ไฟล์ภายนอกจัดการโดยเจ้าของไฟล์ */ }
     } else {
       return { success: false, error: 'ต้องแนบไฟล์ หรือใส่ลิงก์ Drive' };
     }

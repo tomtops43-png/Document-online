@@ -1,0 +1,7 @@
+.document-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:16px 0; }
+.document-toolbar[hidden] { display:none; }
+.document-actions { display:flex; flex-wrap:wrap; gap:8px; min-width:200px; }
+.document-library-table td { vertical-align:top; }
+.document-library-table small { display:block; margin-top:6px; color:#64748b; }
+#library-error { color:#b91c1c; }
+@media (max-width:600px) { .document-toolbar > a { flex:1 1 100%; text-align:center; } }
