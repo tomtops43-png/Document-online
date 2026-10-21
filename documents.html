@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เอกสาร WI — ENC QMS</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/documents.css">
+</head>
+<body>
+<main class="container container-wide">
+  <section class="card">
+    <h1 id="library-title">เอกสาร WI</h1>
+    <p id="library-help">กดชื่อรุ่น / เอกสารเพื่อเปิดดูและพิมพ์ในป๊อปอัพ โดยแสดงฉบับปัจจุบันของแต่ละเอกสาร</p>
+    <div class="document-toolbar" id="control-actions" hidden>
+      <a class="btn-primary" href="admin.html?tab=new">＋ เพิ่มเอกสาร / WI</a>
+      <a class="btn-secondary" href="admin.html?tab=formreg">ลงทะเบียนฟอร์ม</a>
+      <a class="btn-secondary" href="admin.html?tab=manage">จัดการทะเบียน / ยกเลิกเอกสาร</a>
+      <a class="btn-secondary" href="admin.html?tab=employee">รายชื่อพนักงาน</a>
+    </div>
+    <div class="filter-grid">
+      <label class="field"><span>ค้นหาชื่อ / เลขที่เอกสาร</span><input id="doc-query" type="search" placeholder="เช่น WI-L4-012 หรือ ประกอบ Busbar"></label>
+      <label class="field"><span>หมวดเอกสาร</span><select id="doc-category"></select></label>
+      <label class="field"><span>ไลน์</span><select id="doc-line"></select></label>
+      <label class="field"><span>โมเดล / รุ่นหลัก</span><select id="doc-model"><option value="">ทุกโมเดล</option></select></label>
+      <label class="field"><span>สถานี</span><select id="doc-station"><option value="">ทุกสถานี</option></select></label>
+    </div>
+    <div class="document-toolbar"><button type="button" class="btn-secondary" id="reload-documents">รีเฟรชฉบับล่าสุด</button><span id="document-count" role="status" aria-live="polite"></span></div>
+    <p id="library-error" role="alert" hidden></p>
+  </section>
+  <div id="document-groups"></div>
+</main>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/master.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/document-preview.js"></script>
+<script src="js/document-library.js"></script>
+</body>
+</html>

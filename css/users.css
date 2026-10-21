@@ -1,0 +1,22 @@
+.users-page { width:100%; }
+.users-page .section-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:16px; }
+.users-page .section-heading h2 { margin:0; }
+.users-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.users-actions button { min-height:44px; padding:10px 16px; }
+.users-page .modal-hint { margin:0 0 18px; line-height:1.65; }
+.users-status { padding:12px 16px; margin:0 0 16px; border-radius:10px; background:#eff6ff; color:#1e40af; line-height:1.6; }
+.users-status[data-state="error"] { background:#fff1f2; color:#9f1239; }
+.users-status[hidden] { display:none; }
+.users-page .table-scroll { max-height:none; }
+.users-page .record-table { table-layout:fixed; min-width:660px; }
+.users-page .record-table td { white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
+.users-page .record-table td:last-child .btn-small { white-space:nowrap; }
+.users-page .record-table th:first-child { width:26%; }
+.users-page .record-table th:nth-child(2) { width:28%; }
+.users-page .record-table th:nth-child(3) { width:13%; }
+.users-page .record-table th:nth-child(4) { width:10%; }
+.users-page .record-table th:nth-child(5) { width:23%; }
+.users-page .card:nth-child(2) .record-table th:first-child { width:200px; }
+.users-page .card:nth-child(2) .record-table th:nth-child(2) { width:auto; }
+.users-page .empty-hint { padding:26px 16px; text-align:center; }
+@media (max-width:600px) { .users-page .card { padding:18px; } .users-actions { width:100%; } .users-actions button { flex:1; } }
