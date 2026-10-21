@@ -27,12 +27,13 @@ const master = {
     browser = await chromium.launch({channel:'msedge',headless:true});
     const page = await browser.newPage({viewport:{width:1280,height:900}});
     const errors=[]; page.on('pageerror', e=>errors.push(e.message));
-    let writes = [], failMaster = false, failUsers = false, failMasterGetOnly = false, masterPostFallbacks = 0, masterCalls = 0;
+    let writes = [], failMaster = false, failUsers = false, failMasterGetOnly = false, masterPostFallbacks = 0, masterCalls = 0, pdfRequests = 0;
     await page.route('https://**/*', async route => {
       const req = route.request();
       if (!req.url().includes('script.google.com')) return route.abort();
       const payload = req.method()==='POST'?JSON.parse(req.postData()):Object.fromEntries(new URL(req.url()).searchParams);
       if (payload.action === 'master.getAll') masterCalls++;
+      if (payload.action === 'doc.getPdf') pdfRequests++;
       if (failMasterGetOnly && payload.action === 'master.getAll') {
         if (req.method() === 'GET') return route.abort();
         masterPostFallbacks++;
@@ -66,14 +67,15 @@ const master = {
     assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),0);
     assert.equal(await page.locator('#document-groups a:has-text("เปิด PDF")').count(),0);
     await page.locator('#document-groups .document-name-link').filter({hasText:'WI ประกอบ Busbar'}).click();
-    await page.waitForFunction(()=>document.querySelector('.document-preview iframe').src.startsWith('blob:'));
+    await page.waitForFunction(()=>document.querySelector('.document-preview iframe').src.includes('new_pdf_id/preview'));
     assert.equal(await page.locator('.document-preview').isVisible(),true);
     assert.equal(await page.locator('.preview-print').innerText(),'Print');
     await page.waitForFunction(()=>!document.querySelector('.preview-print').disabled);
     assert.equal(await page.evaluate(()=>Math.abs(document.querySelector('.document-preview').getBoundingClientRect().width-innerWidth)<2),true);
-    await page.evaluate(()=>{ document.querySelector('.document-preview iframe').contentWindow.print = ()=>{window.__printCalled=true;}; });
+    await page.evaluate(()=>{window.open = url=>{window.__printUrl=url;};});
     await page.click('.preview-print');
-    assert.equal(await page.evaluate(()=>window.__printCalled),true);
+    assert.equal(await page.evaluate(()=>window.__printUrl),'https://drive.google.com/file/d/new_pdf_id/view');
+    assert.equal(pdfRequests,0);
     assert.equal(browser.contexts()[0].pages().length,1);
     await page.click('.preview-close');
     await page.goto(base+'/admin.html?tab=assign&doc_id=WI-1');

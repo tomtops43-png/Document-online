@@ -1,37 +1,24 @@
-// Local Blob PDFs allow printing inside the dialog without crossing Drive's origin.
+// Uses the original Apps Script without requiring a PDF download API.
 const DocumentPreview = {
-  url: null,
   request: 0,
   open(doc, rev, formUrl) {
     if (!this.dialog) this.create();
     this.closeContent();
     const request = ++this.request;
-    this.doc = doc; this.rev = rev; this.formUrl = formUrl; this.wantPrint = false;
+    this.formUrl = formUrl;
+    const ref = String(rev && rev.content_ref || '');
+    this.printUrl = !formUrl && /^[\w-]+$/.test(ref)
+      ? 'https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/view' : null;
     this.title.textContent = doc.doc_name + (rev ? ' — ' + rev.rev_no : '');
-    this.message.textContent = 'กำลังโหลดเอกสาร…';
-    this.printButton.disabled = true;
+    this.printButton.disabled = !this.printUrl;
+    this.message.textContent = formUrl ? 'กำลังโหลดเอกสาร…' : 'กด Print เพื่อเปิดตัวดู Google Drive แล้วเลือกไอคอนเครื่องพิมพ์';
     this.dialog.showModal();
     this.frame.onload = () => {
-      if (request !== this.request) return;
-      if (formUrl || this.url) { this.printButton.disabled = false; this.message.textContent = ''; if (this.wantPrint) { this.wantPrint = false; this.print(); } }
+      if (request === this.request && formUrl) { this.printButton.disabled = false; this.message.textContent = ''; }
     };
-    if (formUrl) { this.frame.src = formUrl; return; }
-    // Embedded preview remains available with older Apps Script deployments.
-    this.frame.src = 'https://drive.google.com/file/d/' + encodeURIComponent(rev.content_ref) + '/preview';
-    this.loadPdf(request);
-  },
-  loadPdf(request) {
-    this.printButton.disabled = true;
-    this.message.textContent = 'กำลังเตรียม PDF สำหรับ Print…';
-    API.get('doc.getPdf', { doc_id: this.doc.doc_id, rev_id: this.rev.rev_id }).then(data => {
-      if (request !== this.request) return;
-      if (!data.base64) throw new Error('ต้องอัปเดต Apps Script เพื่อใช้การพิมพ์ PDF ในเว็บ');
-      const bytes = Uint8Array.from(atob(data.base64), c => c.charCodeAt(0));
-      this.url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-      this.frame.src = this.url;
-    }).catch(err => {
-      if (request === this.request) { this.message.textContent = 'โหลดไฟล์สำหรับ Print ไม่สำเร็จ กด Print เพื่อลองใหม่: ' + err.message; this.printButton.disabled = false; this.wantPrint = false; }
-    });
+    if (formUrl) this.frame.src = formUrl;
+    else if (this.printUrl) this.frame.src = 'https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/preview';
+    else this.message.textContent = 'เอกสารนี้ยังไม่มีไฟล์ที่เปิดได้';
   },
   create() {
     const dialog = document.createElement('dialog'); dialog.className = 'document-preview';
@@ -41,20 +28,21 @@ const DocumentPreview = {
     this.message = dialog.querySelector('p'); this.printButton = dialog.querySelector('.preview-print');
     dialog.querySelector('.preview-close').onclick = () => dialog.close();
     dialog.addEventListener('close', () => { ++this.request; this.closeContent(); });
-    this.printButton.onclick = () => {
-      if (!this.formUrl && !this.url) { this.wantPrint = true; this.loadPdf(this.request); return; }
-      this.print();
-    };
+    this.printButton.onclick = () => this.print();
   },
   print() {
-      try {
-        const loading = this.frame.contentDocument && this.frame.contentDocument.getElementById('loading-overlay');
-        if (loading && loading.style.display !== 'none') { this.message.textContent = 'กำลังโหลด กรุณารอสักครู่'; return; }
-        this.frame.contentWindow.focus(); this.frame.contentWindow.print();
-      } catch (err) { this.message.textContent = 'เบราว์เซอร์ไม่อนุญาตให้ Print จากกรอบนี้ กรุณาใช้ปุ่ม Print ในตัวดู PDF'; }
+    if (!this.formUrl) {
+      if (this.printUrl) window.open(this.printUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    try {
+      const loading = this.frame.contentDocument && this.frame.contentDocument.getElementById('loading-overlay');
+      if (loading && loading.style.display !== 'none') { this.message.textContent = 'กำลังโหลด กรุณารอสักครู่'; return; }
+      this.frame.contentWindow.focus(); this.frame.contentWindow.print();
+    } catch (err) { this.message.textContent = 'ยังเปิดหน้าต่าง Print ไม่สำเร็จ กรุณาลองใหม่'; }
   },
   closeContent() {
     if (this.frame) { this.frame.onload = null; this.frame.src = 'about:blank'; }
-    if (this.url) { URL.revokeObjectURL(this.url); this.url = null; }
+    this.printUrl = null;
   }
 };
