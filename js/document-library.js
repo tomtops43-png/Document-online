@@ -192,8 +192,14 @@ const DocumentLibrary = {
       if (cached && cached.master) { Master.data = cached.master; Master.version = cached.version; }
     }
     if (Master.data) { this.fillFilters(); this.render(); }
-    try { await Master._fetch(); this.fillFilters(); this.render(); }
-    catch (err) { error.textContent = (Master.data ? 'เชื่อมต่อข้อมูลล่าสุดไม่สำเร็จ กำลังแสดงข้อมูลที่เคยโหลดไว้: ' : 'โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่: ') + err.message; error.hidden = false; }
+    try { await Master._fetch(); this.fillFilters(); this.render(); document.getElementById('master-recovery').hidden = true; }
+    catch (err) {
+      error.textContent = (Master.data ? 'เชื่อมต่อข้อมูลล่าสุดไม่สำเร็จ กำลังแสดงข้อมูลที่เคยโหลดไว้: ' : 'โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่: ') + err.message; error.hidden = false;
+      if (Auth.currentUser().role === 'Admin' && Master.data) {
+        document.getElementById('master-recovery').hidden = false;
+        document.getElementById('recovery-summary').textContent = 'สำรองที่พบ: ' + (Master.data.M_Document || []).length + ' เอกสาร, ' + (Master.data.M_Revision || []).length + ' Revision, ' + (Master.data.M_Station || []).length + ' Station (เป็นข้อมูลทั้งหมดในสำรอง ไม่ใช่เฉพาะรายการที่กรองอยู่)';
+      }
+    }
     finally { button.disabled = false; }
   },
 
@@ -217,6 +223,20 @@ const DocumentLibrary = {
       document.getElementById(id).addEventListener(id === 'doc-query' ? 'input' : 'change', () => { if (id !== 'doc-station') this.fillStations(); this.render(); }));
     document.getElementById('doc-line').addEventListener('change', () => { this.fillStations(); this.render(); });
     document.getElementById('reload-documents').addEventListener('click', () => this.reload());
+    document.getElementById('recover-master').onclick = async function () {
+      if (!confirm('สร้าง ENC-MASTER ใหม่จากข้อมูลสำรองที่แสดง และเปลี่ยนระบบมาใช้ฐานใหม่นี้? ไฟล์เดิมจะคงอยู่ แต่ข้อมูลนอกสำรองจะยังไม่ถูกกู้')) return;
+      this.disabled = true;
+      try {
+        const snapshot = JSON.parse(JSON.stringify(Master.data));
+        localStorage.setItem('fp_master_before_recovery', JSON.stringify(snapshot));
+        await API.post('master.recover', { master: snapshot });
+        await Master._fetch();
+        document.getElementById('master-recovery').hidden = true;
+        showToast('เชื่อมต่อฐานข้อมูลสำเร็จแล้ว', 'success');
+        await DocumentLibrary.reload();
+      } catch (err) { document.getElementById('library-error').textContent = 'กู้ระบบไม่สำเร็จ: ' + err.message; }
+      finally { this.disabled = false; }
+    };
     document.addEventListener('master-updated', () => { this.fillFilters(); this.render(); });
     await this.reload();
   }

@@ -26,6 +26,8 @@
 .document-library-table td { vertical-align:top; }
 .document-library-table small { display:block; margin-top:6px; color:#64748b; }
 #library-error { color:#b91c1c; }
+#master-recovery { margin-top:16px; padding:18px; border:1px solid #fbbf24; border-radius:12px; background:#fffbeb; }
+#master-recovery[hidden] { display:none; }
 .document-preview { position:fixed; inset:0; width:100vw; height:100dvh; max-width:none; max-height:none; margin:0; box-sizing:border-box; padding:12px; border:0; border-radius:0; }
 .document-preview::backdrop { background:rgba(15,23,42,.65); }
 .document-preview[open] { display:flex; flex-direction:column; gap:12px; }

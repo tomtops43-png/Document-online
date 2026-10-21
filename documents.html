@@ -28,6 +28,12 @@
     </div>
     <div class="document-toolbar"><button type="button" class="btn-secondary" id="reload-documents">รีเฟรชฉบับล่าสุด</button><span id="document-count" role="status" aria-live="polite"></span></div>
     <p id="library-error" role="alert" hidden></p>
+    <section id="master-recovery" hidden>
+      <h3>กู้ระบบด้วยข้อมูลสำรองในเครื่องนี้</h3>
+      <p id="recovery-summary"></p>
+      <p>สร้าง ENC-MASTER ใหม่ในบัญชีที่รันระบบ โดยไม่แก้หรือลบไฟล์เดิม ข้อมูลที่ไม่ได้อยู่ในสำรองจะยังไม่ถูกกู้ และสิทธิ์ PDF เดิมอาจต้องจัดการแยก</p>
+      <button type="button" class="btn-primary" id="recover-master">สร้างฐานใหม่จากข้อมูลสำรองนี้</button>
+    </section>
   </section>
   <div id="document-groups"></div>
 </main>

@@ -79,6 +79,7 @@ function handleRequest(e, method) {
     switch (action) {
       // ---- Master Data Layer (Migration Step 1-2) ----
       case 'master.getAll': return jsonOut(actionMasterGetAll(params, user));
+      case 'master.recover': return jsonOut(actionMasterRecover(params, user));
 
       // ---- Admin: จัดการเอกสาร (self-service — Migration Step 2) ----
       case 'doc.register':    return jsonOut(actionDocRegister(params, user));
@@ -941,6 +942,10 @@ function actionRejectRecord(params, user) {
 
 // ---------- photo ----------
 function getConfigValue(key) {
+  if (key === 'drive_root_folder_id') {
+    var recoveredRoot = PropertiesService.getScriptProperties().getProperty('RECOVERY_DRIVE_ROOT_FOLDER_ID');
+    if (recoveredRoot) return recoveredRoot;
+  }
   var data = readAll(SHEET_CONFIG);
   for (var i = 0; i < data.rows.length; i++) {
     if (String(data.rows[i].key) === key) return String(data.rows[i].value);
@@ -1199,6 +1204,43 @@ function bumpMasterVersion() {
 // ========================================================
 
 // master.getAll — คืน master ทุกชีท + version (client cache ทั้งก้อน)
+function actionMasterRecover(params, user) {
+  if (!user || user.role !== 'Admin') return { success: false, error: 'Admin เท่านั้นที่กู้ระบบได้' };
+  var snapshot = params.master;
+  var required = ['M_Line', 'M_Station', 'M_DocType', 'M_Document', 'M_Revision', 'M_Role', 'M_Permission'];
+  if (!snapshot || required.some(function (name) { return !Array.isArray(snapshot[name]) || !snapshot[name].length; })) {
+    return { success: false, error: 'ข้อมูลสำรองไม่ครบ ห้ามสร้างฐานข้อมูลเปล่าแทนของเดิม' };
+  }
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    try { getMasterSS().getSheets(); return { success: true, already_available: true }; } catch (unavailable) { /* กู้เฉพาะเมื่อฐานเดิมเปิดไม่ได้ */ }
+    var props = PropertiesService.getScriptProperties();
+    var previousId = props.getProperty('MASTER_SPREADSHEET_ID');
+    var ss = SpreadsheetApp.create('ENC-MASTER — Recovered ' + nowISO());
+    Object.keys(MASTER_SHEET_DEFS).forEach(function (name) {
+      var headers = MASTER_SHEET_DEFS[name];
+      var rows = Array.isArray(snapshot[name]) ? snapshot[name] : [];
+      var sheet = ss.insertSheet(name);
+      var values = [headers].concat(rows.map(function (row) { return headers.map(function (key) {
+        if (name === 'M_Document' && key === 'drive_folder_id') return '';
+        var value = row[key];
+        if (value === undefined || value === null) return '';
+        if (typeof value === 'object') value = JSON.stringify(value);
+        return typeof value === 'string' && /^[=+\-@]/.test(value) ? "'" + value : value;
+      }); }));
+      sheet.getRange(1, 1, values.length, headers.length).setValues(values);
+      sheet.setFrozenRows(1);
+    });
+    SpreadsheetApp.flush();
+    if (ss.getSheetByName('M_Document').getLastRow() !== snapshot.M_Document.length + 1) throw new Error('ตรวจข้อมูลกู้คืนไม่ผ่าน ฐานเดิมยังไม่ถูกเปลี่ยน');
+    var newFolder = DriveApp.createFolder('ENC-QMS Documents — Recovered ' + nowISO());
+    props.setProperties({ MASTER_SPREADSHEET_ID_BEFORE_RECOVERY: previousId || '', MASTER_RECOVERY_TIMESTAMP: nowISO(),
+      MASTER_SPREADSHEET_ID: ss.getId(), RECOVERY_DRIVE_ROOT_FOLDER_ID: newFolder.getId() });
+    bumpMasterVersion();
+    return { success: true, spreadsheet_url: ss.getUrl(), documents: snapshot.M_Document.length, stations: snapshot.M_Station.length };
+  } finally { lock.releaseLock(); }
+}
+
 function actionMasterGetAll(params, user) {
   var data = {};
   // ทิ้งเฉพาะแถวที่ปิดใช้งานจริงๆ — ห้ามทิ้ง CURRENT/OBSOLETE (M_Revision ใช้ค่าเหล่านี้)
@@ -1219,6 +1261,7 @@ function actionMasterGetAll(params, user) {
 function can(user, action, scope) {
   scope = scope || {};
   if (!user) return false;
+  if (action === 'document.manage') return user.role === 'Admin';
   var perms = readMaster('M_Permission');
   for (var i = 0; i < perms.length; i++) {
     var p = perms[i];
