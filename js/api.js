@@ -38,11 +38,19 @@ const API = {
 
   // fetch + retry 3 ครั้ง (exponential backoff) + แปลง JSON + โยน error ถ้า success=false
   async _fetchWithRetry(url, options, maxRetry) {
-    maxRetry = maxRetry === undefined ? 3 : maxRetry;
+    const action = options.body ? JSON.parse(options.body).action : '';
+    const readOnly = options.method === 'GET' || ['user.list', 'notif.list', 'stats.dashboard', 'doc.getPdf'].includes(action);
+    maxRetry = maxRetry === undefined ? (readOnly ? 1 : 3) : maxRetry;
+    const deadline = Date.now() + (readOnly ? 15000 : 90000);
     let lastErr;
     for (let attempt = 0; attempt <= maxRetry; attempt++) {
+      const controller = new AbortController();
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) throw new Error('เซิร์ฟเวอร์ตอบช้า กรุณาลองใหม่');
+      const timer = setTimeout(() => controller.abort(), Math.min(remaining, readOnly ? 10000 : 60000));
       try {
-        const res = await fetch(url, options);
+        const res = await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+        if (res.status === 401 || res.status === 403) throw new Error('Backend ปฏิเสธการเข้าถึง กรุณาตรวจการยืนยันสิทธิ์ Google Apps Script');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         if (data && data.success === false) {
@@ -60,12 +68,17 @@ const API = {
         }
         return data;
       } catch (err) {
+        if (err.name === 'AbortError' && (!readOnly || attempt === maxRetry || Date.now() >= deadline)) {
+          throw new Error(readOnly ? 'เซิร์ฟเวอร์ตอบช้า กรุณาลองใหม่' : 'ยังไม่ได้รับผลการบันทึก กรุณาตรวจข้อมูลก่อนส่งซ้ำ');
+        }
         lastErr = err;
         // retry เฉพาะ network error / HTTP error
         const msg = String(err && err.message || '');
-        const isNetwork = err instanceof TypeError || msg.indexOf('HTTP ') === 0 || msg.indexOf('Failed to fetch') >= 0;
+        const isNetwork = err.name === 'AbortError' || err instanceof TypeError || /^HTTP (408|429|5\d\d)/.test(msg) || msg.indexOf('Failed to fetch') >= 0;
         if (!isNetwork || attempt === maxRetry) throw err;
         await new Promise(function (r) { setTimeout(r, 1000 * Math.pow(2, attempt)); });
+      } finally {
+        clearTimeout(timer);
       }
     }
     throw lastErr;

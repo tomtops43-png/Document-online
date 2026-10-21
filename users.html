@@ -26,6 +26,8 @@
       <h2>👥 ผู้ใช้งานระบบ</h2>
       <button type="button" class="btn-primary" style="min-height:44px;font-size:15px;padding:10px 18px" id="btn-add-user">＋ เพิ่มผู้ใช้ใหม่</button>
     </div>
+    <p id="users-load-status" role="status" aria-live="polite"></p>
+    <button type="button" class="btn-secondary" id="btn-reload-users">โหลดรายชื่อใหม่</button>
     <p class="modal-hint" style="margin-top:-6px">
       กำหนดสิทธิ์ตามตำแหน่ง (Role) — สิทธิ์ของแต่ละ Role มาจากชีท M_Permission ใน ENC-MASTER
       ปิดสวิตช์ = ระงับบัญชีทันที (ผู้ใช้จะหลุดจากระบบและล็อกอินไม่ได้จนกว่าจะเปิดใหม่)</p>
@@ -100,20 +102,34 @@ function avatarColor(id) {
 }
 
 (async function () {
-  Loading.show('กำลังโหลด...');
+  if (!user || user.role !== 'Admin') return;
+  const status = document.getElementById('users-load-status');
+  const retry = document.getElementById('btn-reload-users');
+  const refresh = async function () {
+  retry.disabled = true;
+  status.textContent = 'กำลังโหลดรายชื่อผู้ใช้…';
   try {
-    await Master.load();
+    const usersRequest = loadUsers();
+    const masterRequest = Master.load().then(function () {
     fillRoleSelect();
     fillLineSelect();
     renderPermTable();
-    await loadUsers();
+    });
+    const results = await Promise.allSettled([usersRequest, masterRequest]);
+    const failed = results.find(result => result.status === 'rejected');
+    if (failed) throw failed.reason;
+    status.textContent = '';
   } catch (err) {
     showToast('โหลดไม่สำเร็จ: ' + err.message, 'error');
-    document.getElementById('user-rows').innerHTML =
+    status.textContent = 'โหลดไม่สำเร็จ: ' + err.message;
+    if (!usersData.length) document.getElementById('user-rows').innerHTML =
       '<tr><td colspan="5" class="empty-hint">' + esc(err.message) + '</td></tr>';
   } finally {
-    Loading.hide();
+    retry.disabled = false;
   }
+  };
+  retry.addEventListener('click', refresh);
+  await refresh();
 })();
 
 function fillRoleSelect() {
