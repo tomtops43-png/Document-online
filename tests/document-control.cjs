@@ -39,15 +39,16 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     browser = await chromium.launch({channel:'msedge',headless:true});
     const page = await browser.newPage({viewport:{width:1280,height:900}});
     const errors=[]; page.on('pageerror', e=>errors.push(e.message));
-    let writes = [], failMaster = false, masterCalls = 0;
+    let writes = [], failMaster = false, failUsers = false, masterCalls = 0;
     await page.route('https://**/*', async route => {
       const req = route.request();
       if (!req.url().includes('script.google.com')) return route.abort();
       const payload = req.method()==='POST'?JSON.parse(req.postData()):Object.fromEntries(new URL(req.url()).searchParams);
       if (payload.action === 'master.getAll') masterCalls++;
       if (failMaster && payload.action === 'master.getAll') return route.abort();
+      if (failUsers && payload.action === 'user.list') return route.abort();
       if (payload.action === 'doc.addRevision') writes.push(payload);
-      await route.fulfill({json:payload.action==='master.getAll'?{success:true,master,master_version:'1'}:payload.action==='doc.getPdf'?{success:true,base64:Buffer.from('%PDF-1.4\ntest').toString('base64')}:{success:true,records:[],notifications:[],unread:0}});
+      await route.fulfill({json:payload.action==='master.getAll'?{success:true,master,master_version:'1'}:payload.action==='user.list'?{success:true,users:[{employee_id:'test',name:'Test Admin',role:'Admin',active:true,line:'L4'}]}:payload.action==='doc.getPdf'?{success:true,base64:Buffer.from('%PDF-1.4\ntest').toString('base64')}:{success:true,records:[],notifications:[],unread:0}});
     });
     await page.addInitScript(()=>{
       if (location.hostname !== '127.0.0.1') return;
@@ -129,8 +130,21 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     assert.match(await page.locator('#library-error').innerText(),/ข้อมูลที่เคยโหลดไว้/);
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     failMaster = false;
+    failUsers = true;
     await page.goto(base+'/users.html');
     await page.waitForFunction(()=>document.querySelector('#btn-reload-users').disabled === false);
+    assert.match(await page.locator('#users-load-status').innerText(),/ยังเชื่อมต่อระบบไม่ได้/);
+    assert.equal(await page.locator('.toast').count(),0);
+    failUsers = false;
+    await page.click('#btn-reload-users');
+    await page.waitForFunction(()=>document.querySelector('#btn-reload-users').disabled === false);
+    assert.match(await page.locator('#user-rows').innerText(),/Test Admin/);
+    assert.equal(await page.locator('#users-load-status').isVisible(),false);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    if (process.env.USER_LAYOUT_SCREENSHOT) {
+      await page.setViewportSize({width:1280,height:900});
+      await page.screenshot({path:process.env.USER_LAYOUT_SCREENSHOT});
+    }
     assert.equal(await page.locator('#loading-overlay').isVisible(),false);
     assert.equal(await page.locator('#btn-reload-users').isEnabled(),true);
     const previousCalls = masterCalls;
