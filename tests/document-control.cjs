@@ -76,6 +76,12 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.locator('#document-groups .document-name-link').filter({hasText:'WI ประกอบ Busbar'}).click();
     await page.waitForFunction(()=>document.querySelector('.document-preview iframe').src.startsWith('blob:'));
     assert.equal(await page.locator('.document-preview').isVisible(),true);
+    assert.equal(await page.locator('.preview-print').innerText(),'Print');
+    await page.waitForFunction(()=>!document.querySelector('.preview-print').disabled);
+    assert.equal(await page.evaluate(()=>Math.abs(document.querySelector('.document-preview').getBoundingClientRect().width-innerWidth)<2),true);
+    await page.evaluate(()=>{ document.querySelector('.document-preview iframe').contentWindow.print = ()=>{window.__printCalled=true;}; });
+    await page.click('.preview-print');
+    assert.equal(await page.evaluate(()=>window.__printCalled),true);
     assert.equal(browser.contexts()[0].pages().length,1);
     await page.click('.preview-close');
     await page.goto(base+'/admin.html?tab=assign&doc_id=WI-1');

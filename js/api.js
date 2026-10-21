@@ -38,16 +38,17 @@ const API = {
 
   // fetch + retry 3 ครั้ง (exponential backoff) + แปลง JSON + โยน error ถ้า success=false
   async _fetchWithRetry(url, options, maxRetry) {
-    const action = options.body ? JSON.parse(options.body).action : '';
+    const action = options.body ? JSON.parse(options.body).action : new URL(url).searchParams.get('action');
+    const pdfRequest = action === 'doc.getPdf';
     const readOnly = options.method === 'GET' || ['user.list', 'notif.list', 'stats.dashboard', 'doc.getPdf'].includes(action);
     maxRetry = maxRetry === undefined ? (readOnly ? 1 : 3) : maxRetry;
-    const deadline = Date.now() + (readOnly ? 15000 : 90000);
+    const deadline = Date.now() + (pdfRequest ? 60000 : readOnly ? 15000 : 90000);
     let lastErr;
     for (let attempt = 0; attempt <= maxRetry; attempt++) {
       const controller = new AbortController();
       const remaining = deadline - Date.now();
       if (remaining <= 0) throw new Error('เซิร์ฟเวอร์ตอบช้า กรุณาลองใหม่');
-      const timer = setTimeout(() => controller.abort(), Math.min(remaining, readOnly ? 10000 : 60000));
+      const timer = setTimeout(() => controller.abort(), Math.min(remaining, pdfRequest ? 45000 : readOnly ? 10000 : 60000));
       try {
         const res = await fetch(url, Object.assign({}, options, { signal: controller.signal }));
         if (res.status === 401 || res.status === 403) throw new Error('Backend ปฏิเสธการเข้าถึง กรุณาตรวจการยืนยันสิทธิ์ Google Apps Script');
