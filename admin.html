@@ -262,8 +262,9 @@
 <script>
 const user = Auth.requireLogin();
 AppShell.init('admin');
-if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
-  showToast('หน้านี้สำหรับ Admin / Document Control เท่านั้น', 'error');
+if (user && user.role !== 'Admin') {
+  document.querySelector('main').hidden = true;
+  showToast('หน้านี้สำหรับ Admin เท่านั้น', 'error');
   setTimeout(function () { location.href = 'dashboard.html'; }, 1500);
 }
 
@@ -290,6 +291,7 @@ function setUpMode(pane, mode) {
 let manifestTemplates = [];
 
 (async function () {
+  if (!user || user.role !== 'Admin') return;
   Loading.show('กำลังโหลด Master...');
   try {
     await Master.load();

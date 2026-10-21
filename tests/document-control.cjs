@@ -15,6 +15,11 @@ const master = {
 // Backend guards must reject duplicates before uploading or changing CURRENT.
 const context = vm.createContext({});
 vm.runInContext(fs.readFileSync(path.join(root,'gas/Code.gs'),'utf8'), context);
+assert.equal(context.can({role:'DocControl'},'document.manage',{}),false);
+assert.equal(context.can({role:'Admin'},'document.manage',{}),true);
+for (const action of ['actionDocRegister','actionDocAddRevision','actionDocAssign','actionDocDelete','actionDocUpdate','actionEmployeeCreate','actionEmployeeUpdate','actionEmployeeDelete']) {
+  assert.equal(context[action]({}, {role:'DocControl'}).success,false, action + ' must reject DocControl');
+}
 context.can = () => true;
 context.LockService = {getScriptLock:()=>({waitLock(){},releaseLock(){}})};
 context.readMaster = name => name === 'M_Document' ? [doc] : master.M_Revision;
@@ -40,7 +45,7 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
       if (!req.url().includes('script.google.com')) return route.abort();
       const payload = req.method()==='POST'?JSON.parse(req.postData()):Object.fromEntries(new URL(req.url()).searchParams);
       if (payload.action === 'doc.addRevision') writes.push(payload);
-      await route.fulfill({json:payload.action==='master.getAll'?{success:true,master,master_version:'1'}:{success:true,records:[],notifications:[],unread:0}});
+      await route.fulfill({json:payload.action==='master.getAll'?{success:true,master,master_version:'1'}:payload.action==='doc.getPdf'?{success:true,base64:Buffer.from('%PDF-1.4\ntest').toString('base64')}:{success:true,records:[],notifications:[],unread:0}});
     });
     await page.addInitScript(()=>{
       if (location.hostname !== '127.0.0.1') return;
@@ -52,6 +57,11 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.waitForSelector('#document-groups table');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     assert.equal(await page.locator('a:has-text("ดาวน์โหลด")').first().getAttribute('href'),'https://drive.google.com/uc?export=download&id=new_pdf_id');
+    await page.locator('#document-groups a:has-text("เปิด PDF")').click();
+    await page.waitForFunction(()=>document.querySelector('.document-preview iframe').src.startsWith('blob:'));
+    assert.equal(await page.locator('.document-preview').isVisible(),true);
+    assert.equal(browser.contexts()[0].pages().length,1);
+    await page.click('.preview-close');
     await page.selectOption('#doc-line','L4');await page.selectOption('#doc-station','ST2');
     assert.equal(await page.locator('#document-groups tbody tr').count(),1); // shared WI only
     await page.goto(base+'/documents.html?mode=control');
@@ -87,12 +97,15 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.waitForSelector('#document-groups table');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),1);
-    assert.match(await page.locator('#document-groups a:has-text("เปิด PDF")').getAttribute('href'),/drawing_pdf/);
+    assert.match(await page.locator('#document-groups a:has-text("เปิด PDF")').getAttribute('href'),/doc_id=DR-1/);
     assert.doesNotMatch(await page.locator('#document-groups').innerText(),/WI ประกอบ|WI shared/);
     assert.equal(await page.locator('#library-title').innerText(),'เอกสารควบคุมคุณภาพ');
     assert.match(await page.locator('#document-groups a:has-text("พิมพ์ฟอร์ม")').getAttribute('href'),/rev_id=FP-1%3ARev01/);
     assert.deepEqual(errors,[]);
     await page.evaluate(()=>localStorage.setItem('fp_user',JSON.stringify({name:'Operator',role:'Operator'})));
+    await page.goto(base+'/documents.html?mode=control');await page.waitForURL(base+'/documents.html');
+    assert.equal(await page.locator('.sidebar-link').filter({hasText:'ควบคุมเอกสาร'}).count(),0);
+    await page.evaluate(()=>localStorage.setItem('fp_user',JSON.stringify({name:'Document Controller',role:'DocControl'})));
     await page.goto(base+'/documents.html?mode=control');await page.waitForURL(base+'/documents.html');
     assert.equal(await page.locator('.sidebar-link').filter({hasText:'ควบคุมเอกสาร'}).count(),0);
     console.log('PASS: WI/current links, category/search/station filters, revision upload/deep link, history, mobile, role guard, backend duplicate/reason guards.');

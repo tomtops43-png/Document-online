@@ -86,6 +86,7 @@ function handleRequest(e, method) {
       case 'doc.assign':      return jsonOut(actionDocAssign(params, user));
       case 'doc.delete':      return jsonOut(actionDocDelete(params, user));
       case 'doc.update':      return jsonOut(actionDocUpdate(params, user));
+      case 'doc.getPdf':      return jsonOut(actionDocGetPdf(params, user));
 
       // ---- Admin: จัดการรายชื่อพนักงาน (M_Employee — dropdown Recorder) ----
       case 'employee.create': return jsonOut(actionEmployeeCreate(params, user));
@@ -1219,6 +1220,8 @@ function actionMasterGetAll(params, user) {
 function can(user, action, scope) {
   scope = scope || {};
   if (!user) return false;
+  // Document administration is exclusively Admin, even if old permission rows grant it to DocControl.
+  if (action === 'document.manage') return user.role === 'Admin';
   var perms = readMaster('M_Permission');
   for (var i = 0; i < perms.length; i++) {
     var p = perms[i];
@@ -1259,6 +1262,22 @@ function extractDriveId(input) {
 // Admin: ลงทะเบียนเอกสารไฟล์ (WI/Drawing/OWS/...) — self-service ผ่านหน้าเว็บ
 // อัปโหลดไฟล์ (base64) หรืออ้าง Drive fileId เดิม → สร้าง Document + Revision + Assign
 // ========================================================
+function actionDocGetPdf(params, user) {
+  var docId = String(params.doc_id || '');
+  var docs = readMaster('M_Document');
+  var doc = docs.filter(function (d) { return String(d.doc_id) === docId && String(d.status).toUpperCase() === 'ACTIVE'; })[0];
+  if (!doc) return { success: false, error: 'ไม่พบเอกสารที่เปิดใช้งาน' };
+  var revId = String(params.rev_id || doc.current_rev_id || '');
+  var revision = readMaster('M_Revision').filter(function (r) {
+    return String(r.doc_id) === docId && String(r.rev_id) === revId;
+  })[0];
+  if (!revision || !/^[\w-]+$/.test(String(revision.content_ref || ''))) return { success: false, error: 'Revision นี้ไม่มีไฟล์ PDF' };
+  var file = DriveApp.getFileById(String(revision.content_ref));
+  if (file.getMimeType() !== 'application/pdf') return { success: false, error: 'ไฟล์นี้ไม่ใช่ PDF' };
+  if (file.getSize() > 20 * 1024 * 1024) return { success: false, error: 'PDF ใหญ่เกิน 20 MB กรุณาดาวน์โหลดเพื่อพิมพ์' };
+  return { success: true, base64: Utilities.base64Encode(file.getBlob().getBytes()), mime_type: 'application/pdf' };
+}
+
 function actionDocRegister(params, user) {
   if (!can(user, 'document.manage', {})) {
     return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };

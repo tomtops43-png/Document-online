@@ -62,6 +62,7 @@ const DocumentLibrary = {
     a.className = 'btn-small'; a.textContent = text; a.href = href;
     if (external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
     parent.appendChild(a);
+    return a;
   },
 
   render() {
@@ -96,11 +97,14 @@ const DocumentLibrary = {
         this.link(actions, 'ดู / ประวัติ Rev', 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
         const ref = String(rev && rev.content_ref || '');
         if (this.quality && rev && /\.json$/i.test(ref)) {
-          this.link(actions, 'ดู / พิมพ์ฟอร์ม', 'print.html?form=' + encodeURIComponent(d.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id), true);
+          const formUrl = 'print.html?form=' + encodeURIComponent(d.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id);
+          const formLink = this.link(actions, 'ดู / พิมพ์ฟอร์ม', formUrl);
+          formLink.onclick = event => { event.preventDefault(); DocumentPreview.open(d, rev, formUrl); };
         }
         if (!this.control && ref && !/\.json$/i.test(ref) && /^[\w-]+$/.test(ref)) {
           this.link(actions, 'ดาวน์โหลด', 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(ref), true);
-          this.link(actions, 'เปิด PDF / พิมพ์', 'https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/view', true);
+          const pdfLink = this.link(actions, 'เปิด PDF / พิมพ์', 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
+          pdfLink.onclick = event => { event.preventDefault(); DocumentPreview.open(d, rev); };
         }
         if (this.control) {
           this.link(actions, 'อัปเดต Rev', 'admin.html?tab=rev&doc_id=' + encodeURIComponent(d.doc_id));
@@ -123,7 +127,7 @@ const DocumentLibrary = {
 
   async init() {
     const user = Auth.requireLogin(); if (!user) return;
-    if (this.control && !Auth.hasRole(['Admin', 'DocControl'])) { location.replace('documents.html'); return; }
+    if (this.control && user.role !== 'Admin') { location.replace('documents.html'); return; }
     AppShell.init(this.control ? 'admin' : this.quality ? 'quality' : 'wi');
     if (this.quality) {
       document.title = 'เอกสารควบคุมคุณภาพ — ENC QMS';

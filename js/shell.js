@@ -18,7 +18,7 @@ const AppShell = {
     { key: 'records', href: 'records.html', icon: '📋', label: 'บันทึก / อนุมัติ' }
   ],
   NAV_ITEMS_ADMIN: [
-    { key: 'admin', href: 'documents.html?mode=control', icon: '🗂️', label: 'ควบคุมเอกสาร', roles: ['Admin', 'DocControl'] },
+    { key: 'admin', href: 'documents.html?mode=control', icon: '🗂️', label: 'ควบคุมเอกสาร', roles: ['Admin'] },
     { key: 'users', href: 'users.html', icon: '👥', label: 'จัดการผู้ใช้งาน', roles: ['Admin'] }
   ],
   PAGE_TITLES: {
@@ -152,7 +152,7 @@ const AppShell = {
     }
 
     // ฟอร์มที่ Claude แปลงไว้แต่ยังไม่ได้ลงทะเบียนเข้า Master — เฉพาะ role ที่เห็นเมนูนี้
-    if (user && (user.role === 'Admin' || user.role === 'DocControl')) {
+    if (user && user.role === 'Admin') {
       try {
         const [manifestRes] = await Promise.all([
           fetch('templates/manifest.json', { cache: 'no-cache' }),

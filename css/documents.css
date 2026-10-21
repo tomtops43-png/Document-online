@@ -13,4 +13,11 @@
 .document-library-table td { vertical-align:top; }
 .document-library-table small { display:block; margin-top:6px; color:#64748b; }
 #library-error { color:#b91c1c; }
+.document-preview { width:min(1200px,96vw); height:92vh; max-width:96vw; max-height:96vh; padding:16px; border:0; border-radius:16px; }
+.document-preview::backdrop { background:rgba(15,23,42,.65); }
+.document-preview[open] { display:flex; flex-direction:column; gap:12px; }
+.document-preview-header { display:flex; align-items:center; gap:10px; }
+.document-preview-header h2 { flex:1; margin:0; font-size:18px; overflow-wrap:anywhere; }
+.document-preview p { margin:0; font-size:13px; }
+.document-preview iframe { width:100%; flex:1; min-height:0; border:1px solid #e2e8f0; }
 @media (max-width:600px) { .document-toolbar > a { flex:1 1 100%; text-align:center; } }
