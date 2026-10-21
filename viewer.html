@@ -62,7 +62,7 @@
   const docId = new URLSearchParams(location.search).get('doc_id');
   Loading.show('กำลังโหลดเอกสาร...');
   try {
-    await Master.load();
+    await Master._fetch();
     const doc = Master.document(docId);
     if (!doc) throw new Error('ไม่พบเอกสาร: ' + docId);
     const dtype = Master.docType(doc.doctype_id);
@@ -71,9 +71,9 @@
 
     const cur = Master.currentRevision(docId);
     document.getElementById('doc-meta').innerHTML =
-      (doc.doc_no ? 'เลขที่เอกสาร: <b>' + doc.doc_no + '</b> | ' : '') +
-      'ประเภท: <b>' + (dtype ? dtype.display_name_th : doc.doctype_id) + '</b>' +
-      (cur ? ' | Revision ปัจจุบัน: <b>' + cur.rev_no + '</b>' : ' | <span class="nok-flag">ยังไม่มี revision</span>');
+      (doc.doc_no ? 'เลขที่เอกสาร: <b>' + esc(doc.doc_no) + '</b> | ' : '') +
+      'ประเภท: <b>' + esc(dtype ? dtype.display_name_th : doc.doctype_id) + '</b>' +
+      (cur ? ' | Revision ปัจจุบัน: <b>' + esc(cur.rev_no) + '</b>' : ' | <span class="nok-flag">ยังไม่มี revision</span>');
 
     renderRevision(doc, cur, true);
 
@@ -88,11 +88,11 @@
       const badge = r.status === 'CURRENT'
         ? '<span class="status-badge" style="background:#27ae60">CURRENT</span>'
         : '<span class="status-badge" style="background:#95a5a6">' + r.status + '</span>';
-      tr.innerHTML = '<td><b>' + r.rev_no + '</b></td><td>' + badge + '</td>' +
-        '<td>' + (r.effective_date || '') + '</td><td>' + (r.approved_by || '') + '</td>' +
-        '<td>' + (r.reason || '') + '</td>' +
+      tr.innerHTML = '<td><b>' + esc(r.rev_no) + '</b></td><td>' + badge + '</td>' +
+        '<td>' + esc(r.effective_date || '') + '</td><td>' + esc(r.approved_by || '') + '</td>' +
+        '<td>' + esc(r.reason || '') + '</td>' +
         '<td><button type="button" class="btn-small">👁 ดู</button></td>';
-      tr.querySelector('button').addEventListener('click', function () { renderRevision(doc, r, false); });
+      tr.querySelector('button').addEventListener('click', function () { renderRevision(doc, r, r.status === 'CURRENT'); });
       tbody.appendChild(tr);
     });
   } catch (err) {
@@ -112,16 +112,16 @@ function renderRevision(doc, rev, isCurrent) {
 
   const ref = String(rev.content_ref || '');
   const isTemplate = /\.json$/.test(ref);
-  let html = '<span class="rev-viewing">กำลังดู: <b>' + rev.rev_no + '</b>' +
+  let html = '<span class="rev-viewing">กำลังดู: <b>' + esc(rev.rev_no) + '</b>' +
     (isCurrent ? '' : ' <span class="nok-flag">ไม่ใช่ฉบับปัจจุบัน</span>') + '</span> ';
 
   if (isTemplate) {
     previewCard.style.display = 'none';
-    html += '<a class="btn-secondary" target="_blank" href="print.html?form=' + encodeURIComponent(doc.doc_id) + '">🖨 ดู/พิมพ์ฟอร์มเปล่า</a>';
+    html += '<a class="btn-secondary" target="_blank" rel="noopener noreferrer" href="print.html?form=' + encodeURIComponent(doc.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id) + '">🖨 ดู/พิมพ์ฟอร์มเปล่าฉบับนี้</a>';
     actions.innerHTML = html;
   } else if (ref) {
     // Drive fileId
-    html += '<a class="btn-primary" target="_blank" href="https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/view">🔍 เปิดเต็มจอ</a> ' +
+    html += '<a class="btn-primary" target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/view">🔍 เปิดเต็มจอ / พิมพ์ PDF</a> ' +
       '<a class="btn-secondary" target="_blank" href="https://drive.google.com/uc?export=download&id=' + encodeURIComponent(ref) + '">⬇ ดาวน์โหลด</a>';
     actions.innerHTML = html;
     frame.src = 'https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/preview';
