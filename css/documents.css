@@ -10,6 +10,16 @@
 .document-library-table th:nth-child(4) { width:110px; }
 .document-library-table th:nth-child(5) { width:460px; }
 .document-library-table td:first-child { white-space:normal; overflow-wrap:anywhere; }
+.wi-station-table { min-width:1200px; }
+.wi-station-table th:nth-child(1) { width:190px; }
+.wi-station-table th:nth-child(2) { width:auto; }
+.wi-station-table th:nth-child(3) { width:75px; }
+.wi-station-table th:nth-child(4) { width:130px; }
+.wi-station-table th:nth-child(5) { width:110px; }
+.wi-station-table th:nth-child(6) { width:350px; }
+.wi-station-table td:nth-child(1), .wi-station-table td:nth-child(2) { white-space:pre-line; overflow-wrap:anywhere; }
+.wi-station-table td:first-child a { display:block; width:max-content; margin-top:8px; }
+.station-summary { color:#64748b; margin:0 0 14px; }
 .document-library-table td { vertical-align:top; }
 .document-library-table small { display:block; margin-top:6px; color:#64748b; }
 #library-error { color:#b91c1c; }

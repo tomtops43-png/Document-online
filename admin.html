@@ -309,11 +309,12 @@ let manifestTemplates = [];
     });
     document.getElementById('a-line').addEventListener('change', function () {
       renderStationChecks('a-stations', this.value);
+      markAssigned();
     });
     document.getElementById('f-line').addEventListener('change', function () {
       renderStationChecks('f-stations', this.value);
     });
-    document.getElementById('a-doc').addEventListener('change', markAssigned);
+    document.getElementById('a-doc').addEventListener('change', selectAssignmentDocument);
     document.getElementById('m-line-filter').addEventListener('change', function () { renderManageList(); });
     document.getElementById('f-family').addEventListener('change', function () {
       fillSeriesDatalist('f-series-list', this.value);
@@ -339,8 +340,7 @@ let manifestTemplates = [];
     if (selectedDoc) {
       document.getElementById('r-doc').value = selectedDoc.doc_id;
       document.getElementById('a-doc').value = selectedDoc.doc_id;
-      document.getElementById('a-line').value = selectedDoc.line_id;
-      renderStationChecks('a-stations', selectedDoc.line_id); markAssigned();
+      selectAssignmentDocument();
       if (tab === 'manage') openEditModal(selectedDoc);
     }
     updateRevisionSource();
@@ -627,6 +627,15 @@ document.getElementById('btn-add-rev').addEventListener('click', async function 
 });
 
 // ---------- ผูก Station ----------
+function selectAssignmentDocument() {
+  const doc = Master.document(document.getElementById('a-doc').value);
+  const normalize = value => String(value || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  const line = doc && Master.lines().find(l => [l.line_id, l.line_name, l.display_name].some(value => normalize(value) === normalize(doc.line_id)));
+  const select = document.getElementById('a-line');
+  if (line) select.value = line.line_id;
+  renderStationChecks('a-stations', select.value);
+  markAssigned();
+}
 function markAssigned() {
   const docId = document.getElementById('a-doc').value;
   const assigns = (Master.data.M_DocAssign || []).filter(function (a) {

@@ -3,14 +3,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('fs'), path = require('path'), http = require('http'), vm = require('vm');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
-const doc = { doc_id:'WI-1', doctype_id:'wi', doc_name:'WI ประกอบ Busbar', doc_no:'WI-001', line_id:'L4', status:'ACTIVE' };
+const doc = { doc_id:'WI-1', doctype_id:'wi', doc_name:'WI ประกอบ Busbar', doc_no:'WI-001', line_id:'Line 4', family_id:'CU', status:'ACTIVE' };
 const master = {
   M_DocType:[{doctype_id:'wi', doctype_name:'WI', display_name_th:'วิธีปฏิบัติงาน WI', behavior:'file'}, {doctype_id:'drawing', display_name_th:'Drawing', behavior:'file'}],
-  M_Document:[doc, {...doc,doc_id:'DR-1',doctype_id:'drawing',doc_name:'Drawing 1'}, {...doc,doc_id:'WI-2',doc_name:'WI shared',line_id:'*'}],
+  M_Document:[doc, {...doc,doc_id:'DR-1',doctype_id:'drawing',doc_name:'Drawing 1'}, {...doc,doc_id:'WI-2',doc_name:'WI shared',line_id:'*',family_id:'LC'}],
   M_Revision:[{doc_id:'WI-1',rev_id:'WI-1:Rev02',rev_no:'Rev02',status:'CURRENT',content_ref:'new_pdf_id',effective_date:'2026-10-21'}, {doc_id:'WI-1',rev_id:'WI-1:Rev01',rev_no:'Rev01',status:'OBSOLETE',content_ref:'old_pdf_id'}],
   M_Line:[{line_id:'L4',line_name:'Line4',display_name:'Line 4'}],
   M_Station:[{station_id:'ST1',line_id:'L4',station_no:1,station_name:'Assembly'},{station_id:'ST2',line_id:'L4',station_no:2,station_name:'Packing'}],
-  M_DocAssign:[{doc_id:'WI-1',station_id:'ST1'}],M_ProductFamily:[],M_Model:[],M_Shift:[],M_Employee:[],M_Role:[],M_Permission:[]
+  M_DocAssign:[{doc_id:'WI-1',station_id:'ST1'},{doc_id:'WI-1',station_id:'ST2',status:'INACTIVE'}],M_ProductFamily:[{family_id:'CU',display_name:'CU'},{family_id:'LC',display_name:'LC'}],M_Model:[{model_id:'CU-A',family_id:'CU',model_name:'CU Model A'}],M_Shift:[],M_Employee:[],M_Role:[],M_Permission:[]
 };
 // Backend guards must reject duplicates before uploading or changing CURRENT.
 const context = vm.createContext({});
@@ -56,12 +56,26 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.goto(base+'/documents.html');
     await page.waitForSelector('#document-groups table');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
+    assert.equal(await page.locator('#doc-station').isEnabled(),true);
+    await page.selectOption('#doc-model','model:CU-A');
+    assert.equal(await page.locator('#document-groups tbody tr').count(),1);
+    assert.match(await page.locator('.station-summary').innerText(),/1 Station/);
+    assert.match(await page.locator('#document-groups tbody tr td').first().innerText(),/Station 1/);
+    await page.selectOption('#doc-model','');
+    await page.selectOption('#doc-station','ST1');
+    assert.equal(await page.locator('#document-groups tbody tr').count(),2);
+    await page.selectOption('#doc-station','');
     assert.equal(await page.locator('a:has-text("ดาวน์โหลด")').first().getAttribute('href'),'https://drive.google.com/uc?export=download&id=new_pdf_id');
     await page.locator('#document-groups a:has-text("เปิด PDF")').click();
     await page.waitForFunction(()=>document.querySelector('.document-preview iframe').src.startsWith('blob:'));
     assert.equal(await page.locator('.document-preview').isVisible(),true);
     assert.equal(browser.contexts()[0].pages().length,1);
     await page.click('.preview-close');
+    await page.locator('#document-groups tbody tr').filter({hasText:'WI ประกอบ Busbar'}).getByText('ระบุ Station',{exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#a-doc').value==='WI-1' && document.querySelector('#a-line').value==='L4');
+    assert.equal(await page.locator('#a-stations input[value="ST1"]').isChecked(),true);
+    assert.equal(await page.locator('#a-stations input[value="ST2"]').isChecked(),false);
+    await page.goto(base+'/documents.html');await page.waitForSelector('#document-groups table');
     await page.selectOption('#doc-line','L4');await page.selectOption('#doc-station','ST2');
     assert.equal(await page.locator('#document-groups tbody tr').count(),1); // shared WI only
     await page.goto(base+'/documents.html?mode=control');
