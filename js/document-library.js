@@ -4,12 +4,17 @@ const DocumentLibrary = {
   quality: new URLSearchParams(location.search).get('mode') === 'quality',
 
   includesType(type) {
-    return this.control || (this.quality ? !!type && type.behavior === 'form' : this.isWI(type));
+    return this.control || (this.quality
+      ? !!type && !this.isWI(type) && ['form', 'file'].includes(type.behavior)
+      : this.isWI(type));
   },
 
   isWI(type) {
-    return !!type && (String(type.doctype_id).toLowerCase() === 'wi' ||
-      String(type.doctype_name).trim().toUpperCase() === 'WI');
+    if (!type) return false;
+    return [type.doctype_id, type.doctype_name, type.display_name_th].some(value => {
+      const name = String(value || '').trim();
+      return /(^|[^a-z])wi([^a-z]|$)|work[\s_-]*instruction|วิธีปฏิบัติงาน/i.test(name);
+    });
   },
 
   filteredDocuments() {
@@ -89,11 +94,11 @@ const DocumentLibrary = {
         const number = document.createElement('small'); number.textContent = d.doc_no || d.doc_id; tr.children[0].appendChild(number);
         const cell = document.createElement('td'), actions = document.createElement('div'); actions.className = 'document-actions';
         this.link(actions, 'ดู / ประวัติ Rev', 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
-        if (this.quality && rev && type && type.behavior === 'form') {
+        const ref = String(rev && rev.content_ref || '');
+        if (this.quality && rev && /\.json$/i.test(ref)) {
           this.link(actions, 'ดู / พิมพ์ฟอร์ม', 'print.html?form=' + encodeURIComponent(d.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id), true);
         }
-        const ref = String(rev && rev.content_ref || '');
-        if (ref && type && type.behavior === 'file' && /^[\w-]+$/.test(ref)) {
+        if (!this.control && ref && !/\.json$/i.test(ref) && /^[\w-]+$/.test(ref)) {
           this.link(actions, 'ดาวน์โหลด', 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(ref), true);
           this.link(actions, 'เปิด PDF / พิมพ์', 'https://drive.google.com/file/d/' + encodeURIComponent(ref) + '/view', true);
         }
@@ -123,7 +128,7 @@ const DocumentLibrary = {
     if (this.quality) {
       document.title = 'เอกสารควบคุมคุณภาพ — ENC QMS';
       document.getElementById('library-title').textContent = 'เอกสารควบคุมคุณภาพ';
-      document.getElementById('library-help').textContent = 'รวมแบบฟอร์มควบคุมคุณภาพ First Piece, Checklist และแบบตรวจอื่น ๆ — เลือกดูหรือพิมพ์ฉบับปัจจุบัน และดูประวัติ Revision';
+      document.getElementById('library-help').textContent = 'รวมเอกสารควบคุมคุณภาพและแบบฟอร์มทุกหมวด เช่น First Piece, Checklist, Drawing และมาตรฐาน — ดาวน์โหลด เปิด PDF หรือพิมพ์ฉบับปัจจุบัน พร้อมประวัติ Revision (WI อยู่ในเมนูเอกสาร WI)';
     }
     if (this.control) {
       document.title = 'ควบคุมเอกสาร — ENC QMS';

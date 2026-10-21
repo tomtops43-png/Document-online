@@ -57,6 +57,8 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.goto(base+'/documents.html?mode=control');
     await page.waitForSelector('#document-groups table');
     assert.equal(await page.locator('#document-groups h2').count(),2);
+    assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),0);
+    assert.equal(await page.locator('#document-groups a:has-text("เปิด PDF")').count(),0);
     await page.selectOption('#doc-category','wi');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     await page.fill('#doc-query','WI-001');
@@ -80,9 +82,13 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     master.M_DocType.push({doctype_id:'first-piece',display_name_th:'First Piece',behavior:'form'});
     master.M_Document.push({...doc,doc_id:'FP-1',doctype_id:'first-piece',doc_name:'First Piece quality'});
     master.M_Revision.push({doc_id:'FP-1',rev_id:'FP-1:Rev01',rev_no:'Rev01',status:'CURRENT',content_ref:'templates/nms-first-piece-rev1.json'});
+    master.M_Revision.push({doc_id:'DR-1',rev_id:'DR-1:Rev01',rev_no:'Rev01',status:'CURRENT',content_ref:'drawing_pdf'});
     await page.goto(base+'/documents.html?mode=quality');
     await page.waitForSelector('#document-groups table');
-    assert.equal(await page.locator('#document-groups tbody tr').count(),1);
+    assert.equal(await page.locator('#document-groups tbody tr').count(),2);
+    assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),1);
+    assert.match(await page.locator('#document-groups a:has-text("เปิด PDF")').getAttribute('href'),/drawing_pdf/);
+    assert.doesNotMatch(await page.locator('#document-groups').innerText(),/WI ประกอบ|WI shared/);
     assert.equal(await page.locator('#library-title').innerText(),'เอกสารควบคุมคุณภาพ');
     assert.match(await page.locator('#document-groups a:has-text("พิมพ์ฟอร์ม")').getAttribute('href'),/rev_id=FP-1%3ARev01/);
     assert.deepEqual(errors,[]);
