@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — จัดการเอกสาร Master</title>
+<title>ควบคุมเอกสาร — เพิ่ม / แก้ไข / อัปเดต Revision</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -24,6 +24,7 @@
 </header>
 
 <main class="container container-wide">
+  <p><a class="btn-secondary" href="documents.html?mode=control">← ทะเบียนควบคุมเอกสารทุกหมวด</a></p>
 
   <div class="tab-bar">
     <button type="button" class="tab active" id="tab-formreg" onclick="switchTab('formreg')">📋 ลงทะเบียนฟอร์ม <span class="tab-badge" id="formreg-count"></span></button>
@@ -123,12 +124,13 @@
   <section id="pane-rev" class="card" style="display:none">
     <h2>เพิ่ม Revision ใหม่ (ฉบับเดิมจะกลายเป็น OBSOLETE อัตโนมัติ)</h2>
     <label class="field"><span>เลือกเอกสาร *</span><select id="r-doc"></select></label>
+    <p id="r-current" class="modal-hint"></p>
     <div class="filter-grid">
       <label class="field"><span>เลข Revision ใหม่ *</span><input type="text" id="r-rev" placeholder="เช่น Rev09"></label>
       <label class="field"><span>วันที่มีผล</span><input type="date" id="r-eff"></label>
     </div>
     <label class="field"><span>เหตุผลการแก้ไข *</span><input type="text" id="r-reason" placeholder="เช่น อัปเดตค่า Torque"></label>
-    <div class="upload-box">
+    <div class="upload-box" id="revision-file-upload">
       <div class="upload-tabs">
         <button type="button" class="uptab active" data-up="file" onclick="setUpMode('rev','file')">📎 อัปโหลดไฟล์</button>
         <button type="button" class="uptab" data-up="drive" onclick="setUpMode('rev','drive')">🔗 ลิงก์ Drive</button>
@@ -136,6 +138,10 @@
       <div id="rev-up-file"><input type="file" id="r-file" accept="application/pdf,image/*"></div>
       <div id="rev-up-drive" style="display:none"><input type="text" id="r-drive" placeholder="ลิงก์ Drive หรือ File ID"></div>
     </div>
+    <label class="field" id="revision-template" hidden><span>ไฟล์ Template ของ Revision ใหม่ *</span>
+      <select id="r-template"></select>
+      <small>เลือก Template ที่เพิ่มไว้แล้วสำหรับฟอร์มนี้ ฉบับเดิมยังคงอยู่ในประวัติ</small>
+    </label>
     <button type="button" class="btn-primary btn-block" id="btn-add-rev">✔ เพิ่ม Revision</button>
   </section>
 
@@ -256,8 +262,9 @@
 <script>
 const user = Auth.requireLogin();
 AppShell.init('admin');
-if (user && user.role !== 'Admin' && user.role !== 'DocControl') {
-  showToast('หน้านี้สำหรับ Admin / Document Control เท่านั้น', 'error');
+if (user && user.role !== 'Admin') {
+  document.querySelector('main').hidden = true;
+  showToast('หน้านี้สำหรับ Admin เท่านั้น', 'error');
   setTimeout(function () { location.href = 'dashboard.html'; }, 1500);
 }
 
@@ -284,6 +291,7 @@ function setUpMode(pane, mode) {
 let manifestTemplates = [];
 
 (async function () {
+  if (!user || user.role !== 'Admin') return;
   Loading.show('กำลังโหลด Master...');
   try {
     await Master.load();
@@ -301,11 +309,12 @@ let manifestTemplates = [];
     });
     document.getElementById('a-line').addEventListener('change', function () {
       renderStationChecks('a-stations', this.value);
+      markAssigned();
     });
     document.getElementById('f-line').addEventListener('change', function () {
       renderStationChecks('f-stations', this.value);
     });
-    document.getElementById('a-doc').addEventListener('change', markAssigned);
+    document.getElementById('a-doc').addEventListener('change', selectAssignmentDocument);
     document.getElementById('m-line-filter').addEventListener('change', function () { renderManageList(); });
     document.getElementById('f-family').addEventListener('change', function () {
       fillSeriesDatalist('f-series-list', this.value);
@@ -323,6 +332,18 @@ let manifestTemplates = [];
     document.getElementById('r-eff').value = new Date().toISOString().slice(0, 10);
     document.getElementById('f-eff').value = new Date().toISOString().slice(0, 10);
     await loadManifest();
+    document.getElementById('r-doc').addEventListener('change', updateRevisionSource);
+    const route = new URLSearchParams(location.search);
+    const tab = route.get('tab');
+    const selectedDoc = Master.document(route.get('doc_id'));
+    if (['formreg', 'new', 'rev', 'assign', 'manage', 'employee'].includes(tab)) switchTab(tab);
+    if (selectedDoc) {
+      document.getElementById('r-doc').value = selectedDoc.doc_id;
+      document.getElementById('a-doc').value = selectedDoc.doc_id;
+      selectAssignmentDocument();
+      if (tab === 'manage') openEditModal(selectedDoc);
+    }
+    updateRevisionSource();
   } catch (err) {
     showToast('โหลด Master ไม่สำเร็จ: ' + err.message, 'error');
   } finally {
@@ -529,7 +550,36 @@ document.getElementById('btn-register').addEventListener('click', async function
 });
 
 // ---------- เพิ่ม revision ----------
+async function updateRevisionSource() {
+  const docId = document.getElementById('r-doc').value;
+  const doc = Master.document(docId);
+  const type = doc && Master.docType(doc.doctype_id);
+  const isForm = !!type && type.behavior === 'form';
+  document.getElementById('revision-file-upload').hidden = isForm;
+  document.getElementById('revision-template').hidden = !isForm;
+  const rev = Master.currentRevision(docId);
+  document.getElementById('r-current').textContent = rev ? 'ฉบับปัจจุบัน: ' + rev.rev_no + ' — ฉบับเก่าจะเก็บในประวัติเมื่อบันทึกฉบับใหม่' : 'ยังไม่มีฉบับปัจจุบัน';
+  const select = document.getElementById('r-template');
+  select.replaceChildren(new Option('— เลือก Template ฉบับใหม่ —', ''));
+  if (!isForm) return;
+  try {
+    const res = await fetch('templates/manifest.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('โหลดรายการ Template ไม่สำเร็จ');
+    const manifest = await res.json();
+    const templateResponse = rev ? await fetch(rev.content_ref, { cache: 'no-cache' }) : null;
+    if (templateResponse && !templateResponse.ok) throw new Error('โหลด Template ปัจจุบันไม่สำเร็จ');
+    const currentTemplate = templateResponse ? await templateResponse.json() : null;
+    if (document.getElementById('r-doc').value !== docId) return;
+    (manifest.templates || []).forEach(t => {
+      if ((!currentTemplate || t.form_id === currentTemplate.form_id) && (!rev || t.path !== rev.content_ref)) {
+        select.add(new Option((t.rev_no || '') + ' — ' + (t.title || t.path), t.path));
+      }
+    });
+  } catch (err) { showToast(err.message, 'error'); }
+}
 document.getElementById('btn-add-rev').addEventListener('click', async function () {
+  const button = document.getElementById('btn-add-rev');
+  if (button.disabled) return;
   const payload = {
     doc_id: document.getElementById('r-doc').value,
     rev_no: document.getElementById('r-rev').value.trim(),
@@ -537,8 +587,16 @@ document.getElementById('btn-add-rev').addEventListener('click', async function 
     reason: document.getElementById('r-reason').value.trim()
   };
   if (!payload.rev_no) { showToast('กรอกเลข Revision', 'error'); return; }
+  if (!payload.reason) { showToast('กรอกเหตุผลการแก้ไข', 'error'); return; }
+  button.disabled = true;
   try {
-    if (upMode.rev === 'file') {
+    const doc = Master.document(payload.doc_id);
+    const type = doc && Master.docType(doc.doctype_id);
+    if (type && type.behavior === 'form') {
+      payload.template_path = document.getElementById('r-template').value;
+      if (!payload.template_path) { showToast('เลือก Template ฉบับใหม่ก่อน', 'error'); return; }
+      Loading.show('กำลังบันทึก Revision...');
+    } else if (upMode.rev === 'file') {
       const f = document.getElementById('r-file').files[0];
       if (!f) { showToast('เลือกไฟล์ก่อน', 'error'); return; }
       Loading.show('กำลังอัปโหลด...');
@@ -558,13 +616,26 @@ document.getElementById('btn-add-rev').addEventListener('click', async function 
     document.getElementById('r-rev').value = '';
     document.getElementById('r-file').value = '';
     await Master.load(); fillDocSelect('r-doc');
+    document.getElementById('r-doc').value = payload.doc_id;
+    await updateRevisionSource();
   } catch (err) {
     Loading.hide();
     showToast('ไม่สำเร็จ: ' + err.message, 'error');
+  } finally {
+    button.disabled = false;
   }
 });
 
 // ---------- ผูก Station ----------
+function selectAssignmentDocument() {
+  const doc = Master.document(document.getElementById('a-doc').value);
+  const normalize = value => String(value || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+  const line = doc && Master.lines().find(l => [l.line_id, l.line_name, l.display_name].some(value => normalize(value) === normalize(doc.line_id)));
+  const select = document.getElementById('a-line');
+  if (line) select.value = line.line_id;
+  renderStationChecks('a-stations', select.value);
+  markAssigned();
+}
 function markAssigned() {
   const docId = document.getElementById('a-doc').value;
   const assigns = (Master.data.M_DocAssign || []).filter(function (a) {

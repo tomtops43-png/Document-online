@@ -12,16 +12,18 @@ const AppShell = {
     // ไม่ต้องเห็นเมนูนี้ (ตัดตัวเลือกที่ไม่เกี่ยวกับงานเขาออก กันสับสน)
     { key: 'home', href: 'home.html', icon: '📊', label: 'Dashboard', roles: ['Admin', 'DocControl', 'Leader', 'QI'] },
     { key: 'dashboard', href: 'dashboard.html', icon: '🏭', label: 'Document Center' },
+    { key: 'wi', href: 'documents.html', icon: '📖', label: 'เอกสาร WI' },
+    { key: 'quality', href: 'documents.html?mode=quality', icon: '📑', label: 'เอกสารควบคุมคุณภาพ' },
     { key: 'search', href: 'search.html', icon: '🔍', label: 'ค้นหา' },
     { key: 'records', href: 'records.html', icon: '📋', label: 'บันทึก / อนุมัติ' }
   ],
   NAV_ITEMS_ADMIN: [
-    { key: 'admin', href: 'admin.html', icon: '⚙️', label: 'จัดการเอกสาร Master', roles: ['Admin', 'DocControl'] },
+    { key: 'admin', href: 'documents.html?mode=control', icon: '🗂️', label: 'ควบคุมเอกสาร', roles: ['Admin'] },
     { key: 'users', href: 'users.html', icon: '👥', label: 'จัดการผู้ใช้งาน', roles: ['Admin'] }
   ],
   PAGE_TITLES: {
     home: 'Dashboard', dashboard: 'Document Center', search: 'ค้นหา',
-    records: 'บันทึก / อนุมัติ', admin: 'จัดการเอกสาร Master', users: 'จัดการผู้ใช้งาน'
+    records: 'บันทึก / อนุมัติ', wi: 'เอกสาร WI', quality: 'เอกสารควบคุมคุณภาพ', admin: 'ควบคุมเอกสาร', users: 'จัดการผู้ใช้งาน'
   },
 
   _notifLoaded: false,
@@ -150,7 +152,7 @@ const AppShell = {
     }
 
     // ฟอร์มที่ Claude แปลงไว้แต่ยังไม่ได้ลงทะเบียนเข้า Master — เฉพาะ role ที่เห็นเมนูนี้
-    if (user && (user.role === 'Admin' || user.role === 'DocControl')) {
+    if (user && user.role === 'Admin') {
       try {
         const [manifestRes] = await Promise.all([
           fetch('templates/manifest.json', { cache: 'no-cache' }),

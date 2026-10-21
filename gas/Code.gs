@@ -86,6 +86,7 @@ function handleRequest(e, method) {
       case 'doc.assign':      return jsonOut(actionDocAssign(params, user));
       case 'doc.delete':      return jsonOut(actionDocDelete(params, user));
       case 'doc.update':      return jsonOut(actionDocUpdate(params, user));
+      case 'doc.getPdf':      return jsonOut(actionDocGetPdf(params, user));
 
       // ---- Admin: จัดการรายชื่อพนักงาน (M_Employee — dropdown Recorder) ----
       case 'employee.create': return jsonOut(actionEmployeeCreate(params, user));
@@ -1159,8 +1160,8 @@ function getMasterSS() {
 }
 
 // อ่านทั้งชีทจาก master เป็น array ของ object
-function readMaster(sheetName) {
-  var ss = getMasterSS();
+function readMaster(sheetName, masterSpreadsheet) {
+  var ss = masterSpreadsheet || getMasterSS();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
   var values = sheet.getDataRange().getValues();
@@ -1200,16 +1201,67 @@ function bumpMasterVersion() {
 
 // master.getAll — คืน master ทุกชีท + version (client cache ทั้งก้อน)
 function actionMasterGetAll(params, user) {
+  var version = getMasterVersion();
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'master_all_v_' + version;
+  try {
+    var cached = cache.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (cacheError) { /* อ่านจาก Sheets ถ้า cache ใช้ไม่ได้ */ }
+  var masterSpreadsheet = getMasterSS();
   var data = {};
   // ทิ้งเฉพาะแถวที่ปิดใช้งานจริงๆ — ห้ามทิ้ง CURRENT/OBSOLETE (M_Revision ใช้ค่าเหล่านี้)
   // viewer ต้องเห็น OBSOLETE เพื่อดูประวัติ revision ด้วย
   var DROP = { 'INACTIVE': 1, 'DELETED': 1, 'DISABLED': 1 };
   Object.keys(MASTER_SHEET_DEFS).forEach(function (name) {
-    data[name] = readMaster(name).filter(function (r) {
+    data[name] = readMaster(name, masterSpreadsheet).filter(function (r) {
       return !('status' in r) || !DROP[String(r.status).toUpperCase()];
     });
   });
-  return { success: true, master: data, master_version: getMasterVersion() };
+  var result = { success: true, master: data, master_version: version };
+  try {
+    var serialized = JSON.stringify(result);
+    if (Utilities.newBlob(serialized).getBytes().length < 90000) cache.put(cacheKey, serialized, 60);
+  } catch (cacheWriteError) { /* ข้อมูลใหญ่หรือ cache เต็มยังส่งผลลัพธ์ได้ */ }
+  return result;
+}
+
+// Read-only diagnostics: logs durations and counts, never employee data or tokens.
+function checkDeploymentReadiness() {
+  var checks = [];
+  function check(name, run) {
+    try { run(); checks.push({ name: name, ok: true }); }
+    catch (e) { checks.push({ name: name, ok: false, error: String(e.message || e) }); }
+  }
+  check('Master database', function () {
+    var master = getMasterSS();
+    ['M_Document', 'M_Revision', 'M_DocAssign', 'M_DocType', 'M_Permission'].forEach(function (name) {
+      var sheet = master.getSheetByName(name);
+      if (!sheet) throw new Error('Missing sheet: ' + name);
+      sheet.getRange(1, 1).getValue();
+    });
+  });
+  check('Transaction database', function () {
+    [SHEET_USERS, SHEET_RECORDS, SHEET_CONFIG].forEach(function (name) { getSheet(name).getRange(1, 1).getValue(); });
+  });
+  check('Document storage', function () {
+    var folderId = getConfigValue('drive_root_folder_id');
+    if (!folderId) throw new Error('Missing drive_root_folder_id');
+    DriveApp.getFolderById(String(folderId)).getName();
+  });
+  Logger.log(JSON.stringify({ account: Session.getEffectiveUser().getEmail(), checks: checks }));
+  if (checks.some(function (item) { return !item.ok; })) throw new Error('Do not deploy: database or storage access check failed');
+  return { success: true, checks: checks };
+}
+
+function diagnoseMasterLoad() {
+  var started = Date.now();
+  var first = actionMasterGetAll({}, { role: 'Admin' });
+  var firstMs = Date.now() - started;
+  started = Date.now();
+  var second = actionMasterGetAll({}, { role: 'Admin' });
+  Logger.log(JSON.stringify({ firstMs: firstMs, cachedMs: Date.now() - started, characters: JSON.stringify(second).length,
+    tables: Object.keys(first.master).length }));
 }
 
 // ========================================================
@@ -1219,6 +1271,8 @@ function actionMasterGetAll(params, user) {
 function can(user, action, scope) {
   scope = scope || {};
   if (!user) return false;
+  // Document administration is exclusively Admin, even if old permission rows grant it to DocControl.
+  if (action === 'document.manage') return user.role === 'Admin';
   var perms = readMaster('M_Permission');
   for (var i = 0; i < perms.length; i++) {
     var p = perms[i];
@@ -1259,6 +1313,22 @@ function extractDriveId(input) {
 // Admin: ลงทะเบียนเอกสารไฟล์ (WI/Drawing/OWS/...) — self-service ผ่านหน้าเว็บ
 // อัปโหลดไฟล์ (base64) หรืออ้าง Drive fileId เดิม → สร้าง Document + Revision + Assign
 // ========================================================
+function actionDocGetPdf(params, user) {
+  var docId = String(params.doc_id || '');
+  var docs = readMaster('M_Document');
+  var doc = docs.filter(function (d) { return String(d.doc_id) === docId && String(d.status).toUpperCase() === 'ACTIVE'; })[0];
+  if (!doc) return { success: false, error: 'ไม่พบเอกสารที่เปิดใช้งาน' };
+  var revId = String(params.rev_id || doc.current_rev_id || '');
+  var revision = readMaster('M_Revision').filter(function (r) {
+    return String(r.doc_id) === docId && String(r.rev_id) === revId;
+  })[0];
+  if (!revision || !/^[\w-]+$/.test(String(revision.content_ref || ''))) return { success: false, error: 'Revision นี้ไม่มีไฟล์ PDF' };
+  var file = DriveApp.getFileById(String(revision.content_ref));
+  if (file.getMimeType() !== 'application/pdf') return { success: false, error: 'ไฟล์นี้ไม่ใช่ PDF' };
+  if (file.getSize() > 20 * 1024 * 1024) return { success: false, error: 'PDF ใหญ่เกิน 20 MB กรุณาดาวน์โหลดเพื่อพิมพ์' };
+  return { success: true, base64: Utilities.base64Encode(file.getBlob().getBytes()), mime_type: 'application/pdf' };
+}
+
 function actionDocRegister(params, user) {
   if (!can(user, 'document.manage', {})) {
     return { success: false, error: 'สิทธิ์ไม่พอ (ต้องมีสิทธิ์ document.manage)' };
@@ -1356,6 +1426,14 @@ function actionDocAddRevision(params, user) {
 
     var revNo = String(params.rev_no || '').trim();
     if (!revNo) return { success: false, error: 'ไม่ระบุเลข Revision' };
+    if (!String(params.reason || '').trim()) return { success: false, error: 'กรุณาระบุเหตุผลการแก้ไข' };
+    if (String(doc.status).toUpperCase() !== 'ACTIVE') return { success: false, error: 'เอกสารนี้ถูกยกเลิกแล้ว' };
+    var revisions = readMaster('M_Revision');
+    for (var ri = 0; ri < revisions.length; ri++) {
+      if (String(revisions[ri].doc_id) === docId && String(revisions[ri].rev_no).trim().toLowerCase() === revNo.toLowerCase()) {
+        return { success: false, error: 'เลข Revision นี้มีอยู่แล้ว กรุณาใช้เลขใหม่' };
+      }
+    }
 
     var contentRef = '';
     if (params.template_path) {
