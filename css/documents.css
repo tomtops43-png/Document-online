@@ -1,6 +1,15 @@
 .document-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:16px 0; }
 .document-toolbar[hidden] { display:none; }
-.document-actions { display:flex; flex-wrap:wrap; gap:8px; min-width:200px; }
+.document-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.document-actions .btn-small { flex:0 0 auto; white-space:nowrap; }
+#document-groups .table-scroll { max-height:none; overflow:auto; }
+.document-library-table { table-layout:fixed; min-width:1120px; }
+.document-library-table th:nth-child(1) { width:auto; }
+.document-library-table th:nth-child(2) { width:65px; }
+.document-library-table th:nth-child(3) { width:140px; }
+.document-library-table th:nth-child(4) { width:110px; }
+.document-library-table th:nth-child(5) { width:460px; }
+.document-library-table td:first-child { white-space:normal; overflow-wrap:anywhere; }
 .document-library-table td { vertical-align:top; }
 .document-library-table small { display:block; margin-top:6px; color:#64748b; }
 #library-error { color:#b91c1c; }
