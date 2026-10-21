@@ -255,9 +255,14 @@ const AppShell = {
   // ล้าง cache ของ Master Data ในเครื่อง แล้วโหลดหน้าใหม่ — ใช้เมื่อแก้ข้อมูลในชีท ENC-MASTER
   // ตรงๆ (ไม่ผ่าน action ของแอป) เพราะกรณีนั้น master_version จะไม่ถูก bump อัตโนมัติ
   // หน้าเว็บจึงยังเห็นข้อมูลเก่าจาก cache ต่อไปเรื่อยๆ จนกว่าจะล้าง cache เอง
-  refreshMaster() {
-    try { localStorage.removeItem(typeof Master !== 'undefined' ? Master.LS_KEY : 'fp_master_cache'); } catch (e) { /* ข้าม */ }
-    location.reload();
+  async refreshMaster() {
+    try {
+      if (typeof Master === 'undefined') throw new Error('ไม่พบตัวโหลด Master');
+      await Master._fetch();
+      location.reload();
+    } catch (err) {
+      showToast('ยังโหลดข้อมูลล่าสุดไม่ได้ เก็บข้อมูลสำรองเดิมไว้แล้ว กรุณาใช้ปุ่มกู้ระบบในหน้า WI', 'error');
+    }
   }
 };
 
