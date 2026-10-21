@@ -157,6 +157,14 @@ const DocumentLibrary = {
         const values = [d.doc_name, line ? (line.display_name || line.line_name) : d.line_id,
           rev ? rev.rev_no : 'ยังไม่มีฉบับปัจจุบัน', rev ? rev.effective_date : ''];
         values.forEach(value => { const td = document.createElement('td'); td.textContent = value || '—'; tr.appendChild(td); });
+        const ref = String(rev && rev.content_ref || '');
+        if (!this.control && ref) {
+          const nameCell = tr.children[0]; nameCell.replaceChildren();
+          const formUrl = /\.json$/i.test(ref) ? 'print.html?form=' + encodeURIComponent(d.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id) : null;
+          const nameLink = this.link(nameCell, d.doc_name, formUrl || 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
+          nameLink.className = 'document-name-link';
+          nameLink.onclick = event => { event.preventDefault(); DocumentPreview.open(d, rev, formUrl); };
+        }
         const number = document.createElement('small'); number.textContent = d.doc_no || d.doc_id; tr.children[0].appendChild(number);
         if (wi) {
           const stationCell = document.createElement('td'), stations = this.assignedStations(d);
@@ -165,17 +173,6 @@ const DocumentLibrary = {
         }
         const cell = document.createElement('td'), actions = document.createElement('div'); actions.className = 'document-actions';
         this.link(actions, 'ดู / ประวัติ Rev', 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
-        const ref = String(rev && rev.content_ref || '');
-        if (this.quality && rev && /\.json$/i.test(ref)) {
-          const formUrl = 'print.html?form=' + encodeURIComponent(d.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id);
-          const formLink = this.link(actions, 'ดู / พิมพ์ฟอร์ม', formUrl);
-          formLink.onclick = event => { event.preventDefault(); DocumentPreview.open(d, rev, formUrl); };
-        }
-        if (!this.control && ref && !/\.json$/i.test(ref) && /^[\w-]+$/.test(ref)) {
-          this.link(actions, 'ดาวน์โหลด', 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(ref), true);
-          const pdfLink = this.link(actions, 'เปิด PDF / พิมพ์', 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
-          pdfLink.onclick = event => { event.preventDefault(); DocumentPreview.open(d, rev); };
-        }
         if (this.control) {
           this.link(actions, 'อัปเดต Rev', 'admin.html?tab=rev&doc_id=' + encodeURIComponent(d.doc_id));
           this.link(actions, 'แก้ข้อมูล', 'admin.html?tab=manage&doc_id=' + encodeURIComponent(d.doc_id));
@@ -202,7 +199,7 @@ const DocumentLibrary = {
     if (this.quality) {
       document.title = 'เอกสารควบคุมคุณภาพ — ENC QMS';
       document.getElementById('library-title').textContent = 'เอกสารควบคุมคุณภาพ';
-      document.getElementById('library-help').textContent = 'รวมเอกสารควบคุมคุณภาพและแบบฟอร์มทุกหมวด เช่น First Piece, Checklist, Drawing และมาตรฐาน — ดาวน์โหลด เปิด PDF หรือพิมพ์ฉบับปัจจุบัน พร้อมประวัติ Revision (WI อยู่ในเมนูเอกสาร WI)';
+      document.getElementById('library-help').textContent = 'กดชื่อรุ่น / เอกสารเพื่อเปิดดูและพิมพ์ฉบับปัจจุบันในป๊อปอัพ พร้อมประวัติ Revision (WI อยู่ในเมนูเอกสาร WI)';
     }
     if (this.control) {
       document.title = 'ควบคุมเอกสาร — ENC QMS';

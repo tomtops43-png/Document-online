@@ -68,8 +68,9 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.selectOption('#doc-station','ST1');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     await page.selectOption('#doc-station','');
-    assert.equal(await page.locator('a:has-text("ดาวน์โหลด")').first().getAttribute('href'),'https://drive.google.com/uc?export=download&id=new_pdf_id');
-    await page.locator('#document-groups a:has-text("เปิด PDF")').click();
+    assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),0);
+    assert.equal(await page.locator('#document-groups a:has-text("เปิด PDF")').count(),0);
+    await page.locator('#document-groups .document-name-link').filter({hasText:'WI ประกอบ Busbar'}).click();
     await page.waitForFunction(()=>document.querySelector('.document-preview iframe').src.startsWith('blob:'));
     assert.equal(await page.locator('.document-preview').isVisible(),true);
     assert.equal(browser.contexts()[0].pages().length,1);
@@ -114,11 +115,11 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.goto(base+'/documents.html?mode=quality');
     await page.waitForSelector('#document-groups table');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
-    assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),1);
-    assert.match(await page.locator('#document-groups a:has-text("เปิด PDF")').getAttribute('href'),/doc_id=DR-1/);
+    assert.equal(await page.locator('#document-groups a:has-text("ดาวน์โหลด")').count(),0);
+    assert.match(await page.locator('#document-groups .document-name-link').filter({hasText:'Drawing 1'}).getAttribute('href'),/doc_id=DR-1/);
     assert.doesNotMatch(await page.locator('#document-groups').innerText(),/WI ประกอบ|WI shared/);
     assert.equal(await page.locator('#library-title').innerText(),'เอกสารควบคุมคุณภาพ');
-    assert.match(await page.locator('#document-groups a:has-text("พิมพ์ฟอร์ม")').getAttribute('href'),/rev_id=FP-1%3ARev01/);
+    assert.match(await page.locator('#document-groups .document-name-link').filter({hasText:'First Piece quality'}).getAttribute('href'),/rev_id=FP-1%3ARev01/);
     assert.deepEqual(errors,[]);
     await page.evaluate(()=>localStorage.setItem('fp_user',JSON.stringify({name:'Operator',role:'Operator'})));
     await page.goto(base+'/documents.html?mode=control');await page.waitForURL(base+'/documents.html');

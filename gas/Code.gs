@@ -1398,9 +1398,6 @@ function actionDocAddRevision(params, user) {
       contentRef = file.getId();
     } else if (params.drive_id) {
       contentRef = extractDriveId(params.drive_id);
-      try {
-        DriveApp.getFileById(contentRef).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      } catch (e) { /* สิทธิ์ไฟล์ภายนอกจัดการโดยเจ้าของไฟล์ */ }
     } else {
       return { success: false, error: 'ต้องแนบไฟล์ หรือใส่ลิงก์ Drive' };
     }

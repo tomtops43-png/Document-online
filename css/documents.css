@@ -16,11 +16,13 @@
 .wi-station-table th:nth-child(3) { width:70px; }
 .wi-station-table th:nth-child(4) { width:110px; }
 .wi-station-table th:nth-child(5) { width:100px; }
-.wi-station-table th:nth-child(6) { width:310px; }
+.wi-station-table th:nth-child(6) { width:150px; }
 .filter-grid > label[hidden] { display:none; }
 .wi-station-table td:nth-child(1), .wi-station-table td:nth-child(2) { white-space:pre-line; overflow-wrap:anywhere; }
 .wi-station-table td:first-child a { display:block; width:max-content; margin-top:8px; }
 .station-summary { color:#64748b; margin:0 0 14px; }
+.document-name-link { color:var(--brand-600, #2563eb); font-weight:600; text-decoration:none; }
+.document-name-link:hover, .document-name-link:focus-visible { text-decoration:underline; }
 .document-library-table td { vertical-align:top; }
 .document-library-table small { display:block; margin-top:6px; color:#64748b; }
 #library-error { color:#b91c1c; }

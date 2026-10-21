@@ -23,8 +23,8 @@ const DocumentPreview = {
       const bytes = Uint8Array.from(atob(data.base64), c => c.charCodeAt(0));
       this.url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
       this.frame.src = this.url;
-    }).catch(() => {
-      if (request === this.request) this.message.textContent = 'เปิดดูได้ในกรอบนี้ แต่การพิมพ์ในเว็บต้อง Deploy gas/Code.gs เวอร์ชันใหม่ หากยังโหลดไม่ได้ให้ตรวจสิทธิ์ไฟล์หรือดาวน์โหลด';
+    }).catch(err => {
+      if (request === this.request) this.message.textContent = 'โหลดไฟล์สำหรับพิมพ์ไม่สำเร็จ: ' + err.message;
     });
   },
   create() {
