@@ -57,6 +57,9 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.waitForSelector('#document-groups table');
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     assert.equal(await page.locator('#doc-station').isEnabled(),true);
+    assert.equal(await page.locator('#doc-category').isVisible(),false);
+    assert.equal(await page.locator('#doc-station option[value="ST2"]').count(),0);
+    assert.equal(await page.locator('#document-groups a:has-text("ระบุ Station")').count(),0);
     await page.selectOption('#doc-model','model:CU-A');
     assert.equal(await page.locator('#document-groups tbody tr').count(),1);
     assert.match(await page.locator('.station-summary').innerText(),/1 Station/);
@@ -71,12 +74,13 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     assert.equal(await page.locator('.document-preview').isVisible(),true);
     assert.equal(browser.contexts()[0].pages().length,1);
     await page.click('.preview-close');
-    await page.locator('#document-groups tbody tr').filter({hasText:'WI ประกอบ Busbar'}).getByText('ระบุ Station',{exact:true}).click();
+    await page.goto(base+'/admin.html?tab=assign&doc_id=WI-1');
     await page.waitForFunction(()=>document.querySelector('#a-doc').value==='WI-1' && document.querySelector('#a-line').value==='L4');
     assert.equal(await page.locator('#a-stations input[value="ST1"]').isChecked(),true);
     assert.equal(await page.locator('#a-stations input[value="ST2"]').isChecked(),false);
     await page.goto(base+'/documents.html');await page.waitForSelector('#document-groups table');
-    await page.selectOption('#doc-line','L4');await page.selectOption('#doc-station','ST2');
+    await page.selectOption('#doc-line','L4');await page.selectOption('#doc-model','family:LC');
+    assert.equal(await page.locator('#doc-station').isEnabled(),false);
     assert.equal(await page.locator('#document-groups tbody tr').count(),1); // shared WI only
     await page.goto(base+'/documents.html?mode=control');
     await page.waitForSelector('#document-groups table');

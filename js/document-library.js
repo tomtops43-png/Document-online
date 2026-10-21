@@ -14,7 +14,10 @@ const DocumentLibrary = {
     return (Master.data.M_Station || []).filter(s => this.active(s) && ids.has(String(s.station_id)))
       .sort((a,b) => String(a.station_no || a.station_name).localeCompare(String(b.station_no || b.station_name), 'th', {numeric:true}));
   },
-  stationLabel(station) { return 'Station ' + (station.station_no || station.station_id) + ' — ' + (station.station_name || ''); },
+  stationLabel(station) {
+    const label = 'Station ' + (station.station_no || station.station_id), name = String(station.station_name || '').trim();
+    return name && name.toLowerCase().replace(/\s/g,'') !== label.toLowerCase().replace(/\s/g,'') ? label + ' — ' + name : label;
+  },
   modelLabel(doc) {
     const family = (Master.data.M_ProductFamily || []).find(f => String(f.family_id) === String(doc.family_id));
     return [family ? (family.display_name || family.family_name) : (doc.family_id && doc.family_id !== '*' ? doc.family_id : 'ทุกรุ่น'), doc.series_tag, doc.model_group].filter(Boolean).join(' / ');
@@ -45,11 +48,11 @@ const DocumentLibrary = {
     });
   },
 
-  filteredDocuments() {
+  filteredDocuments(ignoreStation = false) {
     const query = document.getElementById('doc-query').value.trim().toLocaleLowerCase();
     const category = document.getElementById('doc-category').value;
     const line = document.getElementById('doc-line').value;
-    const station = document.getElementById('doc-station').value;
+    const station = ignoreStation ? '' : document.getElementById('doc-station').value;
     return (Master.data.M_Document || []).filter(d => {
       if (['DELETED', 'INACTIVE', 'DISABLED'].includes(String(d.status).toUpperCase())) return false;
       if (!this.includesType(Master.docType(d.doctype_id))) return false;
@@ -83,6 +86,7 @@ const DocumentLibrary = {
     Master.docTypes().filter(t => this.includesType(t)).forEach(t =>
       category.add(new Option(t.display_name_th || t.doctype_name, t.doctype_id)));
     this.restore(category, oldCategory);
+    category.closest('label').hidden = !this.control && !this.quality;
     line.replaceChildren(new Option('ทุกไลน์', ''));
     Master.lines().forEach(l => line.add(new Option(l.display_name || l.line_name, l.line_id)));
     this.restore(line, oldLine);
@@ -99,12 +103,14 @@ const DocumentLibrary = {
   fillStations() {
     const el = document.getElementById('doc-station'), old = el.value;
     const line = document.getElementById('doc-line').value;
+    const wi = !this.control && !this.quality;
+    const available = wi ? new Set(this.filteredDocuments(true).flatMap(d => this.assignedStations(d).map(s => String(s.station_id)))) : null;
     el.replaceChildren(new Option('ทุกสถานี', ''));
-    (Master.data.M_Station || []).filter(s => this.active(s) && (!line || this.lineKey(s.line_id) === this.lineKey(line)))
+    (Master.data.M_Station || []).filter(s => this.active(s) && (!line || this.lineKey(s.line_id) === this.lineKey(line)) && (!available || available.has(String(s.station_id))))
       .sort((a,b) => String(a.station_no || '').localeCompare(String(b.station_no || ''), 'th', {numeric:true}))
       .forEach(s => el.add(new Option((line ? '' : s.line_id + ' / ') + this.stationLabel(s), s.station_id)));
     this.restore(el, old);
-    el.disabled = false;
+    el.disabled = el.options.length === 1;
   },
 
   link(parent, text, href, external) {
@@ -155,7 +161,6 @@ const DocumentLibrary = {
         if (wi) {
           const stationCell = document.createElement('td'), stations = this.assignedStations(d);
           stationCell.textContent = stations.length ? stations.map(s => this.stationLabel(s)).join('\n') : 'ทั้งไลน์ — ยังไม่ระบุ Station เฉพาะ';
-          if (Auth.currentUser().role === 'Admin') this.link(stationCell, 'ระบุ Station', 'admin.html?tab=assign&doc_id=' + encodeURIComponent(d.doc_id));
           tr.insertBefore(stationCell, tr.firstChild);
         }
         const cell = document.createElement('td'), actions = document.createElement('div'); actions.className = 'document-actions';
@@ -206,7 +211,7 @@ const DocumentLibrary = {
       document.getElementById('control-actions').hidden = false;
     }
     ['doc-query', 'doc-category', 'doc-station', 'doc-model'].forEach(id =>
-      document.getElementById(id).addEventListener(id === 'doc-query' ? 'input' : 'change', () => this.render()));
+      document.getElementById(id).addEventListener(id === 'doc-query' ? 'input' : 'change', () => { if (id !== 'doc-station') this.fillStations(); this.render(); }));
     document.getElementById('doc-line').addEventListener('change', () => { this.fillStations(); this.render(); });
     document.getElementById('reload-documents').addEventListener('click', () => this.reload());
     document.addEventListener('master-updated', () => { this.fillFilters(); this.render(); });
