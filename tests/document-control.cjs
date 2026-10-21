@@ -39,11 +39,12 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     browser = await chromium.launch({channel:'msedge',headless:true});
     const page = await browser.newPage({viewport:{width:1280,height:900}});
     const errors=[]; page.on('pageerror', e=>errors.push(e.message));
-    let writes = [];
+    let writes = [], failMaster = false;
     await page.route('https://**/*', async route => {
       const req = route.request();
       if (!req.url().includes('script.google.com')) return route.abort();
       const payload = req.method()==='POST'?JSON.parse(req.postData()):Object.fromEntries(new URL(req.url()).searchParams);
+      if (failMaster && payload.action === 'master.getAll') return route.abort();
       if (payload.action === 'doc.addRevision') writes.push(payload);
       await route.fulfill({json:payload.action==='master.getAll'?{success:true,master,master_version:'1'}:payload.action==='doc.getPdf'?{success:true,base64:Buffer.from('%PDF-1.4\ntest').toString('base64')}:{success:true,records:[],notifications:[],unread:0}});
     });
@@ -120,6 +121,13 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     assert.doesNotMatch(await page.locator('#document-groups').innerText(),/WI ประกอบ|WI shared/);
     assert.equal(await page.locator('#library-title').innerText(),'เอกสารควบคุมคุณภาพ');
     assert.match(await page.locator('#document-groups .document-name-link').filter({hasText:'First Piece quality'}).getAttribute('href'),/rev_id=FP-1%3ARev01/);
+    failMaster = true;
+    await page.goto(base+'/documents.html');
+    await page.waitForSelector('#document-groups table');
+    await page.locator('#library-error').waitFor({state:'visible',timeout:20000});
+    assert.match(await page.locator('#library-error').innerText(),/ข้อมูลที่เคยโหลดไว้/);
+    assert.equal(await page.locator('#document-groups tbody tr').count(),2);
+    failMaster = false;
     assert.deepEqual(errors,[]);
     await page.evaluate(()=>localStorage.setItem('fp_user',JSON.stringify({name:'Operator',role:'Operator'})));
     await page.goto(base+'/documents.html?mode=control');await page.waitForURL(base+'/documents.html');

@@ -187,8 +187,13 @@ const DocumentLibrary = {
   async reload() {
     const button = document.getElementById('reload-documents'); button.disabled = true;
     const error = document.getElementById('library-error'); error.hidden = true;
+    if (!Master.data) {
+      const cached = Master._readCache();
+      if (cached && cached.master) { Master.data = cached.master; Master.version = cached.version; }
+    }
+    if (Master.data) { this.fillFilters(); this.render(); }
     try { await Master._fetch(); this.fillFilters(); this.render(); }
-    catch (err) { error.textContent = 'โหลดฉบับล่าสุดไม่สำเร็จ: ' + err.message; error.hidden = false; }
+    catch (err) { error.textContent = (Master.data ? 'เชื่อมต่อข้อมูลล่าสุดไม่สำเร็จ กำลังแสดงข้อมูลที่เคยโหลดไว้: ' : 'โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่: ') + err.message; error.hidden = false; }
     finally { button.disabled = false; }
   },
 
@@ -196,6 +201,7 @@ const DocumentLibrary = {
     const user = Auth.requireLogin(); if (!user) return;
     if (this.control && user.role !== 'Admin') { location.replace('documents.html'); return; }
     AppShell.init(this.control ? 'admin' : this.quality ? 'quality' : 'wi');
+    document.getElementById('doc-category').closest('label').hidden = !this.control && !this.quality;
     if (this.quality) {
       document.title = 'เอกสารควบคุมคุณภาพ — ENC QMS';
       document.getElementById('library-title').textContent = 'เอกสารควบคุมคุณภาพ';
