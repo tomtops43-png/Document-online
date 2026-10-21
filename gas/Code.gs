@@ -1160,8 +1160,8 @@ function getMasterSS() {
 }
 
 // อ่านทั้งชีทจาก master เป็น array ของ object
-function readMaster(sheetName) {
-  var ss = getMasterSS();
+function readMaster(sheetName, masterSpreadsheet) {
+  var ss = masterSpreadsheet || getMasterSS();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
   var values = sheet.getDataRange().getValues();
@@ -1201,16 +1201,40 @@ function bumpMasterVersion() {
 
 // master.getAll — คืน master ทุกชีท + version (client cache ทั้งก้อน)
 function actionMasterGetAll(params, user) {
+  var version = getMasterVersion();
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'master_all_v_' + version;
+  try {
+    var cached = cache.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (cacheError) { /* อ่านจาก Sheets ถ้า cache ใช้ไม่ได้ */ }
+  var masterSpreadsheet = getMasterSS();
   var data = {};
   // ทิ้งเฉพาะแถวที่ปิดใช้งานจริงๆ — ห้ามทิ้ง CURRENT/OBSOLETE (M_Revision ใช้ค่าเหล่านี้)
   // viewer ต้องเห็น OBSOLETE เพื่อดูประวัติ revision ด้วย
   var DROP = { 'INACTIVE': 1, 'DELETED': 1, 'DISABLED': 1 };
   Object.keys(MASTER_SHEET_DEFS).forEach(function (name) {
-    data[name] = readMaster(name).filter(function (r) {
+    data[name] = readMaster(name, masterSpreadsheet).filter(function (r) {
       return !('status' in r) || !DROP[String(r.status).toUpperCase()];
     });
   });
-  return { success: true, master: data, master_version: getMasterVersion() };
+  var result = { success: true, master: data, master_version: version };
+  try {
+    var serialized = JSON.stringify(result);
+    if (Utilities.newBlob(serialized).getBytes().length < 90000) cache.put(cacheKey, serialized, 60);
+  } catch (cacheWriteError) { /* ข้อมูลใหญ่หรือ cache เต็มยังส่งผลลัพธ์ได้ */ }
+  return result;
+}
+
+// Read-only diagnostics: logs durations and counts, never employee data or tokens.
+function diagnoseMasterLoad() {
+  var started = Date.now();
+  var first = actionMasterGetAll({}, { role: 'Admin' });
+  var firstMs = Date.now() - started;
+  started = Date.now();
+  var second = actionMasterGetAll({}, { role: 'Admin' });
+  Logger.log(JSON.stringify({ firstMs: firstMs, cachedMs: Date.now() - started, characters: JSON.stringify(second).length,
+    tables: Object.keys(first.master).length }));
 }
 
 // ========================================================

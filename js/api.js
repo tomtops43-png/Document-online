@@ -77,6 +77,13 @@ const API = {
         const msg = String(err && err.message || '');
         const isNetwork = err.name === 'AbortError' || err instanceof TypeError || /^HTTP (408|429|5\d\d)/.test(msg) || msg.indexOf('Failed to fetch') >= 0;
         if (!isNetwork || attempt === maxRetry) throw err;
+        if (err instanceof TypeError && options.method === 'GET' && action) {
+          const original = new URL(url);
+          const payload = Object.fromEntries(original.searchParams);
+          delete payload._;
+          url = original.origin + original.pathname;
+          options = { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) };
+        }
         await new Promise(function (r) { setTimeout(r, 1000 * Math.pow(2, attempt)); });
       } finally {
         clearTimeout(timer);

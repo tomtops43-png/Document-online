@@ -25,6 +25,17 @@ context.LockService = {getScriptLock:()=>({waitLock(){},releaseLock(){}})};
 context.readMaster = name => name === 'M_Document' ? [doc] : master.M_Revision;
 assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'rev02',reason:'update'},{}).success,false);
 assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:''},{}).success,false);
+const cacheTest = vm.createContext({});
+vm.runInContext(fs.readFileSync(path.join(root,'gas/Code.gs'),'utf8'),cacheTest);
+let masterOpens=0, masterReads=0, masterVersion='1'; const cacheValues=new Map();
+cacheTest.getMasterVersion=()=>masterVersion;
+cacheTest.getMasterSS=()=>{masterOpens++;return {};};
+cacheTest.readMaster=()=>{masterReads++;return [];};
+cacheTest.CacheService={getScriptCache:()=>({get:key=>cacheValues.get(key),put:(key,value)=>cacheValues.set(key,value)})};
+cacheTest.Utilities={newBlob:text=>({getBytes:()=>Buffer.from(text)})};
+cacheTest.actionMasterGetAll({},{});cacheTest.actionMasterGetAll({},{});
+assert.equal(masterOpens,1);assert.equal(masterReads,Object.keys(cacheTest.MASTER_SHEET_DEFS).length);
+masterVersion='2';cacheTest.actionMasterGetAll({},{});assert.equal(masterOpens,2);
 
 (async () => {
   const server = http.createServer((req,res) => {
@@ -39,12 +50,16 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     browser = await chromium.launch({channel:'msedge',headless:true});
     const page = await browser.newPage({viewport:{width:1280,height:900}});
     const errors=[]; page.on('pageerror', e=>errors.push(e.message));
-    let writes = [], failMaster = false, failUsers = false, masterCalls = 0;
+    let writes = [], failMaster = false, failUsers = false, failMasterGetOnly = false, masterPostFallbacks = 0, masterCalls = 0;
     await page.route('https://**/*', async route => {
       const req = route.request();
       if (!req.url().includes('script.google.com')) return route.abort();
       const payload = req.method()==='POST'?JSON.parse(req.postData()):Object.fromEntries(new URL(req.url()).searchParams);
       if (payload.action === 'master.getAll') masterCalls++;
+      if (failMasterGetOnly && payload.action === 'master.getAll') {
+        if (req.method() === 'GET') return route.abort();
+        masterPostFallbacks++;
+      }
       if (failMaster && payload.action === 'master.getAll') return route.abort();
       if (failUsers && payload.action === 'user.list') return route.abort();
       if (payload.action === 'doc.addRevision') writes.push(payload);
@@ -136,6 +151,10 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     assert.match(await page.locator('#library-error').innerText(),/ข้อมูลที่เคยโหลดไว้/);
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
     failMaster = false;
+    failMasterGetOnly = true;
+    await page.evaluate(()=>Master._fetch());
+    assert.equal(masterPostFallbacks,1);
+    failMasterGetOnly = false;
     failUsers = true;
     await page.goto(base+'/users.html');
     await page.waitForFunction(()=>document.querySelector('#btn-reload-users').disabled === false);
