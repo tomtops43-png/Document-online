@@ -13,6 +13,7 @@ const AppShell = {
     { key: 'home', href: 'home.html', icon: '📊', label: 'Dashboard', roles: ['Admin', 'DocControl', 'Leader', 'QI'] },
     { key: 'dashboard', href: 'dashboard.html', icon: '🏭', label: 'Document Center' },
     { key: 'wi', href: 'documents.html', icon: '📖', label: 'เอกสาร WI' },
+    { key: 'quality', href: 'documents.html?mode=quality', icon: '📑', label: 'เอกสารควบคุมคุณภาพ' },
     { key: 'search', href: 'search.html', icon: '🔍', label: 'ค้นหา' },
     { key: 'records', href: 'records.html', icon: '📋', label: 'บันทึก / อนุมัติ' }
   ],
@@ -22,7 +23,7 @@ const AppShell = {
   ],
   PAGE_TITLES: {
     home: 'Dashboard', dashboard: 'Document Center', search: 'ค้นหา',
-    records: 'บันทึก / อนุมัติ', wi: 'เอกสาร WI', admin: 'ควบคุมเอกสาร', users: 'จัดการผู้ใช้งาน'
+    records: 'บันทึก / อนุมัติ', wi: 'เอกสาร WI', quality: 'เอกสารควบคุมคุณภาพ', admin: 'ควบคุมเอกสาร', users: 'จัดการผู้ใช้งาน'
   },
 
   _notifLoaded: false,

@@ -77,6 +77,14 @@ assert.equal(context.actionDocAddRevision({doc_id:'WI-1',rev_no:'Rev03',reason:'
     await page.goto(base+'/documents.html');await page.waitForSelector('#document-groups table');
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+    master.M_DocType.push({doctype_id:'first-piece',display_name_th:'First Piece',behavior:'form'});
+    master.M_Document.push({...doc,doc_id:'FP-1',doctype_id:'first-piece',doc_name:'First Piece quality'});
+    master.M_Revision.push({doc_id:'FP-1',rev_id:'FP-1:Rev01',rev_no:'Rev01',status:'CURRENT',content_ref:'templates/nms-first-piece-rev1.json'});
+    await page.goto(base+'/documents.html?mode=quality');
+    await page.waitForSelector('#document-groups table');
+    assert.equal(await page.locator('#document-groups tbody tr').count(),1);
+    assert.equal(await page.locator('#library-title').innerText(),'เอกสารควบคุมคุณภาพ');
+    assert.match(await page.locator('#document-groups a:has-text("พิมพ์ฟอร์ม")').getAttribute('href'),/rev_id=FP-1%3ARev01/);
     assert.deepEqual(errors,[]);
     await page.evaluate(()=>localStorage.setItem('fp_user',JSON.stringify({name:'Operator',role:'Operator'})));
     await page.goto(base+'/documents.html?mode=control');await page.waitForURL(base+'/documents.html');

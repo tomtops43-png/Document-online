@@ -1,6 +1,11 @@
 // One registry: WI is a filtered reading view; control groups every document type.
 const DocumentLibrary = {
   control: new URLSearchParams(location.search).get('mode') === 'control',
+  quality: new URLSearchParams(location.search).get('mode') === 'quality',
+
+  includesType(type) {
+    return this.control || (this.quality ? !!type && type.behavior === 'form' : this.isWI(type));
+  },
 
   isWI(type) {
     return !!type && (String(type.doctype_id).toLowerCase() === 'wi' ||
@@ -15,7 +20,7 @@ const DocumentLibrary = {
     const stationDocs = station ? Master.documentsForStation(station, line).map(d => String(d.doc_id)) : null;
     return (Master.data.M_Document || []).filter(d => {
       if (['DELETED', 'INACTIVE', 'DISABLED'].includes(String(d.status).toUpperCase())) return false;
-      if (!this.control && !this.isWI(Master.docType(d.doctype_id))) return false;
+      if (!this.includesType(Master.docType(d.doctype_id))) return false;
       if (category && String(d.doctype_id) !== category) return false;
       if (line && String(d.line_id) !== line && String(d.line_id) !== '*') return false;
       if (stationDocs && !stationDocs.includes(String(d.doc_id))) return false;
@@ -27,8 +32,8 @@ const DocumentLibrary = {
     const category = document.getElementById('doc-category');
     const line = document.getElementById('doc-line');
     const oldCategory = category.value, oldLine = line.value;
-    category.replaceChildren(new Option(this.control ? 'ทุกหมวด' : 'WI', ''));
-    Master.docTypes().filter(t => this.control || this.isWI(t)).forEach(t =>
+    category.replaceChildren(new Option(this.control || this.quality ? 'ทุกหมวด' : 'WI', ''));
+    Master.docTypes().filter(t => this.includesType(t)).forEach(t =>
       category.add(new Option(t.display_name_th || t.doctype_name, t.doctype_id)));
     category.value = oldCategory;
     line.replaceChildren(new Option('ทุกไลน์', ''));
@@ -84,6 +89,9 @@ const DocumentLibrary = {
         const number = document.createElement('small'); number.textContent = d.doc_no || d.doc_id; tr.children[0].appendChild(number);
         const cell = document.createElement('td'), actions = document.createElement('div'); actions.className = 'document-actions';
         this.link(actions, 'ดู / ประวัติ Rev', 'viewer.html?doc_id=' + encodeURIComponent(d.doc_id));
+        if (this.quality && rev && type && type.behavior === 'form') {
+          this.link(actions, 'ดู / พิมพ์ฟอร์ม', 'print.html?form=' + encodeURIComponent(d.doc_id) + '&rev_id=' + encodeURIComponent(rev.rev_id), true);
+        }
         const ref = String(rev && rev.content_ref || '');
         if (ref && type && type.behavior === 'file' && /^[\w-]+$/.test(ref)) {
           this.link(actions, 'ดาวน์โหลด', 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(ref), true);
@@ -111,7 +119,12 @@ const DocumentLibrary = {
   async init() {
     const user = Auth.requireLogin(); if (!user) return;
     if (this.control && !Auth.hasRole(['Admin', 'DocControl'])) { location.replace('documents.html'); return; }
-    AppShell.init(this.control ? 'admin' : 'wi');
+    AppShell.init(this.control ? 'admin' : this.quality ? 'quality' : 'wi');
+    if (this.quality) {
+      document.title = 'เอกสารควบคุมคุณภาพ — ENC QMS';
+      document.getElementById('library-title').textContent = 'เอกสารควบคุมคุณภาพ';
+      document.getElementById('library-help').textContent = 'รวมแบบฟอร์มควบคุมคุณภาพ First Piece, Checklist และแบบตรวจอื่น ๆ — เลือกดูหรือพิมพ์ฉบับปัจจุบัน และดูประวัติ Revision';
+    }
     if (this.control) {
       document.title = 'ควบคุมเอกสาร — ENC QMS';
       document.getElementById('library-title').textContent = 'ควบคุมเอกสาร';
