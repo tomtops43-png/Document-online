@@ -16,19 +16,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
-<link rel="stylesheet" href="css/users.css">
 </head>
 <body>
 
-<main class="container container-wide users-page">
+<main class="container container-wide">
 
   <div class="card">
     <div class="section-heading">
       <h2>👥 ผู้ใช้งานระบบ</h2>
-      <div class="users-actions"><button type="button" class="btn-secondary" id="btn-reload-users">รีเฟรชรายชื่อ</button><button type="button" class="btn-primary" id="btn-add-user">＋ เพิ่มผู้ใช้ใหม่</button></div>
+      <button type="button" class="btn-primary" style="min-height:44px;font-size:15px;padding:10px 18px" id="btn-add-user">＋ เพิ่มผู้ใช้ใหม่</button>
     </div>
-    <p id="users-load-status" class="users-status" role="status" aria-live="polite" hidden></p>
-    <p class="modal-hint">
+    <p class="modal-hint" style="margin-top:-6px">
       กำหนดสิทธิ์ตามตำแหน่ง (Role) — สิทธิ์ของแต่ละ Role มาจากชีท M_Permission ใน ENC-MASTER
       ปิดสวิตช์ = ระงับบัญชีทันที (ผู้ใช้จะหลุดจากระบบและล็อกอินไม่ได้จนกว่าจะเปิดใหม่)</p>
     <div class="table-scroll">
@@ -102,39 +100,20 @@ function avatarColor(id) {
 }
 
 (async function () {
-  if (!user || user.role !== 'Admin') return;
-  const status = document.getElementById('users-load-status');
-  const retry = document.getElementById('btn-reload-users');
-  const refresh = async function () {
-  retry.disabled = true;
-  status.hidden = false;
-  status.dataset.state = 'loading';
-  status.textContent = 'กำลังโหลดรายชื่อผู้ใช้…';
+  Loading.show('กำลังโหลด...');
   try {
-    const usersRequest = loadUsers();
-    const masterRequest = Master.load().then(function () {
+    await Master.load();
     fillRoleSelect();
     fillLineSelect();
     renderPermTable();
-    });
-    const results = await Promise.allSettled([usersRequest, masterRequest]);
-    const failed = results.find(result => result.status === 'rejected');
-    if (failed) throw failed.reason;
-    status.textContent = '';
-    status.hidden = true;
+    await loadUsers();
   } catch (err) {
-    status.dataset.state = 'error';
-    status.textContent = /Failed to fetch|NetworkError|Load failed/.test(err.message)
-      ? 'ยังเชื่อมต่อระบบไม่ได้ กรุณากดรีเฟรชรายชื่อเพื่อลองอีกครั้ง'
-      : 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
-    if (!usersData.length) document.getElementById('user-rows').innerHTML =
-      '<tr><td colspan="5" class="empty-hint">ยังไม่สามารถแสดงรายชื่อผู้ใช้ได้</td></tr>';
+    showToast('โหลดไม่สำเร็จ: ' + err.message, 'error');
+    document.getElementById('user-rows').innerHTML =
+      '<tr><td colspan="5" class="empty-hint">' + esc(err.message) + '</td></tr>';
   } finally {
-    retry.disabled = false;
+    Loading.hide();
   }
-  };
-  retry.addEventListener('click', refresh);
-  await refresh();
 })();
 
 function fillRoleSelect() {
@@ -144,12 +123,11 @@ function fillRoleSelect() {
     return '<option value="' + esc(r.role_id) + '">' + esc(r.display_name_th || r.role_name) + ' (' + esc(r.role_id) + ')</option>';
   }).join('');
   el.value = 'Operator';
-  el.onchange = updateRoleHint;
+  el.addEventListener('change', updateRoleHint);
   updateRoleHint();
 }
 function fillLineSelect() {
   const el = document.getElementById('u-line');
-  el.replaceChildren(new Option('— ไม่ระบุ —', ''));
   Master.lines().forEach(function (l) {
     const o = document.createElement('option');
     o.value = l.line_name; o.textContent = l.display_name;
@@ -171,7 +149,7 @@ const ACTION_TH = {
 };
 function permsOfRole(roleId) {
   return (Master.data.M_Permission || []).filter(function (p) {
-    return String(p.role_id) === String(roleId) && (p.action !== 'document.manage' || roleId === 'Admin');
+    return String(p.role_id) === String(roleId);
   }).map(function (p) {
     let t = ACTION_TH[p.action] || p.action;
     if (p.scope_line && p.scope_line !== '*') t += ' (เฉพาะ ' + p.scope_line + ')';
@@ -197,7 +175,7 @@ function renderPermTable() {
 }
 
 async function loadUsers() {
-  const res = await API.get('user.list', {});
+  const res = await API.post('user.list', {});
   usersData = res.users || [];
   renderUsers();
 }

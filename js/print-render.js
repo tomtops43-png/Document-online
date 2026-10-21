@@ -83,11 +83,7 @@ const PrintRender = {
       // id เป็น doc_id ของทะเบียนเอกสาร?
       const doc = Master.document(id);
       if (doc) {
-        const requestedRev = new URLSearchParams(location.search).get('rev_id');
-        const rev = requestedRev
-          ? Master.revisions(doc.doc_id).find(function (r) { return String(r.rev_id) === requestedRev; })
-          : Master.currentRevision(doc.doc_id);
-        if (requestedRev && !rev) throw new Error('ไม่พบ Revision ของเอกสารนี้');
+        const rev = Master.currentRevision(doc.doc_id);
         if (rev && /\.json$/.test(String(rev.content_ref))) {
           return loadTemplate(null, rev.content_ref);
         }

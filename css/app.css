@@ -910,5 +910,3 @@ body.has-shell .app-bar { display: none; }
   display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 14px; font-size: 14px; color: var(--text-soft);
 }
 .table-pagination button:disabled { opacity: .4; cursor: not-allowed; }
-/* Hide revision sources even when .field declares a display layout. */
-#revision-template[hidden], #revision-file-upload[hidden] { display: none; }

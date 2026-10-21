@@ -25,13 +25,6 @@ const Master = {
   },
 
   async _fetch() {
-    if (this._pending) return this._pending;
-    this._pending = this._fetchOnce();
-    try { return await this._pending; }
-    finally { this._pending = null; }
-  },
-
-  async _fetchOnce() {
     const res = await API.get('master.getAll', {});
     this.data = res.master;
     this.version = res.master_version;
@@ -54,10 +47,8 @@ const Master = {
 
   _refreshInBackground() {
     const self = this;
-    const oldVersion = self.version;
-    self._fetch().then(function () {
-      const res = { master: self.data, master_version: self.version };
-      if (String(res.master_version) !== String(oldVersion)) {
+    API.get('master.getAll', {}).then(function (res) {
+      if (String(res.master_version) !== String(self.version)) {
         self.data = res.master;
         self.version = res.master_version;
         try {
