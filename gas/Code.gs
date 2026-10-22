@@ -1164,8 +1164,8 @@ function getMasterSS() {
 }
 
 // อ่านทั้งชีทจาก master เป็น array ของ object
-function readMaster(sheetName) {
-  var ss = getMasterSS();
+function readMaster(sheetName, masterSpreadsheet) {
+  var ss = masterSpreadsheet || getMasterSS();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
   var values = sheet.getDataRange().getValues();
@@ -1243,11 +1243,12 @@ function actionMasterRecover(params, user) {
 
 function actionMasterGetAll(params, user) {
   var data = {};
+  var ss = getMasterSS();
   // ทิ้งเฉพาะแถวที่ปิดใช้งานจริงๆ — ห้ามทิ้ง CURRENT/OBSOLETE (M_Revision ใช้ค่าเหล่านี้)
   // viewer ต้องเห็น OBSOLETE เพื่อดูประวัติ revision ด้วย
   var DROP = { 'INACTIVE': 1, 'DELETED': 1, 'DISABLED': 1 };
   Object.keys(MASTER_SHEET_DEFS).forEach(function (name) {
-    data[name] = readMaster(name).filter(function (r) {
+    data[name] = readMaster(name, ss).filter(function (r) {
       return !('status' in r) || !DROP[String(r.status).toUpperCase()];
     });
   });
