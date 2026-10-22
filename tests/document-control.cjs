@@ -27,13 +27,19 @@ const master = {
     browser = await chromium.launch({channel:'msedge',headless:true});
     const page = await browser.newPage({viewport:{width:1280,height:900}});
     const errors=[]; page.on('pageerror', e=>errors.push(e.message));
-    let writes = [], failMaster = false, failUsers = false, failMasterGetOnly = false, masterPostFallbacks = 0, masterCalls = 0, pdfRequests = 0;
+    let writes = [], failMaster = false, failUsers = false, failMasterGetOnly = false, masterPostFallbacks = 0, masterCalls = 0, pdfRequests = 0, recoveryRequests = 0, recoveryFailure = true;
     await page.route('https://**/*', async route => {
       const req = route.request();
       if (!req.url().includes('script.google.com')) return route.abort();
       const payload = req.method()==='POST'?JSON.parse(req.postData()):Object.fromEntries(new URL(req.url()).searchParams);
       if (payload.action === 'master.getAll') masterCalls++;
       if (payload.action === 'doc.getPdf') pdfRequests++;
+      if (payload.action === 'master.recover') {
+        recoveryRequests++;
+        if (recoveryFailure) return route.fulfill({json:{success:false,error:'TEST_RECOVERY_FAILURE'}});
+        failMaster = false;
+        return route.fulfill({json:{success:true,documents:master.M_Document.length}});
+      }
       if (failMasterGetOnly && payload.action === 'master.getAll') {
         if (req.method() === 'GET') return route.abort();
         masterPostFallbacks++;
@@ -129,6 +135,21 @@ const master = {
     await page.locator('#library-error').waitFor({state:'visible',timeout:20000});
     assert.match(await page.locator('#library-error').innerText(),/ข้อมูลที่เคยโหลดไว้/);
     assert.equal(await page.locator('#document-groups tbody tr').count(),2);
+    assert.equal(await page.locator('#master-recovery').isVisible(),true);
+    await page.click('#recover-master');
+    assert.equal(await page.locator('#recovery-confirm').isVisible(),true);
+    assert.equal(recoveryRequests,0);
+    await page.click('#cancel-recovery');
+    assert.equal(recoveryRequests,0);
+    await page.click('#recover-master');await page.click('#confirm-recovery');
+    await page.waitForFunction(()=>!document.querySelector('#confirm-recovery').disabled);
+    assert.match(await page.locator('#recovery-status').innerText(),/TEST_RECOVERY_FAILURE/);
+    assert.equal(recoveryRequests,1);
+    recoveryFailure = false;
+    await page.click('#confirm-recovery');
+    await page.waitForSelector('#master-recovery',{state:'hidden'});
+    assert.equal(recoveryRequests,2);
+    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('fp_master_before_recovery')).M_Document.length),master.M_Document.length);
     failMaster = false;
     failMasterGetOnly = true;
     await page.evaluate(()=>Master._fetch());

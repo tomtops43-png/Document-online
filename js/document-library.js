@@ -223,19 +223,43 @@ const DocumentLibrary = {
       document.getElementById(id).addEventListener(id === 'doc-query' ? 'input' : 'change', () => { if (id !== 'doc-station') this.fillStations(); this.render(); }));
     document.getElementById('doc-line').addEventListener('change', () => { this.fillStations(); this.render(); });
     document.getElementById('reload-documents').addEventListener('click', () => this.reload());
-    document.getElementById('recover-master').onclick = async function () {
-      if (!confirm('สร้าง ENC-MASTER ใหม่จากข้อมูลสำรองที่แสดง และเปลี่ยนระบบมาใช้ฐานใหม่นี้? ไฟล์เดิมจะคงอยู่ แต่ข้อมูลนอกสำรองจะยังไม่ถูกกู้')) return;
+    document.getElementById('recover-master').onclick = () => {
+      document.getElementById('recovery-confirm').hidden = false;
+      document.getElementById('recover-master').hidden = true;
+      document.getElementById('recovery-status').textContent = 'กรุณากดยืนยันกู้ระบบด้านบนเพื่อเริ่มทำงาน';
+    };
+    document.getElementById('cancel-recovery').onclick = () => {
+      document.getElementById('recovery-confirm').hidden = true;
+      document.getElementById('recover-master').hidden = false;
+      document.getElementById('recovery-status').textContent = 'ยกเลิกแล้ว ยังไม่มีการเปลี่ยนฐานข้อมูล';
+    };
+    document.getElementById('confirm-recovery').onclick = async function () {
+      if (this.disabled) return;
+      const status = document.getElementById('recovery-status');
+      const cancel = document.getElementById('cancel-recovery');
       this.disabled = true;
+      cancel.disabled = true;
+      const started = Date.now();
+      status.textContent = 'กำลังสำรองข้อมูลและส่งคำขอกู้ระบบ…';
+      let restored = false;
+      const timer = setInterval(() => { if (!restored) status.textContent = 'กำลังสร้างฐานใหม่และนำเข้าข้อมูล… ' + Math.floor((Date.now() - started) / 1000) + ' วินาที กรุณาเปิดหน้านี้ไว้'; }, 1000);
       try {
         const snapshot = JSON.parse(JSON.stringify(Master.data));
         localStorage.setItem('fp_master_before_recovery', JSON.stringify(snapshot));
-        await API.post('master.recover', { master: snapshot });
+        const result = await API.post('master.recover', { master: snapshot });
+        restored = true;
+        clearInterval(timer);
+        status.textContent = result.already_available ? 'ฐานข้อมูลพร้อมใช้งานแล้ว กำลังตรวจข้อมูลล่าสุด…' : 'สร้างฐานใหม่สำเร็จแล้ว กำลังตรวจข้อมูลล่าสุด…';
         await Master._fetch();
         document.getElementById('master-recovery').hidden = true;
         showToast('เชื่อมต่อฐานข้อมูลสำเร็จแล้ว', 'success');
         await DocumentLibrary.reload();
-      } catch (err) { document.getElementById('library-error').textContent = 'กู้ระบบไม่สำเร็จ: ' + err.message; }
-      finally { this.disabled = false; }
+      } catch (err) {
+        status.textContent = (restored ? 'สร้าง/เชื่อมฐานแล้ว แต่ตรวจข้อมูลล่าสุดยังไม่ผ่าน กรุณากดรีเฟรชฉบับล่าสุด: ' : 'กู้ระบบยังไม่สำเร็จ: ') + err.message;
+        if (err.name === 'QuotaExceededError') status.textContent = 'พื้นที่เก็บสำรองในเครื่องไม่พอ จึงยังไม่ส่งคำขอกู้ระบบ กรุณาเก็บสำเนาข้อมูลก่อน';
+        const error = document.getElementById('library-error'); error.hidden = false; error.textContent = status.textContent;
+      }
+      finally { clearInterval(timer); this.disabled = false; cancel.disabled = false; }
     };
     document.addEventListener('master-updated', () => { this.fillFilters(); this.render(); });
     await this.reload();

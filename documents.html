@@ -33,6 +33,12 @@
       <p id="recovery-summary"></p>
       <p>สร้าง ENC-MASTER ใหม่ในบัญชีที่รันระบบ โดยไม่แก้หรือลบไฟล์เดิม ข้อมูลที่ไม่ได้อยู่ในสำรองจะยังไม่ถูกกู้ และสิทธิ์ PDF เดิมอาจต้องจัดการแยก</p>
       <button type="button" class="btn-primary" id="recover-master">สร้างฐานใหม่จากข้อมูลสำรองนี้</button>
+      <div id="recovery-confirm" hidden>
+        <p>ยืนยันใช้ข้อมูลสำรองตามจำนวนด้านบนสร้างฐานใหม่ และเปลี่ยนระบบมาใช้ฐานใหม่นี้หรือไม่?</p>
+        <button type="button" class="btn-primary" id="confirm-recovery">ยืนยันกู้ระบบ</button>
+        <button type="button" class="btn-secondary" id="cancel-recovery">ยกเลิก</button>
+      </div>
+      <p id="recovery-status" role="status" aria-live="polite"></p>
     </section>
   </section>
   <div id="document-groups"></div>
